@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using OpenMediaServer.Interfaces.Repositories;
 
 namespace OpenMediaServer.Repositories;
@@ -20,6 +21,16 @@ public class FileSystemRepository : IStorageRepository
     public async Task<string> ReadText(string path)
     {
         return await File.ReadAllTextAsync(path);
+    }
+
+    public async Task WriteObject<T>(string path, T item)
+    {
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(item));
+    }
+
+    public async Task<T> ReadObject<T>(string path)
+    {
+        return JsonSerializer.Deserialize<T>(await File.ReadAllTextAsync(path));
     }
 
     // public async Task WriteData()

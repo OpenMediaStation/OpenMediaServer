@@ -1,4 +1,5 @@
 using System;
+using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 
@@ -7,10 +8,12 @@ namespace OpenMediaServer.Services;
 public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
+    private readonly IStorageRepository _storageRepository;
 
-    public InventoryService(ILogger<InventoryService> logger)
+    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository)
     {
         _logger = logger;
+        _storageRepository = storageRepository;
     }
 
     public void CreateFromPaths(IEnumerable<string> paths)
@@ -52,19 +55,32 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public void AddItem<T>(T item) where T : InventoryItem
+    public async void AddItem<T>(T item) where T : InventoryItem
     {
-        CreateFilesIfNeeded(item);
+        await CreateFilesIfNeeded(item);
 
-        
+        var movies = await _storageRepository.ReadObject<IEnumerable<T>>(GetPath(item));
+        if (!movies.Any(i => i.Title == item.Title))
+        {
+            movies = movies.Append(item);
+            await _storageRepository.WriteObject(GetPath(item), movies);
+        }
     }
 
-    private void CreateFilesIfNeeded(InventoryItem item)
+    private async Task CreateFilesIfNeeded(InventoryItem item)
     {
-        string path = Path.Join(Globals.ConfigFolder, item.Category + ".json");
+        var path = GetPath(item);
         if (!File.Exists(path))
         {
-            File.Create(path);
+            using var stream = File.Create(path);
+            TextWriter textWriter = new StreamWriter(stream);
+            await textWriter.WriteAsync("[]");
+            textWriter.Close();
         }
+    }
+
+    private string GetPath(InventoryItem item)
+    {
+        return Path.Join(Globals.ConfigFolder, item.Category + ".json");
     }
 }
