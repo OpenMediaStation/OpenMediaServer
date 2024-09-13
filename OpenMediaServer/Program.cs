@@ -1,4 +1,6 @@
 using OpenMediaServer;
+using OpenMediaServer.Endpoints;
+using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Repositories;
@@ -12,6 +14,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
 builder.Services.AddSingleton<IStorageRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
+builder.Services.AddSingleton<IMovieEndpoints, MovieEndpoints>();
 
 var app = builder.Build();
 
@@ -31,18 +34,7 @@ var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>(
 contentDiscoveryService?.ActiveScan(Globals.DataFolder);
 contentDiscoveryService?.Watch(Globals.DataFolder);
 
-app.MapGet("/video", () =>  
-{  
-    string path = "/home/lna-dev/Downloads/Don't Hex the Water.webm";
-  
-    return Results.Stream(new FileStream(path, FileMode.Open), enableRangeProcessing: true, contentType: "video/webm");
-});
-
-app.MapGet("/video2", () =>  
-{  
-    string path = "/home/lna-dev/Downloads/100 Sachen.mp4";
-  
-    return Results.Stream(new FileStream(path, FileMode.Open), enableRangeProcessing: true, contentType: "video/mp4");
-});
+var movieEndpoints = app.Services.GetService<IMovieEndpoints>();
+movieEndpoints?.Map(app);
 
 app.Run();
