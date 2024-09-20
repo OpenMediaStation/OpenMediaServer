@@ -20,7 +20,7 @@ public class InventoryService : IInventoryService
     {
         foreach (var path in paths)
         {
-            var temp = path.Replace(Globals.DataFolder, "");
+            var temp = path.Replace(Globals.MediaFolder, "");
 
             var parts = new List<string>();
 

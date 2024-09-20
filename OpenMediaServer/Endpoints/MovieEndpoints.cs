@@ -12,7 +12,7 @@ public class MovieEndpoints : IMovieEndpoints
 
     public IResult GetData(string name)
     {
-        string path = Path.Combine(Globals.DataFolder, "Movies", name);
+        string path = Path.Combine(Globals.MediaFolder, "Movies", name);
 
         return Results.Stream(new FileStream(path, FileMode.Open), enableRangeProcessing: true, contentType: "video/webm");
     }

@@ -27,12 +27,13 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 
-Globals.ConfigFolder = "/home/lna-dev/Downloads/config";
-Globals.DataFolder = "/home/lna-dev/Downloads/video";
+
+Globals.ConfigFolder = Environment.GetEnvironmentVariable("CONFIG_PATH") ?? "/config";
+Globals.MediaFolder = Environment.GetEnvironmentVariable("MEDIA_PATH") ?? "/media";
 
 var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
-contentDiscoveryService?.ActiveScan(Globals.DataFolder);
-contentDiscoveryService?.Watch(Globals.DataFolder);
+contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
+contentDiscoveryService?.Watch(Globals.MediaFolder);
 
 var movieEndpoints = app.Services.GetService<IMovieEndpoints>();
 movieEndpoints?.Map(app);

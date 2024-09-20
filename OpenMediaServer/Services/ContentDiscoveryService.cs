@@ -41,6 +41,6 @@ public class ContentDiscoveryService : IContentDiscoveryService
     {
         _logger.LogDebug("FileSystem changed");
 
-        ActiveScan(Globals.DataFolder);
+        ActiveScan(Globals.MediaFolder);
     }
 }
