@@ -28,9 +28,6 @@ app.UseHttpsRedirection();
 
 
 
-Globals.ConfigFolder = Environment.GetEnvironmentVariable("CONFIG_PATH") ?? "/config";
-Globals.MediaFolder = Environment.GetEnvironmentVariable("MEDIA_PATH") ?? "/media";
-
 var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
 contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
 contentDiscoveryService?.Watch(Globals.MediaFolder);
