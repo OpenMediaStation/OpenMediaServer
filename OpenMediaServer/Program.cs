@@ -18,14 +18,12 @@ builder.Services.AddSingleton<IMovieEndpoints, MovieEndpoints>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.UseHttpsRedirection();
-
 
 
 var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
