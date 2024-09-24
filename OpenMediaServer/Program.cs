@@ -1,5 +1,7 @@
 using OpenMediaServer;
+using OpenMediaServer.APIs;
 using OpenMediaServer.Endpoints;
+using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -15,6 +17,9 @@ builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>
 builder.Services.AddSingleton<IStorageRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
 builder.Services.AddSingleton<IMovieEndpoints, MovieEndpoints>();
+builder.Services.AddSingleton<IMetadataAPI, OMDbAPI>();
+
+builder.Services.AddHttpClient<IMetadataAPI, OMDbAPI>();
 
 var app = builder.Build();
 

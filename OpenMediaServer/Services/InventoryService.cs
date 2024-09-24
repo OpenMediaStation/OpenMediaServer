@@ -1,4 +1,5 @@
 using System;
+using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -9,14 +10,18 @@ public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
     private readonly IStorageRepository _storageRepository;
+    private readonly IMetadataAPI _metadataAPI;
+    private readonly IConfiguration _configuration;
 
-    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository)
+    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository, IMetadataAPI metadataAPI, IConfiguration configuration)
     {
         _logger = logger;
         _storageRepository = storageRepository;
+        _metadataAPI = metadataAPI;
+        _configuration = configuration;
     }
 
-    public void CreateFromPaths(IEnumerable<string> paths)
+    public async void CreateFromPaths(IEnumerable<string> paths)
     {
         foreach (var path in paths)
         {
@@ -36,7 +41,8 @@ public class InventoryService : IInventoryService
             {
                 var movie = new Movie();
                 movie.Path = path;
-                movie.Title = parts[1];
+                movie.Title = parts[1].Split(".").FirstOrDefault();
+                movie.Metadata = await _metadataAPI.GetMetadata(movie.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
 
                 AddItem(movie);
             }
