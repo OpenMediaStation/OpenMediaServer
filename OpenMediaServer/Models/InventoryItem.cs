@@ -8,5 +8,4 @@ public class InventoryItem
     public string? Title { get; set; }
     public string Path { get; set; }
     public virtual string Category { get; set; }
-    public MetadataModel? Metadata { get; set; }
 }

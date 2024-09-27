@@ -17,7 +17,7 @@ public class OMDbAPI : IMetadataAPI
         _httpClient = httpClient;
     }
 
-    public async Task<MetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false)
+    public async Task<MovieMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false)
     {
         if (string.IsNullOrEmpty(apiKey))
         {

@@ -1,6 +1,7 @@
 using System;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Endpoints;
 
