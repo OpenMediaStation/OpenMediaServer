@@ -33,39 +33,29 @@ public class ApiEndpoints : IApiEndpoints
 
     public async Task<IResult> ListItems(string category)
     {
-        try
-        {
-            var items = await _inventoryService.ListItems(category);
+        var items = await _inventoryService.ListItems(category);
 
+        if (items != null && items.Any())
+        {
             return Results.Ok(items);
         }
-        catch (FileNotFoundException fileEx)
+        else
         {
-            _logger.LogWarning(fileEx, "Category could not be found");
-
             return Results.NotFound("Category not found");
         }
     }
 
     public async Task<IResult> GetItem(string category, Guid id)
-    {
-        try
-        {
-            var item = await _inventoryService.GetItem(id: id, category: category);
+    {            
+        var item = await _inventoryService.GetItem(id: id, category: category);
 
+        if ( item != null)
+        {
             return Results.Ok(item);
         }
-        catch (ArgumentException argEx)
+        else
         {
-            _logger.LogWarning(argEx, "Id could not be found in category");
-
             return Results.NotFound("Id not found in category");
-        }
-        catch (FileNotFoundException fileEx)
-        {
-            _logger.LogWarning(fileEx, "Category could not be found to retrieve id");
-
-            return Results.NotFound("Category not found");
         }
     }
 }

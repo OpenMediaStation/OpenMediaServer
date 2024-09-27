@@ -1,4 +1,3 @@
-using System;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 
@@ -22,9 +21,14 @@ public class StreamingEndpoints : IStreamingEndpoints
         group.MapGet("/{category}/{id}", StreamContent);
     }
 
-    public async Task<IResult> StreamContent(string id, string category)
+    public async Task<IResult> StreamContent(Guid id, string category)
     {
-        using var stream = await _streamingService.GetMediaStream(id, category);
+        var stream = await _streamingService.GetMediaStream(id, category);
+
+        if (stream == null)
+        {
+            return Results.NotFound("Id not found in category");
+        }
 
         return Results.Stream(stream, enableRangeProcessing: true, contentType: "video/webm"); // TODO content type
     }

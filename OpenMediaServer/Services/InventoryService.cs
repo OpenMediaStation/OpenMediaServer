@@ -30,27 +30,51 @@ public class InventoryService : IInventoryService
         return fileNames;
     }
 
-    public async Task<IEnumerable<InventoryItem>> ListItems(string category)
+    public async Task<IEnumerable<InventoryItem>?> ListItems(string category)
     {
-        var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-        var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+        try
+        {
+            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+            var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
 
-        return items;
+            return items;
+        }
+        catch (FileNotFoundException fileEx)
+        {
+            _logger.LogWarning(fileEx, "Category could not be found");
+
+            return null;
+        }
     }
 
-    public async Task<InventoryItem> GetItem(Guid id, string category)
+    public async Task<InventoryItem?> GetItem(Guid id, string category)
     {
-        var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-        var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
-        var possibleItems = items?.Where(i => i.Id == id);
-
-        if (possibleItems == null || possibleItems.Count() != 1)
+        try
         {
-            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
-            throw new ArgumentException("No id found in category");
-        }
+            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+            var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+            var possibleItems = items?.Where(i => i.Id == id);
 
-        return possibleItems.First();
+            if (possibleItems == null || possibleItems.Count() != 1)
+            {
+                _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
+                throw new ArgumentException("No id found in category");
+            }
+
+            return possibleItems.First();
+        }
+        catch (ArgumentException argEx)
+        {
+            _logger.LogWarning(argEx, "Id could not be found in category");
+
+            return null;
+        }
+        catch (FileNotFoundException fileEx)
+        {
+            _logger.LogWarning(fileEx, "Category could not be found to retrieve id");
+
+            return null;
+        }
     }
 
     public async void CreateFromPaths(IEnumerable<string> paths)
