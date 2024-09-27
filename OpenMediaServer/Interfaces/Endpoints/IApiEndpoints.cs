@@ -2,7 +2,7 @@ using System;
 
 namespace OpenMediaServer.Interfaces.Endpoints;
 
-public interface IMovieEndpoints
+public interface IApiEndpoints
 {
     public void Map(WebApplication app);
 }

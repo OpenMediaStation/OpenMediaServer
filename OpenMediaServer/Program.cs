@@ -16,26 +16,25 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
 builder.Services.AddSingleton<IStorageRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
-builder.Services.AddSingleton<IMovieEndpoints, MovieEndpoints>();
+builder.Services.AddSingleton<IStreamingService, StreamingService>();
 builder.Services.AddSingleton<IMetadataAPI, OMDbAPI>();
+builder.Services.AddSingleton<IApiEndpoints, ApiEndpoints>();
+builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 
 builder.Services.AddHttpClient<IMetadataAPI, OMDbAPI>();
 
 var app = builder.Build();
 
-
 app.UseSwagger();
 app.UseSwaggerUI();
 
-
 app.UseHttpsRedirection();
-
 
 var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
 contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
 contentDiscoveryService?.Watch(Globals.MediaFolder);
 
-var movieEndpoints = app.Services.GetService<IMovieEndpoints>();
-movieEndpoints?.Map(app);
+app.Services.GetService<IApiEndpoints>()?.Map(app);
+app.Services.GetService<IStreamingEndpoints>()?.Map(app);
 
 app.Run();

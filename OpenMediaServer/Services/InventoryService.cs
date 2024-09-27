@@ -21,6 +21,21 @@ public class InventoryService : IInventoryService
         _configuration = configuration;
     }
 
+    public async Task<IEnumerable<string>> ListCategories()
+    {
+        return new List<string> {  }; // TODO Implement
+    }
+
+    public async Task<IEnumerable<InventoryItem>> ListItems(string category)
+    {
+        return new List<InventoryItem> {  }; // TODO Implement
+    }
+
+    public async Task<InventoryItem> GetItem(string id, string category)
+    {
+        return new InventoryItem(); // TODO Implement
+    }
+
     public async void CreateFromPaths(IEnumerable<string> paths)
     {
         foreach (var path in paths)
