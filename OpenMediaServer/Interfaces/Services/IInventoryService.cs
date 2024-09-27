@@ -10,5 +10,5 @@ public interface IInventoryService
     public void CreateFromPaths(IEnumerable<string> paths);
     public Task<IEnumerable<string>> ListCategories();
     public Task<IEnumerable<InventoryItem>> ListItems(string category);
-    public Task<InventoryItem> GetItem(string id, string category);
+    public Task<InventoryItem> GetItem(Guid id, string category);
 }

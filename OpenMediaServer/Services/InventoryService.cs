@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -23,17 +24,33 @@ public class InventoryService : IInventoryService
 
     public async Task<IEnumerable<string>> ListCategories()
     {
-        return new List<string> {  }; // TODO Implement
+        var files = Directory.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
+        var fileNames = files.Select(i => i.Split("/").Last().Replace(".json", ""));
+
+        return fileNames;
     }
 
     public async Task<IEnumerable<InventoryItem>> ListItems(string category)
     {
-        return new List<InventoryItem> {  }; // TODO Implement
+        var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+        var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+
+        return items;
     }
 
-    public async Task<InventoryItem> GetItem(string id, string category)
+    public async Task<InventoryItem> GetItem(Guid id, string category)
     {
-        return new InventoryItem(); // TODO Implement
+        var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+        var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+        var possibleItems = items?.Where(i => i.Id == id);
+
+        if (possibleItems == null || possibleItems.Count() != 1)
+        {
+            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
+            throw new ArgumentException("No id found in category");
+        }
+
+        return possibleItems.First();
     }
 
     public async void CreateFromPaths(IEnumerable<string> paths)
