@@ -80,11 +80,11 @@ public class InventoryService : IInventoryService
     {
         await CreateFilesIfNeeded(item);
 
-        var movies = await _storageRepository.ReadObject<IEnumerable<T>>(GetPath(item));
-        if (!movies.Any(i => i.Title == item.Title))
+        var items = await _storageRepository.ReadObject<IEnumerable<T>>(GetPath(item));
+        if (!items.Any(i => i.Title == item.Title))
         {
-            movies = movies.Append(item);
-            await _storageRepository.WriteObject(GetPath(item), movies);
+            items = items.Append(item);
+            await _storageRepository.WriteObject(GetPath(item), items);
         }
     }
 
@@ -93,7 +93,9 @@ public class InventoryService : IInventoryService
         var path = GetPath(item);
         if (!File.Exists(path))
         {
-            using var stream = File.Create(path);
+            FileInfo file = new FileInfo(path);
+            file.Directory?.Create();
+            var stream = file.Create();
             TextWriter textWriter = new StreamWriter(stream);
             await textWriter.WriteAsync("[]");
             textWriter.Close();
@@ -102,6 +104,6 @@ public class InventoryService : IInventoryService
 
     private string GetPath(InventoryItem item)
     {
-        return Path.Join(Globals.ConfigFolder, item.Category + ".json");
+        return Path.Join(Globals.ConfigFolder, "inventory", item.Category + ".json");
     }
 }
