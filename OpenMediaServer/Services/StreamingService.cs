@@ -1,5 +1,6 @@
 using System;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
@@ -18,7 +19,7 @@ public class StreamingService : IStreamingService
     {
         _logger.LogDebug("Streaming in category: {Category} id: {Id}", category, id);
 
-        var item = await _inventoryService.GetItem(id, category);
+        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
 
         if (item == null)
         {

@@ -30,12 +30,12 @@ public class InventoryService : IInventoryService
         return fileNames;
     }
 
-    public async Task<IEnumerable<InventoryItem>?> ListItems(string category)
+    public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
     {
         try
         {
             var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-            var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
 
             return items;
         }
@@ -47,12 +47,12 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task<InventoryItem?> GetItem(Guid id, string category)
+    public async Task<T?> GetItem<T>(Guid id, string category) where T : InventoryItem
     {
         try
         {
             var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-            var items = JsonSerializer.Deserialize<IEnumerable<InventoryItem>>(text);
+            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
             var possibleItems = items?.Where(i => i.Id == id);
 
             if (possibleItems == null || possibleItems.Count() != 1)

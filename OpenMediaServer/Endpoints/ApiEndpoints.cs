@@ -21,7 +21,8 @@ public class ApiEndpoints : IApiEndpoints
         var group = app.MapGroup("/api");
 
         group.MapGet("/categories", ListCategories);
-        group.MapGet("/items", ListItems);
+        group.MapGet("/items", ListItems); 
+        group.MapGet("/movie", GetMovie); 
         group.MapGet("/item", GetItem);
     }
 
@@ -34,7 +35,7 @@ public class ApiEndpoints : IApiEndpoints
 
     public async Task<IResult> ListItems(string category)
     {
-        var items = await _inventoryService.ListItems(category);
+        var items = await _inventoryService.ListItems<InventoryItem>(category);
 
         if (items != null && items.Any())
         {
@@ -48,7 +49,7 @@ public class ApiEndpoints : IApiEndpoints
 
     public async Task<IResult> GetItem(string category, Guid id)
     {            
-        var item = await _inventoryService.GetItem(id: id, category: category);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id, category: category);
 
         if ( item != null)
         {
@@ -57,6 +58,20 @@ public class ApiEndpoints : IApiEndpoints
         else
         {
             return Results.NotFound("Id not found in category");
+        }
+    }
+
+    public async Task<IResult> GetMovie(Guid id)
+    {            
+        var item = await _inventoryService.GetItem<Movie>(id: id, category: "Movie");
+
+        if ( item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in movies");
         }
     }
 }
