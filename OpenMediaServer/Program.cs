@@ -11,6 +11,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure logging
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Verbose()
     .WriteTo.Console()
@@ -19,6 +20,7 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// Add services to the container
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -32,7 +34,19 @@ builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 
 builder.Services.AddHttpClient<IMetadataAPI, OMDbAPI>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyHeader()
+               .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
+
+app.UseCors("AllowAll");
 
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -49,5 +63,3 @@ app.Services.GetService<IStreamingEndpoints>()?.Map(app);
 app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
 
 app.Run();
-
-Log.CloseAndFlush();
