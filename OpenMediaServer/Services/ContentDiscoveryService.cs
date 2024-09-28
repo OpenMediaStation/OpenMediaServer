@@ -14,13 +14,13 @@ public class ContentDiscoveryService : IContentDiscoveryService
         _inventoryService = inventoryService;
     }
 
-    public void ActiveScan(string path)
+    public async Task ActiveScan(string path)
     {
         List<string> dirs = new List<string>(Directory.EnumerateDirectories(path));
-        _inventoryService.CreateFromPaths(Directory.EnumerateFiles(path));
+        await _inventoryService.CreateFromPaths(Directory.EnumerateFiles(path));
         foreach (string dir in dirs)
         {
-            ActiveScan(dir);
+            await ActiveScan(dir);
         }
     }
 
@@ -41,6 +41,6 @@ public class ContentDiscoveryService : IContentDiscoveryService
     {
         _logger.LogDebug("FileSystem changed");
 
-        ActiveScan(Globals.MediaFolder);
+        ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
     }
 }

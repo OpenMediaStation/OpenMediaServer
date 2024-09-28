@@ -1,4 +1,3 @@
-using System;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -23,12 +22,15 @@ public class ApiEndpoints : IApiEndpoints
         group.MapGet("/categories", ListCategories);
         group.MapGet("/items", ListItems); 
         group.MapGet("/movie", GetMovie); 
+        group.MapGet("/show", GetShow); 
+        group.MapGet("/episode", GetEpisode); 
+        group.MapGet("/season", GetSeason); 
         group.MapGet("/item", GetItem);
     }
 
-    public async Task<IResult> ListCategories()
+    public IResult ListCategories()
     {
-        var categories = await _inventoryService.ListCategories();
+        var categories = _inventoryService.ListCategories();
 
         return Results.Ok(categories);
     }
@@ -72,6 +74,48 @@ public class ApiEndpoints : IApiEndpoints
         else
         {
             return Results.NotFound("Id not found in movies");
+        }
+    }
+
+    public async Task<IResult> GetShow(Guid id)
+    {            
+        var item = await _inventoryService.GetItem<Show>(id: id, category: "Show");
+
+        if ( item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in shows");
+        }
+    }
+
+    public async Task<IResult> GetEpisode(Guid id)
+    {            
+        var item = await _inventoryService.GetItem<Episode>(id: id, category: "Episode");
+
+        if ( item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in episodes");
+        }
+    }
+
+    public async Task<IResult> GetSeason(Guid id)
+    {            
+        var item = await _inventoryService.GetItem<Season>(id: id, category: "Season");
+
+        if ( item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in seasons");
         }
     }
 }

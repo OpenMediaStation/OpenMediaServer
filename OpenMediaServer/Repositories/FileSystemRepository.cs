@@ -30,7 +30,8 @@ public class FileSystemRepository : IStorageRepository
 
     public async Task<T> ReadObject<T>(string path)
     {
-        return JsonSerializer.Deserialize<T>(await File.ReadAllTextAsync(path));
+        var text = await File.ReadAllTextAsync(path);
+        return JsonSerializer.Deserialize<T>(text);
     }
 
     // public async Task WriteData()

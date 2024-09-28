@@ -5,5 +5,5 @@ namespace OpenMediaServer.Interfaces.APIs;
 
 public interface IMetadataAPI
 {
-    public Task<MovieMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false);
+    public Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false);
 }

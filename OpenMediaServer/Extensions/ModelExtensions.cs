@@ -6,9 +6,9 @@ namespace OpenMediaServer.Extensions;
 
 public static class ModelExtensions
 {
-    public static MovieMetadataModel ToMetadataItem(this OMDbModel model)
+    public static MovieShowMetadataModel ToMetadataItem(this OMDbModel model)
     {
-        var metadataItem = new MovieMetadataModel()
+        var metadataItem = new MovieShowMetadataModel()
         {
             Title = model.Title,
             Year = model.Year,

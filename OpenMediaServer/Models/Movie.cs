@@ -5,5 +5,5 @@ namespace OpenMediaServer.Models;
 public class Movie : InventoryItem
 {
     public override string Category => "Movie";
-    public MovieMetadataModel? Metadata { get; set; }
+    public MovieShowMetadataModel? Metadata { get; set; }
 }

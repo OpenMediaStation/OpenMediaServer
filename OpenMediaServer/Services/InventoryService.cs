@@ -22,7 +22,7 @@ public class InventoryService : IInventoryService
         _configuration = configuration;
     }
 
-    public async Task<IEnumerable<string>> ListCategories()
+    public IEnumerable<string> ListCategories()
     {
         var files = Directory.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
         var fileNames = files.Select(i => i.Split("/").Last().Replace(".json", ""));
@@ -77,7 +77,44 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async void CreateFromPaths(IEnumerable<string> paths)
+    public async Task<T?> GetItemByName<T>(string? name, string category) where T : InventoryItem
+    {
+        _logger.LogTrace("Getting item by name");
+
+        if (name == null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
+            var possibleItems = items?.Where(i => i.Title == name);
+
+            if (possibleItems == null || possibleItems.Count() != 1)
+            {
+                _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
+                throw new ArgumentException("No id found in category");
+            }
+
+            return possibleItems.First();
+        }
+        catch (ArgumentException argEx)
+        {
+            _logger.LogWarning(argEx, "Id could not be found in category");
+
+            return null;
+        }
+        catch (FileNotFoundException fileEx)
+        {
+            _logger.LogWarning(fileEx, "Category could not be found to retrieve id");
+
+            return null;
+        }
+    }
+
+    public async Task CreateFromPaths(IEnumerable<string> paths)
     {
         foreach (var path in paths)
         {
@@ -93,31 +130,87 @@ public class InventoryService : IInventoryService
                 }
             }
 
-            if (parts[0] == "Movies")
+            switch (parts[0])
             {
-                var movie = new Movie();
-                movie.Path = path;
-                movie.Title = parts[1].Split(".").FirstOrDefault();
-                movie.Metadata = await _metadataAPI.GetMetadata(movie.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
+                case "Movies":
+                    {
+                        var movie = new Movie();
+                        movie.Id = Guid.NewGuid();
+                        movie.Path = path;
+                        movie.Title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
+                        movie.Metadata = await _metadataAPI.GetMetadata(movie.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
 
-                AddItem(movie);
-            }
-            else
-            {
-                _logger.LogWarning("Unknown category {CategoryName}", parts[0]);
+                        await AddItem(movie);
+                        break;
+                    }
+
+                case "Shows":
+                    {
+                        // Show
+                        var show = await GetItemByName<Show>(parts[1], "Show");
+
+                        if (show == null)
+                        {
+                            show = new Show(); ;
+                            show.Id = Guid.NewGuid();
+
+                            show.Title = parts[1];
+                            show.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title);
+                            show.Metadata = await _metadataAPI.GetMetadata(show.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
+
+                            await AddItem(show);
+                        }
+
+                        // Season
+                        var season = await GetItemByName<Season>(parts[2], "Season");
+
+                        if (season == null)
+                        {
+                            season = new Season();
+                            season.Id = Guid.NewGuid();
+
+                            season.ShowId = show.Id;
+                            season.Title = parts[2];
+                            season.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title, season.Title);
+
+                            await AddItem(season);
+                        }
+
+                        // Episode
+                        var title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
+                        var episode = await GetItemByName<Episode>(title, "Episode");
+
+                        if (episode == null)
+                        {
+                            episode = new Episode();
+                            episode.Id = Guid.NewGuid();
+
+                            episode.SeasonId = season.Id;
+                            episode.Title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
+                            episode.Path = path;
+
+                            await AddItem(episode);
+                        }
+
+                        break;
+                    }
+
+                default:
+                    _logger.LogWarning("Unknown category {CategoryName}", parts[0]);
+                    break;
             }
         }
     }
 
-    public void AddItems(IEnumerable<InventoryItem> items)
+    public async Task AddItems(IEnumerable<InventoryItem> items)
     {
         foreach (var item in items)
         {
-            AddItem(item);
+            await AddItem(item);
         }
     }
 
-    public async void AddItem<T>(T item) where T : InventoryItem
+    public async Task AddItem<T>(T item) where T : InventoryItem
     {
         await CreateFilesIfNeeded(item);
 
@@ -127,6 +220,24 @@ public class InventoryService : IInventoryService
             items = items.Append(item);
             await _storageRepository.WriteObject(GetPath(item), items);
         }
+    }
+
+    public async Task Update<T>(T item) where T : InventoryItem
+    {
+        await CreateFilesIfNeeded(item);
+
+        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
+
+        var existingItem = items.FirstOrDefault(i => i.Title == item.Title);
+
+        if (existingItem != null)
+        {
+            items.Remove(existingItem);
+        }
+
+        items.Add(item);
+
+        await _storageRepository.WriteObject(GetPath(item), items);
     }
 
     private async Task CreateFilesIfNeeded(InventoryItem item)
