@@ -7,8 +7,17 @@ using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Repositories;
 using OpenMediaServer.Services;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Verbose()
+    .WriteTo.Console()
+    .WriteTo.File("/config/logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -37,4 +46,8 @@ contentDiscoveryService?.Watch(Globals.MediaFolder);
 app.Services.GetService<IApiEndpoints>()?.Map(app);
 app.Services.GetService<IStreamingEndpoints>()?.Map(app);
 
+app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
+
 app.Run();
+
+Log.CloseAndFlush();

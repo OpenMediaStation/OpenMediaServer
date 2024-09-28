@@ -1,4 +1,3 @@
-using System;
 using System.Text.Json;
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
