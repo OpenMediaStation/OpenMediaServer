@@ -17,7 +17,7 @@ public class OMDbAPI : IMetadataAPI
         _httpClient = httpClient;
     }
 
-    public async Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false)
+    public async Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null)
     {
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -32,7 +32,7 @@ public class OMDbAPI : IMetadataAPI
             plot = "full";
         }
 
-        var message = await _httpClient.GetAsync($"http://www.omdbapi.com/?apikey={apiKey}&t={name}&plot={plot}");
+        var message = await _httpClient.GetAsync($"http://www.omdbapi.com/?apikey={apiKey}&t={name}&plot={plot}{(string.IsNullOrEmpty(year) ? string.Empty : $"&y={year}")}");
 
         if (message.IsSuccessStatusCode)
         {

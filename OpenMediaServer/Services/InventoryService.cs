@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -123,31 +124,38 @@ public class InventoryService : IInventoryService
     {
         _logger.LogTrace("Creating from path");
 
+        var pathRegex = new Regex(
+            @"(?<category>(Movies)|(Shows)|[a-zA-Z])/.*?(?<folderTitle>[ a-zA-Z0-9()]*)?/?(?<seasonFolder>([sS]taffel)|([Ss]eason)|([Ss])[0-9]+)?/?(?<title>([ a-zA-Z0-9]+?))((S(?<season>[0-9]*))(E(?<episode>[0-9]+)))?(\((?<year>\d{4})\))?(-(?<fileInfo>.*))?\.(?<extension>\S{3})$", 
+            RegexOptions.Compiled
+            );
+        
         foreach (var path in paths)
         {
-            var temp = path.Replace(Globals.MediaFolder, "");
-
-            var parts = new List<string>();
-
-            foreach (var part in temp.Split("/"))
+            var match = pathRegex.Match(path);
+            if(!match.Success)
             {
-                if (!string.IsNullOrEmpty(part))
-                {
-                    parts.Add(part);
-                }
+                _logger.LogError("Invalid path: {Path}", path);
+                continue;
             }
+            var groups = match.Groups;
 
-            switch (parts[0])
+            switch (groups["category"].Value)
             {
                 case "Movies":
                     {
                         _logger.LogDebug("Movie detected");
 
-                        var movie = new Movie();
-                        movie.Id = Guid.NewGuid();
-                        movie.Path = path;
-                        movie.Title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
-                        movie.Metadata = await _metadataAPI.GetMetadata(movie.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
+                        var movie = new Movie()
+                        {
+                            Id = Guid.NewGuid(),
+                            Path = path,
+                            Title = groups["title"].Value
+                        };
+                        
+                        movie.Metadata = await _metadataAPI.GetMetadata(
+                            name: movie.Title, 
+                            apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                            year: groups["year"].Value);
 
                         await AddItem(movie);
                         break;
@@ -158,14 +166,14 @@ public class InventoryService : IInventoryService
                         _logger.LogDebug("Show detected");
 
                         // Show
-                        var show = await GetItemByName<Show>(parts[1], "Show");
+                        var show = await GetItemByName<Show>(groups["folderTitle"].Value, "Show");
 
                         if (show == null)
                         {
                             show = new Show(); ;
                             show.Id = Guid.NewGuid();
 
-                            show.Title = parts[1];
+                            show.Title = groups["folderTitle"].Value;
                             show.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title);
                             show.Metadata = await _metadataAPI.GetMetadata(show.Title, _configuration.GetValue<string>("OpenMediaServer:OMDbKey"));
 
@@ -173,7 +181,7 @@ public class InventoryService : IInventoryService
                         }
 
                         // Season
-                        var season = await GetItemByName<Season>(parts[2], "Season");
+                        var season = await GetItemByName<Season>(groups["season"].Value, "Season");
 
                         if (season == null)
                         {
@@ -181,14 +189,14 @@ public class InventoryService : IInventoryService
                             season.Id = Guid.NewGuid();
 
                             season.ShowId = show.Id;
-                            season.Title = parts[2];
-                            season.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title, season.Title);
+                            season.Title = groups["season"].Value;
+                            season.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title, groups["seasonFolder"].Value);
 
                             await AddItem(season);
                         }
 
                         // Episode
-                        var title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
+                        var title = groups["title"].Value;
                         var episode = await GetItemByName<Episode>(title, "Episode");
 
                         if (episode == null)
@@ -197,8 +205,9 @@ public class InventoryService : IInventoryService
                             episode.Id = Guid.NewGuid();
 
                             episode.SeasonId = season.Id;
-                            episode.Title = parts.LastOrDefault()?.Split(".").FirstOrDefault();
+                            episode.Title = groups["title"].Value;
                             episode.Path = path;
+                            episode.EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : 0;
 
                             await AddItem(episode);
                         }
@@ -207,7 +216,7 @@ public class InventoryService : IInventoryService
                     }
 
                 default:
-                    _logger.LogWarning("Unknown category {CategoryName}", parts[0]);
+                    _logger.LogWarning("Unknown category {CategoryName}", groups["category"].Value);
                     break;
             }
         }
