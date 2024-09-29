@@ -99,6 +99,12 @@ public class InventoryService : IInventoryService
 
             return possibleItems.First();
         }
+        catch (DirectoryNotFoundException dirEx)
+        {
+            _logger.LogWarning(dirEx, "Directory could not be found");
+
+            return null;
+        }
         catch (ArgumentException argEx)
         {
             _logger.LogWarning(argEx, "Id could not be found in category");
@@ -115,6 +121,8 @@ public class InventoryService : IInventoryService
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
     {
+        _logger.LogTrace("Creating from path");
+
         foreach (var path in paths)
         {
             var temp = path.Replace(Globals.MediaFolder, "");
@@ -133,6 +141,8 @@ public class InventoryService : IInventoryService
             {
                 case "Movies":
                     {
+                        _logger.LogDebug("Movie detected");
+
                         var movie = new Movie();
                         movie.Id = Guid.NewGuid();
                         movie.Path = path;
@@ -145,6 +155,8 @@ public class InventoryService : IInventoryService
 
                 case "Shows":
                     {
+                        _logger.LogDebug("Show detected");
+
                         // Show
                         var show = await GetItemByName<Show>(parts[1], "Show");
 

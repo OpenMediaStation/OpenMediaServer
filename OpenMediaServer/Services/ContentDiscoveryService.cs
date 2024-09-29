@@ -20,6 +20,8 @@ public class ContentDiscoveryService : IContentDiscoveryService
         await _inventoryService.CreateFromPaths(Directory.EnumerateFiles(path));
         foreach (string dir in dirs)
         {
+            _logger.LogDebug("Scanning dir: {Dir}", dir);
+
             await ActiveScan(dir);
         }
     }

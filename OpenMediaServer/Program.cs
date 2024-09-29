@@ -54,7 +54,7 @@ app.UseSwaggerUI();
 app.UseHttpsRedirection();
 
 var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
-contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
+await contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
 contentDiscoveryService?.Watch(Globals.MediaFolder);
 
 app.Services.GetService<IApiEndpoints>()?.Map(app);
