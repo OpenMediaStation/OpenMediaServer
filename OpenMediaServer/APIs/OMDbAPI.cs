@@ -1,4 +1,5 @@
 using System;
+using System.Web;
 using OpenMediaServer.DTOs;
 using OpenMediaServer.Extensions;
 using OpenMediaServer.Interfaces.APIs;
@@ -17,7 +18,7 @@ public class OMDbAPI : IMetadataAPI
         _httpClient = httpClient;
     }
 
-    public async Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null)
+    public async Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null, string type = "movie")
     {
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -32,7 +33,15 @@ public class OMDbAPI : IMetadataAPI
             plot = "full";
         }
 
-        var message = await _httpClient.GetAsync($"http://www.omdbapi.com/?apikey={apiKey}&t={name}&plot={plot}{(string.IsNullOrEmpty(year) ? string.Empty : $"&y={year}")}");
+        var query = HttpUtility.ParseQueryString(string.Empty);
+        query["apikey"] = apiKey;
+        query["t"] = name;
+        query["plot"] = plot;
+        query["type"] = type; //Accepted types: movie, series, episode
+        if (!string.IsNullOrEmpty(year))
+            query["year"] = year;
+        
+        var message = await _httpClient.GetAsync($"http://www.omdbapi.com/?{query}");
 
         if (message.IsSuccessStatusCode)
         {
