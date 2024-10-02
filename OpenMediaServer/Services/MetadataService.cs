@@ -149,14 +149,43 @@ public class MetadataService : IMetadataService
     {
         var metadatas = await _storageRepository.ReadObject<IEnumerable<MetadataModel>>(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json");
 
-        if (metadatas == null)
-        {
-            metadatas = new List<MetadataModel>();
-        }
+        metadatas ??= [];
 
         return metadatas;
     }
 
-    // TODO Get metadata
-    // TODO Update metadata
+    public async Task<MetadataModel?> GetMetadata(string category, Guid id)
+    {
+        var metadatas = await _storageRepository.ReadObject<IEnumerable<MetadataModel>>(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json");
+
+        var metadata = metadatas?.FirstOrDefault(x => x.Id == id);
+
+        return metadata;
+    }
+
+    public async Task<bool> UpdateOrAddMetadata(MetadataModel metadataModel)
+    {
+        if (metadataModel.Category == null)
+        {
+            return false;
+        }
+
+        var metadatas = (await ListMetadata(metadataModel.Category)).ToList();
+
+        var existingMetadata = metadatas.FirstOrDefault(m => m.Id == metadataModel.Id);
+
+        if (existingMetadata != null)
+        {
+            var index = metadatas.IndexOf(existingMetadata);
+            metadatas[index] = metadataModel;
+        }
+        else
+        {
+            metadatas.Add(metadataModel);
+        }
+
+        await _storageRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "metadata", metadataModel.Category) + ".json", metadatas);
+
+        return true;
+    }
 }

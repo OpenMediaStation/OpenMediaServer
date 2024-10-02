@@ -30,6 +30,7 @@ builder.Services.AddSingleton<IInventoryService, InventoryService>();
 builder.Services.AddSingleton<IStreamingService, StreamingService>();
 builder.Services.AddSingleton<IOmdbAPI, OMDbAPI>();
 builder.Services.AddSingleton<IApiEndpoints, ApiEndpoints>();
+builder.Services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
 builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
 
@@ -60,6 +61,7 @@ contentDiscoveryService?.Watch(Globals.MediaFolder);
 
 app.Services.GetService<IApiEndpoints>()?.Map(app);
 app.Services.GetService<IStreamingEndpoints>()?.Map(app);
+app.Services.GetService<IMetadataEndpoints>()?.Map(app);
 
 app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
 
