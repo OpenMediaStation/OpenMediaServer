@@ -28,11 +28,12 @@ builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>
 builder.Services.AddSingleton<IStorageRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
 builder.Services.AddSingleton<IStreamingService, StreamingService>();
-builder.Services.AddSingleton<IMetadataAPI, OMDbAPI>();
+builder.Services.AddSingleton<IOmdbAPI, OMDbAPI>();
 builder.Services.AddSingleton<IApiEndpoints, ApiEndpoints>();
 builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
+builder.Services.AddSingleton<IMetadataService, MetadataService>();
 
-builder.Services.AddHttpClient<IMetadataAPI, OMDbAPI>();
+builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 
 builder.Services.AddCors(options =>
 {

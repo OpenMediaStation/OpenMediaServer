@@ -18,14 +18,8 @@ public class ContentDiscoveryService : IContentDiscoveryService
     {
         string[] mediaExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".mp3", ".aac", ".wav", ".flac" };
         var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(n=> mediaExtensions.Contains(Path.GetExtension(n),StringComparer.InvariantCultureIgnoreCase));
-        // List<string> dirs = new List<string>(Directory.EnumerateDirectories(path));
-         await _inventoryService.CreateFromPaths(files);
-        // foreach (string file in files)
-        // {
-        //     _logger.LogDebug("Scanning file: {file}", file);
-        //
-        //     await ActiveScan(file);
-        // }
+         
+        await _inventoryService.CreateFromPaths(files);
     }
 
     public void Watch(string path)

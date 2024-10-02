@@ -11,15 +11,15 @@ public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
     private readonly IStorageRepository _storageRepository;
-    private readonly IMetadataAPI _metadataAPI;
     private readonly IConfiguration _configuration;
+    private readonly IMetadataService _metadataService;
 
-    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository, IMetadataAPI metadataAPI, IConfiguration configuration)
+    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository, IConfiguration configuration, IMetadataService metadataService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
-        _metadataAPI = metadataAPI;
         _configuration = configuration;
+        _metadataService = metadataService;
     }
 
     public IEnumerable<string> ListCategories()
@@ -151,15 +151,20 @@ public class InventoryService : IInventoryService
                             Path = path,
                             Title = groups["title"].Value
                         };
-                        
-                        movie.Metadata = await _metadataAPI.GetMetadata(
-                            name: movie.Title, 
-                            apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
-                            year: groups.TryGetValue("year", out var movieTitleYear) ? 
-                                movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
-                                    movieFolderYear.Value : null
-                            );
 
+                        var metadata = await _metadataService.CreateNewMetadata
+                        (
+                            parentId: movie.Id,
+                            title: movie.Title,
+                            category: movie.Category,
+                            year: groups.TryGetValue("year", out var movieTitleYear) ? 
+                                    movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
+                                    movieFolderYear.Value : null
+                        );
+
+                        movie.MetadataId = metadata.Id;
+                            
+                        
                         await AddItem(movie);
                         break;
                     }
@@ -178,12 +183,16 @@ public class InventoryService : IInventoryService
 
                             show.Title = groups["folderTitle"].Value;
                             show.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title);
-                            show.Metadata = await _metadataAPI.GetMetadata(
-                                name: show.Title, 
-                                apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+
+                            var metadata = await _metadataService.CreateNewMetadata
+                            (
+                                parentId: show.Id,
+                                title: show.Title,
                                 year: groups["yearFolder"].Value,
-                                type: "series"
-                                );
+                                category: show.Category
+                            );
+
+                            show.MetadataId = metadata?.Id;
 
                             await AddItem(show);
                         }
@@ -270,6 +279,8 @@ public class InventoryService : IInventoryService
         await _storageRepository.WriteObject(GetPath(item), items);
     }
 
+    // TODO Refactor this
+    // This should not be needed => integrate in storage repo
     private async Task CreateFilesIfNeeded(InventoryItem item)
     {
         var path = GetPath(item);

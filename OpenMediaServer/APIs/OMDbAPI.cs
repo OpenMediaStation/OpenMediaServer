@@ -1,13 +1,12 @@
 using System;
 using System.Web;
 using OpenMediaServer.DTOs;
-using OpenMediaServer.Extensions;
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Models;
 
 namespace OpenMediaServer.APIs;
 
-public class OMDbAPI : IMetadataAPI
+public class OMDbAPI : IOmdbAPI
 {
     private readonly ILogger<OMDbAPI> _logger;
     private readonly HttpClient _httpClient;
@@ -18,7 +17,7 @@ public class OMDbAPI : IMetadataAPI
         _httpClient = httpClient;
     }
 
-    public async Task<MovieShowMetadataModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null, string type = "movie")
+    public async Task<OMDbModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null, string type = "movie")
     {
         if (string.IsNullOrEmpty(apiKey))
         {
@@ -47,7 +46,7 @@ public class OMDbAPI : IMetadataAPI
         {
             var model = await message.Content.ReadFromJsonAsync<OMDbModel>();
 
-            return model?.ToMetadataItem();
+            return model;
         }
         else
         {

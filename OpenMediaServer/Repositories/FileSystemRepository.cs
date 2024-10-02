@@ -15,6 +15,9 @@ public class FileSystemRepository : IStorageRepository
 
     public async Task WriteText(string path, string text)
     {
+        FileInfo file = new FileInfo(path);
+        file.Directory?.Create();
+
         await File.WriteAllTextAsync(path, text);
     }
 
@@ -25,13 +28,29 @@ public class FileSystemRepository : IStorageRepository
 
     public async Task WriteObject<T>(string path, T item)
     {
+        FileInfo file = new FileInfo(path);
+        file.Directory?.Create();
+
         await File.WriteAllTextAsync(path, JsonSerializer.Serialize(item));
     }
 
-    public async Task<T> ReadObject<T>(string path)
+    public async Task<T?> ReadObject<T>(string path)
     {
-        var text = await File.ReadAllTextAsync(path);
-        return JsonSerializer.Deserialize<T>(text);
+        try
+        {
+            var text = await File.ReadAllTextAsync(path);
+            return JsonSerializer.Deserialize<T>(text);
+        }
+        catch (FileNotFoundException fileEx)
+        {
+            _logger.LogDebug(fileEx, "File could not be found");
+            return default;
+        }
+        catch (DirectoryNotFoundException dirEx)
+        {
+            _logger.LogDebug(dirEx, "Directory could not be found");
+            return default;
+        }
     }
 
     // public async Task WriteData()

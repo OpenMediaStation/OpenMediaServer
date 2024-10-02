@@ -1,10 +1,9 @@
 using System;
 
-namespace OpenMediaServer.Models;
+namespace OpenMediaServer.Models.Metadata;
 
-public class MovieShowMetadataModel
+public class MetadataShowModel
 {
-    public string? Title { get; set; }
     public string? Year { get; set; }
     public string? Rated { get; set; }
     public string? Released { get; set; }
@@ -28,5 +27,4 @@ public class MovieShowMetadataModel
     public string? BoxOffice { get; set; }
     public string? Production { get; set; }
     public string? Website { get; set; }
-    public string? Response { get; set; }
 }
