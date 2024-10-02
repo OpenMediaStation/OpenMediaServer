@@ -1,4 +1,3 @@
-using System;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 
@@ -17,7 +16,7 @@ public class StreamingService : IStreamingService
 
     public async Task<Stream?> GetMediaStream(Guid id, string category)
     {
-        _logger.LogDebug("Streaming in category: {Category} id: {Id}", category, id);
+        _logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
         var item = await _inventoryService.GetItem<InventoryItem>(id, category);
 
@@ -31,5 +30,11 @@ public class StreamingService : IStreamingService
         var stream = new FileStream(item.Path, FileMode.Open);
 
         return stream;
+    }
+
+    public async Task<IResult> GetTranscodedMediaStream(Guid id, string category, HttpRequest request, HttpResponse response)
+    {
+        // TODO Live transcoding if possible
+        throw new NotImplementedException();
     }
 }

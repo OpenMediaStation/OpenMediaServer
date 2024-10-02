@@ -21,15 +21,22 @@ public class StreamingEndpoints : IStreamingEndpoints
         group.MapGet("/{category}/{id}", StreamContent);
     }
 
-    public async Task<IResult> StreamContent(Guid id, string category)
+    public async Task<IResult> StreamContent(Guid id, string category, HttpRequest request, HttpResponse response, bool transcode = false)
     {
-        var stream = await _streamingService.GetMediaStream(id, category);
-
-        if (stream == null)
+        if (transcode)
         {
-            return Results.NotFound("Id not found in category");
+            return await _streamingService.GetTranscodedMediaStream(id, category, request, response);
         }
+        else
+        {
+            var stream = await _streamingService.GetMediaStream(id, category);
 
-        return Results.Stream(stream, enableRangeProcessing: true, contentType: "video/webm"); // TODO content type
+            if (stream == null)
+            {
+                return Results.NotFound("Id not found in category");
+            }
+
+            return Results.Stream(stream, enableRangeProcessing: true, contentType: "video/webm"); // TODO content type
+        }
     }
 }
