@@ -198,8 +198,21 @@ public class InventoryService : IInventoryService
                                 SeasonId = season.Id,
                                 Title = title,
                                 Path = path,
-                                EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null
+                                EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null,
+                                SeasonNr = season.SeasonNr
                             };
+
+                            var metadata = await _metadataService.CreateNewMetadata
+                            (
+                                parentId: episode.Id,
+                                title: episode.Title,
+                                year: groups["yearFolder"].Value,
+                                category: episode.Category,
+                                episode: episode.EpisodeNr,
+                                season: episode.SeasonNr
+                            );
+
+                            episode.MetadataId = metadata?.Id;
 
                             await AddItem(episode);
                         }

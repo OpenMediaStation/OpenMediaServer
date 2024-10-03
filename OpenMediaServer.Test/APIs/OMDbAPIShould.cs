@@ -21,7 +21,13 @@ public class OMDbAPIShould
     [Fact]
     public async Task GetMetadata()
     {
-        var model = await Api.GetMetadata("Hunger Games", "");
+        var model = await Api.GetMetadata
+        (
+            name: "Lucifer", 
+            apiKey: "2b55c18b",
+            season: 1,
+            episode: 1
+        );
 
         model.ShouldNotBeNull();
     }

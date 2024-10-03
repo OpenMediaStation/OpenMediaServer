@@ -6,5 +6,5 @@ namespace OpenMediaServer.Interfaces.APIs;
 
 public interface IOmdbAPI
 {
-    public Task<OMDbModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null, string type = "");
+    Task<OMDbModel?> GetMetadata(string name, string? apiKey, bool fullPlot = false, string? year = null, string? type = null, int? season = null, int? episode = null);
 }

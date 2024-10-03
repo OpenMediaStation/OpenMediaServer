@@ -1,6 +1,7 @@
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Models;
 using OpenMediaServer.Models.Metadata;
 
 namespace OpenMediaServer.Services;
@@ -20,7 +21,7 @@ public class MetadataService : IMetadataService
         _storageRepository = storageRepository;
     }
 
-    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null)
+    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null)
     {
         var metadatas = await ListMetadata(category);
 
@@ -101,7 +102,7 @@ public class MetadataService : IMetadataService
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
                             Poster = omdbData?.Poster,
-                            Ratings = omdbData?.Ratings?.ConvertAll(rating => new Models.Rating
+                            Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                             {
                                 Source = rating.Source,
                                 Value = rating.Value
@@ -121,10 +122,54 @@ public class MetadataService : IMetadataService
                     break;
                 }
 
-            // case "Episode":
-            //     {
-            //         break;
-            //     }
+            case "Episode":
+                {
+                    var omdbData = await _omdbAPI.GetMetadata
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                        year: year,
+                        season: season,
+                        episode: episode
+                    );
+
+                    metadata = new MetadataModel()
+                    {
+                        Title = omdbData?.Title,
+                        Episode = new()
+                        {
+                            Year = omdbData?.Year,
+                            Rated = omdbData?.Rated,
+                            Released = omdbData?.Released,
+                            Runtime = omdbData?.Runtime,
+                            Genre = omdbData?.Genre,
+                            Director = omdbData?.Director,
+                            Writer = omdbData?.Writer,
+                            Actors = omdbData?.Actors,
+                            Plot = omdbData?.Plot,
+                            Language = omdbData?.Language,
+                            Country = omdbData?.Country,
+                            Awards = omdbData?.Awards,
+                            Poster = omdbData?.Poster,
+                            Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
+                            {
+                                Source = rating.Source,
+                                Value = rating.Value
+                            }),
+                            Metascore = omdbData?.Metascore,
+                            ImdbRating = omdbData?.ImdbRating,
+                            ImdbVotes = omdbData?.ImdbVotes,
+                            ImdbID = omdbData?.ImdbID,
+                            Type = omdbData?.Type,
+                            DVD = omdbData?.DVD,
+                            BoxOffice = omdbData?.BoxOffice,
+                            Production = omdbData?.Production,
+                            Website = omdbData?.Website,
+                        }
+                    };
+
+                    break;
+                }
 
             default:
                 {
