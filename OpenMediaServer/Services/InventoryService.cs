@@ -9,14 +9,12 @@ public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
     private readonly IFileSystemRepository _storageRepository;
-    private readonly IConfiguration _configuration;
     private readonly IMetadataService _metadataService;
 
-    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IConfiguration configuration, IMetadataService metadataService)
+    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IMetadataService metadataService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
-        _configuration = configuration;
         _metadataService = metadataService;
     }
 
@@ -58,21 +56,16 @@ public class InventoryService : IInventoryService
             return null;
         }
 
-        return possibleItems.First();
+        return possibleItems.FirstOrDefault();
     }
 
-    public async Task<T?> GetItemByName<T>(string? name, string category) where T : InventoryItem
+    public async Task<T?> GetItem<T>(string category, Func<T, bool> predicate) where T : InventoryItem
     {
         _logger.LogTrace("Getting item by name");
 
-        if (name == null)
-        {
-            return null;
-        }
-
         var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
 
-        var possibleItems = items?.Where(i => i.Title == name);
+        var possibleItems = items?.Where(predicate);
 
         if (possibleItems == null || possibleItems.Count() != 1)
         {
@@ -82,24 +75,25 @@ public class InventoryService : IInventoryService
             return null;
         }
 
-        return possibleItems.First();
+        return possibleItems.FirstOrDefault();
     }
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
     {
         _logger.LogTrace("Creating from path");
 
-        var pathRegex = new Regex(
-            @"(?<category>(Movies)|(Shows)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$",
-            RegexOptions.Compiled
-            );
+        var pathRegex = new Regex
+        (
+            pattern: @"(?<category>(Movies)|(Shows)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$",
+            options: RegexOptions.Compiled
+        );
 
         foreach (var path in paths)
         {
             var match = pathRegex.Match(path.Replace(Globals.MediaFolder, string.Empty));
             if (!match.Success)
             {
-                _logger.LogError("Invalid path: {Path}", path);
+                _logger.LogWarning("Invalid path: {Path}", path);
                 continue;
             }
             var groups = match.Groups;
@@ -109,6 +103,14 @@ public class InventoryService : IInventoryService
                 case "Movies":
                     {
                         _logger.LogDebug("Movie detected");
+
+                        var movies = await ListItems<Movie>("Movie");
+                        var doesMovieExist = movies?.Any(i => i.Path == path);
+
+                        if (doesMovieExist ?? false)
+                        {
+                            continue;
+                        }
 
                         var movie = new Movie()
                         {
@@ -139,14 +141,17 @@ public class InventoryService : IInventoryService
                         _logger.LogDebug("Show detected");
 
                         // Show
-                        var show = await GetItemByName<Show>(groups["folderTitle"].Value, "Show");
+                        var showTitle = groups["folderTitle"].Value;
+                        var show = await GetItem<Show>("Show", i => i.Path == Path.Combine(Globals.MediaFolder, "Shows", showTitle));
 
                         if (show == null)
                         {
-                            show = new Show(); ;
-                            show.Id = Guid.NewGuid();
+                            show = new Show
+                            {
+                                Id = Guid.NewGuid(),
+                                Title = showTitle,
+                            };
 
-                            show.Title = groups["folderTitle"].Value;
                             show.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title);
 
                             var metadata = await _metadataService.CreateNewMetadata
@@ -163,35 +168,38 @@ public class InventoryService : IInventoryService
                         }
 
                         // Season
-                        var season = await GetItemByName<Season>(groups["season"].Value, "Season");
+                        var season = await GetItem<Season>("Season", i => i.Path == Directory.GetParent(path)?.FullName);
 
                         if (season == null)
                         {
-                            season = new Season();
-                            season.Id = Guid.NewGuid();
+                            season = new Season
+                            {
+                                Id = Guid.NewGuid(),
 
-                            season.ShowId = show.Id;
-                            season.Title = groups["season"].Value;
-                            season.SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : null;
-                            season.Path = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory();
-                            //Path.Combine(Globals.MediaFolder, "Shows", show.Title, groups["seasonFolder"].Value);
+                                ShowId = show.Id,
+                                Title = groups["seasonFolder"].Value,
+                                SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : null,
+                                Path = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
+                            };
 
                             await AddItem(season);
                         }
 
                         // Episode
                         var title = groups["title"].Value;
-                        var episode = await GetItemByName<Episode>(title, "Episode");
+                        var episode = await GetItem<Episode>("Episode", i => i.Path == path);
 
                         if (episode == null)
                         {
-                            episode = new Episode();
-                            episode.Id = Guid.NewGuid();
+                            episode = new Episode
+                            {
+                                Id = Guid.NewGuid(),
 
-                            episode.SeasonId = season.Id;
-                            episode.Title = groups["title"].Value;
-                            episode.Path = path;
-                            episode.EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null;
+                                SeasonId = season.Id,
+                                Title = title,
+                                Path = path,
+                                EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null
+                            };
 
                             await AddItem(episode);
                         }
@@ -220,10 +228,14 @@ public class InventoryService : IInventoryService
 
         items ??= [];
 
-        if (!items.Any(i => i.Title == item.Title))
+        if (!items.Any(i => i.Id == item.Id))
         {
             items = items.Append(item);
             await _storageRepository.WriteObject(GetPath(item), items);
+        }
+        else
+        {
+            throw new ArgumentException("Item already exists");
         }
     }
 

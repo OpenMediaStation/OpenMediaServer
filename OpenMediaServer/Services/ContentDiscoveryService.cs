@@ -1,4 +1,3 @@
-using System;
 using OpenMediaServer.Interfaces.Services;
 
 namespace OpenMediaServer.Services;
@@ -16,7 +15,7 @@ public class ContentDiscoveryService : IContentDiscoveryService
 
     public async Task ActiveScan(string path)
     {
-        string[] mediaExtensions = new[] { ".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".mp3", ".aac", ".wav", ".flac" };
+        string[] mediaExtensions = [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".mp3", ".aac", ".wav", ".flac", ".webm"];
         var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(n=> mediaExtensions.Contains(Path.GetExtension(n),StringComparer.InvariantCultureIgnoreCase));
          
         await _inventoryService.CreateFromPaths(files);
