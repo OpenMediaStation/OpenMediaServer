@@ -25,7 +25,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
-builder.Services.AddSingleton<IStorageRepository, FileSystemRepository>();
+builder.Services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
 builder.Services.AddSingleton<IStreamingService, StreamingService>();
 builder.Services.AddSingleton<IOmdbAPI, OMDbAPI>();

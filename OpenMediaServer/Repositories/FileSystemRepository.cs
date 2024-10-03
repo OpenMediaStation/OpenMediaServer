@@ -1,10 +1,9 @@
-using System;
 using System.Text.Json;
 using OpenMediaServer.Interfaces.Repositories;
 
 namespace OpenMediaServer.Repositories;
 
-public class FileSystemRepository : IStorageRepository
+public class FileSystemRepository : IFileSystemRepository
 {
     private readonly ILogger<FileSystemRepository> _logger;
 
@@ -53,13 +52,18 @@ public class FileSystemRepository : IStorageRepository
         }
     }
 
-    // public async Task WriteData()
-    // {
+    public IEnumerable<string> GetFiles(string path)
+    {
+        try
+        {
+            var files = Directory.EnumerateFiles(path);
+            return files;
+        }
+        catch (DirectoryNotFoundException dirEx)
+        {
+            _logger.LogDebug(dirEx, "Directory could not be found while getting files");
 
-    // }
-
-    // public async string ReadData()
-    // {
-
-    // }
+            return [];
+        }
+    }
 }

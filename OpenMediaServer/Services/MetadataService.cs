@@ -10,9 +10,9 @@ public class MetadataService : IMetadataService
     private readonly ILogger<MetadataService> _logger;
     private readonly IOmdbAPI _omdbAPI;
     private readonly IConfiguration _configuration;
-    private readonly IStorageRepository _storageRepository;
+    private readonly IFileSystemRepository _storageRepository;
 
-    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IStorageRepository storageRepository)
+    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository)
     {
         _logger = logger;
         _omdbAPI = omdbAPI;

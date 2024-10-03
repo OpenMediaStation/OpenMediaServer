@@ -1,6 +1,4 @@
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -10,11 +8,11 @@ namespace OpenMediaServer.Services;
 public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
-    private readonly IStorageRepository _storageRepository;
+    private readonly IFileSystemRepository _storageRepository;
     private readonly IConfiguration _configuration;
     private readonly IMetadataService _metadataService;
 
-    public InventoryService(ILogger<InventoryService> logger, IStorageRepository storageRepository, IConfiguration configuration, IMetadataService metadataService)
+    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IConfiguration configuration, IMetadataService metadataService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
@@ -24,7 +22,7 @@ public class InventoryService : IInventoryService
 
     public IEnumerable<string> ListCategories()
     {
-        var files = Directory.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
+        var files = _storageRepository.GetFiles(Path.Join(Globals.ConfigFolder, "inventory"));
         var fileNames = files.Select(i => i.Split("/").Last().Replace(".json", ""));
 
         return fileNames;
@@ -32,16 +30,15 @@ public class InventoryService : IInventoryService
 
     public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
     {
-        try
-        {
-            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
+        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
 
+        if (items != null)
+        {
             return items;
         }
-        catch (FileNotFoundException fileEx)
+        else
         {
-            _logger.LogWarning(fileEx, "Category could not be found");
+            _logger.LogWarning("Category could not be found");
 
             return null;
         }
@@ -49,32 +46,19 @@ public class InventoryService : IInventoryService
 
     public async Task<T?> GetItem<T>(Guid id, string category) where T : InventoryItem
     {
-        try
-        {
-            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
-            var possibleItems = items?.Where(i => i.Id == id);
+        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
 
-            if (possibleItems == null || possibleItems.Count() != 1)
-            {
-                _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
-                throw new ArgumentException("No id found in category");
-            }
+        var possibleItems = items?.Where(i => i.Id == id);
 
-            return possibleItems.First();
-        }
-        catch (ArgumentException argEx)
+        if (possibleItems == null || possibleItems.Count() != 1)
         {
-            _logger.LogWarning(argEx, "Id could not be found in category");
+            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
+            _logger.LogWarning("Id could not be found in category");
 
             return null;
         }
-        catch (FileNotFoundException fileEx)
-        {
-            _logger.LogWarning(fileEx, "Category could not be found to retrieve id");
 
-            return null;
-        }
+        return possibleItems.First();
     }
 
     public async Task<T?> GetItemByName<T>(string? name, string category) where T : InventoryItem
@@ -86,38 +70,19 @@ public class InventoryService : IInventoryService
             return null;
         }
 
-        try
-        {
-            var text = await File.ReadAllTextAsync(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-            var items = JsonSerializer.Deserialize<IEnumerable<T>>(text);
-            var possibleItems = items?.Where(i => i.Title == name);
+        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
 
-            if (possibleItems == null || possibleItems.Count() != 1)
-            {
-                _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
-                throw new ArgumentException("No id found in category");
-            }
+        var possibleItems = items?.Where(i => i.Title == name);
 
-            return possibleItems.First();
-        }
-        catch (DirectoryNotFoundException dirEx)
+        if (possibleItems == null || possibleItems.Count() != 1)
         {
-            _logger.LogWarning(dirEx, "Directory could not be found");
+            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
+            _logger.LogWarning("Id could not be found in category");
 
             return null;
         }
-        catch (ArgumentException argEx)
-        {
-            _logger.LogWarning(argEx, "Id could not be found in category");
 
-            return null;
-        }
-        catch (FileNotFoundException fileEx)
-        {
-            _logger.LogWarning(fileEx, "Category could not be found to retrieve id");
-
-            return null;
-        }
+        return possibleItems.First();
     }
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
@@ -125,14 +90,14 @@ public class InventoryService : IInventoryService
         _logger.LogTrace("Creating from path");
 
         var pathRegex = new Regex(
-            @"(?<category>(Movies)|(Shows)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$", 
+            @"(?<category>(Movies)|(Shows)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$",
             RegexOptions.Compiled
             );
-        
+
         foreach (var path in paths)
         {
             var match = pathRegex.Match(path.Replace(Globals.MediaFolder, string.Empty));
-            if(!match.Success)
+            if (!match.Success)
             {
                 _logger.LogError("Invalid path: {Path}", path);
                 continue;
@@ -157,14 +122,14 @@ public class InventoryService : IInventoryService
                             parentId: movie.Id,
                             title: movie.Title,
                             category: movie.Category,
-                            year: groups.TryGetValue("year", out var movieTitleYear) ? 
+                            year: groups.TryGetValue("year", out var movieTitleYear) ?
                                     movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
                                     movieFolderYear.Value : null
                         );
 
-                        movie.MetadataId = metadata.Id;
-                            
-                        
+                        movie.MetadataId = metadata?.Id;
+
+
                         await AddItem(movie);
                         break;
                     }
@@ -207,7 +172,7 @@ public class InventoryService : IInventoryService
 
                             season.ShowId = show.Id;
                             season.Title = groups["season"].Value;
-                            season.SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : 0;
+                            season.SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : null;
                             season.Path = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory();
                             //Path.Combine(Globals.MediaFolder, "Shows", show.Title, groups["seasonFolder"].Value);
 
@@ -226,7 +191,7 @@ public class InventoryService : IInventoryService
                             episode.SeasonId = season.Id;
                             episode.Title = groups["title"].Value;
                             episode.Path = path;
-                            episode.EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : 0;
+                            episode.EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null;
 
                             await AddItem(episode);
                         }
@@ -251,9 +216,10 @@ public class InventoryService : IInventoryService
 
     public async Task AddItem<T>(T item) where T : InventoryItem
     {
-        await CreateFilesIfNeeded(item);
-
         var items = await _storageRepository.ReadObject<IEnumerable<T>>(GetPath(item));
+
+        items ??= [];
+
         if (!items.Any(i => i.Title == item.Title))
         {
             items = items.Append(item);
@@ -263,9 +229,9 @@ public class InventoryService : IInventoryService
 
     public async Task Update<T>(T item) where T : InventoryItem
     {
-        await CreateFilesIfNeeded(item);
-
         var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
+
+        items ??= [];
 
         var existingItem = items.FirstOrDefault(i => i.Title == item.Title);
 
@@ -277,22 +243,6 @@ public class InventoryService : IInventoryService
         items.Add(item);
 
         await _storageRepository.WriteObject(GetPath(item), items);
-    }
-
-    // TODO Refactor this
-    // This should not be needed => integrate in storage repo
-    private async Task CreateFilesIfNeeded(InventoryItem item)
-    {
-        var path = GetPath(item);
-        if (!File.Exists(path))
-        {
-            FileInfo file = new FileInfo(path);
-            file.Directory?.Create();
-            var stream = file.Create();
-            TextWriter textWriter = new StreamWriter(stream);
-            await textWriter.WriteAsync("[]");
-            textWriter.Close();
-        }
     }
 
     private string GetPath(InventoryItem item)
