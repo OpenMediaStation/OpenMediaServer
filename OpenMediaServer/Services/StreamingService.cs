@@ -14,7 +14,7 @@ public class StreamingService : IStreamingService
         _inventoryService = inventoryService;
     }
 
-    public async Task<Stream?> GetMediaStream(Guid id, string category)
+    public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null)
     {
         _logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
@@ -27,7 +27,30 @@ public class StreamingService : IStreamingService
             return null;
         }
 
-        var stream = new FileStream(item.Path, FileMode.Open);
+        Stream stream;
+
+        if (versionId == null)
+        {
+            var playVersion = item.Versions?.FirstOrDefault();
+
+            if (playVersion == null)
+            {
+                return null;
+            }
+
+            stream = new FileStream(playVersion.Path, FileMode.Open);
+        }
+        else
+        {
+            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+
+            if (playVersion == null)
+            {
+                return null;
+            }
+
+            stream = new FileStream(playVersion.Path, FileMode.Open);
+        }
 
         return stream;
     }
