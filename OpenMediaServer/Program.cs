@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IApiEndpoints, ApiEndpoints>();
 builder.Services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
 builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
+builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
 
 builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 

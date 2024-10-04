@@ -11,12 +11,14 @@ public class InventoryService : IInventoryService
     private readonly ILogger<InventoryService> _logger;
     private readonly IFileSystemRepository _storageRepository;
     private readonly IMetadataService _metadataService;
+    private readonly IFileInfoService _fileInfoService;
 
-    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IMetadataService metadataService)
+    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IMetadataService metadataService, IFileInfoService fileInfoService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
         _metadataService = metadataService;
+        _fileInfoService = fileInfoService;
     }
 
     public IEnumerable<string> ListCategories()
@@ -126,13 +128,16 @@ public class InventoryService : IInventoryService
                                 var version = new InventoryItemVersion
                                 {
                                     Id = Guid.NewGuid(),
-                                    Path = path
+                                    Path = path,
                                 };
 
                                 if (existingMovie.Versions?.Any(i => i.Path == path) ?? false)
                                 {
                                     continue;
                                 }
+
+                                // Do this after the path check because a file info will be created
+                                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
 
                                 existingMovie.Versions = existingMovie.Versions?.Append(version);
 
@@ -142,6 +147,7 @@ public class InventoryService : IInventoryService
                             continue;
                         }
 
+                        var versionId = Guid.NewGuid();
                         var movie = new Movie()
                         {
                             Id = Guid.NewGuid(),
@@ -149,8 +155,9 @@ public class InventoryService : IInventoryService
                             [
                                 new()
                                 {
-                                    Id = Guid.NewGuid(),
-                                    Path = path
+                                    Id = versionId,
+                                    Path = path,
+                                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, category))?.Id
                                 }
                             ],
                             Title = title,
@@ -227,6 +234,7 @@ public class InventoryService : IInventoryService
 
                         if (episode == null)
                         {
+                            var versionId = Guid.NewGuid();
                             episode = new Episode
                             {
                                 Id = Guid.NewGuid(),
@@ -237,8 +245,9 @@ public class InventoryService : IInventoryService
                                 [
                                     new()
                                     {
-                                        Id = Guid.NewGuid(),
-                                        Path = path
+                                        Id = versionId,
+                                        Path = path,
+                                        FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
                                     }
                                 ],
                                 EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null,

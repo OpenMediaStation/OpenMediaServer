@@ -14,6 +14,7 @@ public class InventoryServiceShould
     private readonly ILogger<InventoryService> _logger;
     private readonly FileSystemRepoMock _storageRepository;
     private readonly IMetadataService _metadataService;
+    private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
 
     public InventoryServiceShould()
@@ -21,7 +22,8 @@ public class InventoryServiceShould
         _logger = Substitute.For<ILogger<InventoryService>>();
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
-        _inventoryService = new InventoryService(_logger, _storageRepository, _metadataService);
+        _fileInfoService = Substitute.For<IFileInfoService>();
+        _inventoryService = new InventoryService(_logger, _storageRepository, _metadataService, _fileInfoService);
     }
 
     [Theory]
