@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
+using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
@@ -10,12 +11,14 @@ public class InventoryService : IInventoryService
     private readonly ILogger<InventoryService> _logger;
     private readonly IFileSystemRepository _storageRepository;
     private readonly IMetadataService _metadataService;
+    private readonly IFileInfoService _fileInfoService;
 
-    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IMetadataService metadataService)
+    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IMetadataService metadataService, IFileInfoService fileInfoService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
         _metadataService = metadataService;
+        _fileInfoService = fileInfoService;
     }
 
     public IEnumerable<string> ListCategories()
@@ -97,26 +100,68 @@ public class InventoryService : IInventoryService
                 continue;
             }
             var groups = match.Groups;
+            var category = groups["category"].Value;
+            var folderTitle = groups["folderTitle"].Value;
+            var title = groups["title"].Value;
 
-            switch (groups["category"].Value)
+            switch (category)
             {
                 case "Movies":
                     {
                         _logger.LogDebug("Movie detected");
 
                         var movies = await ListItems<Movie>("Movie");
-                        var doesMovieExist = movies?.Any(i => i.Path == path);
+                        var existingMovie = movies?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
 
-                        if (doesMovieExist ?? false)
+                        string? folderPath = null;
+
+                        if (!string.IsNullOrEmpty(folderTitle))
                         {
+                            folderPath = Path.Combine(Globals.MediaFolder, category, folderTitle);
+                            existingMovie = movies?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
+                        }
+
+                        if (existingMovie != null)
+                        {
+                            if (!string.IsNullOrEmpty(folderTitle))
+                            {
+                                var version = new InventoryItemVersion
+                                {
+                                    Id = Guid.NewGuid(),
+                                    Path = path,
+                                };
+
+                                if (existingMovie.Versions?.Any(i => i.Path == path) ?? false)
+                                {
+                                    continue;
+                                }
+
+                                // Do this after the path check because a file info will be created
+                                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
+
+                                existingMovie.Versions = existingMovie.Versions?.Append(version);
+
+                                await Update(existingMovie);
+                            }
+
                             continue;
                         }
 
+                        var versionId = Guid.NewGuid();
                         var movie = new Movie()
                         {
                             Id = Guid.NewGuid(),
-                            Path = path,
-                            Title = groups["title"].Value
+                            Versions =
+                            [
+                                new()
+                                {
+                                    Id = versionId,
+                                    Path = path,
+                                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, category))?.Id
+                                }
+                            ],
+                            Title = title,
+                            FolderPath = folderPath
                         };
 
                         var metadata = await _metadataService.CreateNewMetadata
@@ -131,7 +176,6 @@ public class InventoryService : IInventoryService
 
                         movie.MetadataId = metadata?.Id;
 
-
                         await AddItem(movie);
                         break;
                     }
@@ -141,18 +185,18 @@ public class InventoryService : IInventoryService
                         _logger.LogDebug("Show detected");
 
                         // Show
-                        var showTitle = groups["folderTitle"].Value;
-                        var show = await GetItem<Show>("Show", i => i.Path == Path.Combine(Globals.MediaFolder, "Shows", showTitle));
+                        var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
+                        var show = await GetItem<Show>("Show", i => i.FolderPath == showPath);
 
                         if (show == null)
                         {
                             show = new Show
                             {
                                 Id = Guid.NewGuid(),
-                                Title = showTitle,
+                                Title = folderTitle,
                             };
 
-                            show.Path = Path.Combine(Globals.MediaFolder, "Shows", show.Title);
+                            show.FolderPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
 
                             var metadata = await _metadataService.CreateNewMetadata
                             (
@@ -168,7 +212,7 @@ public class InventoryService : IInventoryService
                         }
 
                         // Season
-                        var season = await GetItem<Season>("Season", i => i.Path == Directory.GetParent(path)?.FullName);
+                        var season = await GetItem<Season>("Season", i => i.FolderPath == Directory.GetParent(path)?.FullName);
 
                         if (season == null)
                         {
@@ -179,25 +223,33 @@ public class InventoryService : IInventoryService
                                 ShowId = show.Id,
                                 Title = groups["seasonFolder"].Value,
                                 SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : null,
-                                Path = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
+                                FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
                             };
 
                             await AddItem(season);
                         }
 
                         // Episode
-                        var title = groups["title"].Value;
-                        var episode = await GetItem<Episode>("Episode", i => i.Path == path);
+                        var episode = await GetItem<Episode>("Episode", predicate: i => i.Versions?.Any(i => i.Path == path) ?? false);
 
                         if (episode == null)
                         {
+                            var versionId = Guid.NewGuid();
                             episode = new Episode
                             {
                                 Id = Guid.NewGuid(),
 
                                 SeasonId = season.Id,
                                 Title = title,
-                                Path = path,
+                                Versions =
+                                [
+                                    new()
+                                    {
+                                        Id = versionId,
+                                        Path = path,
+                                        FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
+                                    }
+                                ],
                                 EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null,
                                 SeasonNr = season.SeasonNr
                             };

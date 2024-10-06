@@ -66,8 +66,8 @@ public class StreamingEndpoints : IStreamingEndpoints
             }
         }
     }
-    
-    public async Task<IResult> StreamContent(Guid id, string category, HttpRequest request, HttpResponse response, bool transcode = false)
+
+    public async Task<IResult> StreamContent(Guid id, string category, HttpRequest request, HttpResponse response, bool transcode = false, Guid? versionId = null)
     {
         if (transcode)
         {
