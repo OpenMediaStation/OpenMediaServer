@@ -24,7 +24,7 @@ public class StreamingEndpoints : IStreamingEndpoints
         group.MapGet("/{category}/{id}/segments/segment{segmentStart}-{segmentEnd}.ts", StreamSegment);
     }
 
-    public async Task<IResult> StreamSegment(HttpContext context, double segmentStart, double segmentEnd, string category, Guid id)
+    public async Task<IResult> StreamSegment(HttpContext context, double segmentStart, double segmentEnd, string category, Guid id, Guid? versionId = null)
     {
         Process? ffmpeg = null;
         try
@@ -45,7 +45,7 @@ public class StreamingEndpoints : IStreamingEndpoints
             
             context.RequestAborted.Register(ffmpeg.Kill);
             
-            var preTranscodedStream = await _streamingService.GetMediaStream(id, category);
+            var preTranscodedStream = await _streamingService.GetMediaStream(id, category, versionId);
             if (preTranscodedStream == null)
                 return Results.NotFound("Id not found in category");
             

@@ -58,17 +58,41 @@ public class StreamingService : IStreamingService
         return stream;
     }
 
-    public async Task<IResult> GetTranscodedMediaStream(Guid id, string category, HttpRequest request, HttpResponse response)
+    public async Task<IResult> GetTranscodedMediaStream(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
     {
-        var item = await inventoryService.GetItem<InventoryItem>(id, category);
+        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
         
         if(item == null)
             throw new Exception("Requested Item not found in category while prepare transcoding");
+
+        var path = "";
+        
+        if (versionId == null)
+        {
+            var playVersion = item.Versions?.FirstOrDefault();
+
+            if (playVersion == null)
+            {
+                return null;
+            }
+            path = playVersion.Path;
+        }
+        else
+        {
+            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+
+            if (playVersion == null)
+            {
+                return null;
+            }
+
+            path = playVersion.Path;
+        }
         
         var ffprobeStartInfo = new ProcessStartInfo
         {
             FileName = "ffprobe",
-            Arguments = $"-v error -select_streams v:0 -show_entries packet=pts_time,flags -skip_frame nokey -of json \"{item.Path}\"",
+            Arguments = $"-v error -select_streams v:0 -show_entries packet=pts_time,flags -skip_frame nokey -of json \"{path}\"",
             RedirectStandardInput = false,
             RedirectStandardOutput = true,
             CreateNoWindow = true,
