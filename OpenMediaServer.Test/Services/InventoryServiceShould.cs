@@ -97,10 +97,11 @@ public class InventoryServiceShould
 
     [Theory]
     [InlineData("/media/Books/practicalsocialengineering.epub", "practicalsocialengineering", null)]
-    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute Von Panem. Gefährliche Liebe/Die Tribute Von Panem. Gefährliche Liebe.epub", "", null)]
-    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute von Panem X - Das Lied von Vogel und Schlange/Die Tribute von Panem X - Das Lied von Vogel und Schlange.epub", "", null)]
-    [InlineData("/media/Books/Hjärta serien/Ishjärta/Ishjärta.epub", "", null)]
-    [InlineData("/media/Books/Quality Land/QualityLand 2.0 Kikis Geheimnis/QualityLand 2.0 Kikis Geheimnis.m4b", "", null)]
+    [InlineData("/media/Books/Practical Socialengineering.epub", "Practical Socialengineering", null)]
+    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute Von Panem. Gefährliche Liebe/Die Tribute Von Panem. Gefährliche Liebe.epub", "Die Tribute Von Panem. Gefährliche Liebe", "/media/Books/Die Tribute von Panem/Die Tribute Von Panem. Gefährliche Liebe")]
+    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute von Panem X - Das Lied von Vogel und Schlange/Die Tribute von Panem X - Das Lied von Vogel und Schlange.epub", "Die Tribute von Panem X - Das Lied von Vogel und Schlange", "/media/Books/Die Tribute von Panem/Die Tribute von Panem X - Das Lied von Vogel und Schlange")]
+    [InlineData("/media/Books/Hjärta serien/Ishjärta/Ishjärta.epub", "Ishjärta", "/media/Books/Hjärta serien/Ishjärta")]
+    [InlineData("/media/Books/Quality Land/QualityLand 2.0 Kikis Geheimnis/QualityLand 2.0 Kikis Geheimnis.m4b", "QualityLand 2.0 Kikis Geheimnis", "/media/Books/Quality Land/QualityLand 2.0 Kikis Geheimnis")]
     public async Task CreateFromPaths_FirstItemBook(string path, string title, string? folderPath)
     {
         // Arrange
