@@ -5,6 +5,8 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
+// TODO Maybe split this service in two => movie and shows separate
+
 public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService) : IDiscoveryMovieShowService
 {
     private readonly ILogger<DiscoveryMovieShowService> _logger = logger;
