@@ -40,6 +40,15 @@ public class FileInfoService : IFileInfoService
         return metadatas;
     }
 
+    public async Task<FileInfoModel?> GetFileInfo(string category, Guid id)
+    {
+        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
+
+        var metadata = fileInfos?.FirstOrDefault(x => x.Id == id);
+
+        return metadata;
+    }
+
     private FileInfoModel MapFileInfo(Guid parentId, string parentCategory, IMediaAnalysis mappingInput)
     {
         var fileInfo = new FileInfoModel
