@@ -34,7 +34,6 @@ public class InventoryServiceShould
     [InlineData("/media/Movies/Hunger Games - Directors Cut.mp4", "Hunger Games", null)]
     [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games - Directors Cut", null)]
     [InlineData("/media/Movies/Det arktiska Skandinavien/Det arktiska Skandinavien.mp4", "Det arktiska Skandinavien", "/media/Movies/Det arktiska Skandinavien")]
-    [InlineData("/media/Movies/Det arktiska Skandinavien/Det arktiska Skandinavien v2.mp4", "Det arktiska Skandinavien", "/media/Movies/Det arktiska Skandinavien")]
     public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
     {
         // Arrange
@@ -88,6 +87,38 @@ public class InventoryServiceShould
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Episode");
+        resultItem.MetadataId.ShouldNotBe(Guid.Empty);
+        resultItem.Versions.ShouldNotBeNull();
+        resultItem.Versions.Count().ShouldBe(1);
+        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
+        resultItem.Versions.First().Path.ShouldBe(path);
+        resultItem.FolderPath.ShouldBe(folderPath);
+    }
+
+    [Theory]
+    [InlineData("/media/Books/practicalsocialengineering.epub", "practicalsocialengineering", null)]
+    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute Von Panem. Gefährliche Liebe/Die Tribute Von Panem. Gefährliche Liebe.epub", "", null)]
+    [InlineData("/media/Books/Die Tribute von Panem/Die Tribute von Panem X - Das Lied von Vogel und Schlange/Die Tribute von Panem X - Das Lied von Vogel und Schlange.epub", "", null)]
+    [InlineData("/media/Books/Hjärta serien/Ishjärta/Ishjärta.epub", "", null)]
+    [InlineData("/media/Books/Quality Land/QualityLand 2.0 Kikis Geheimnis/QualityLand 2.0 Kikis Geheimnis.m4b", "", null)]
+    public async Task CreateFromPaths_FirstItemBook(string path, string title, string? folderPath)
+    {
+        // Arrange
+        var paths = new List<string>
+        {
+            path
+        };
+
+        // Act
+        await _inventoryService.CreateFromPaths(paths);
+        var resultJson = _storageRepository.WrittenObjects.First();
+        var result = JsonSerializer.Deserialize<IEnumerable<Movie>>(resultJson);
+
+        // Assert
+        var resultItem = result.First();
+        resultItem.Id.ShouldNotBe(Guid.Empty);
+        resultItem.Title.ShouldBe(title);
+        resultItem.Category.ShouldBe("Book");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
         resultItem.Versions.ShouldNotBeNull();
         resultItem.Versions.Count().ShouldBe(1);

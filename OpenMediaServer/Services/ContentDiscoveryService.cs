@@ -15,7 +15,7 @@ public class ContentDiscoveryService : IContentDiscoveryService
 
     public async Task ActiveScan(string path)
     {
-        string[] mediaExtensions = [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".mp3", ".aac", ".wav", ".flac", ".webm", ".m4b"];
+        string[] mediaExtensions = [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".mp3", ".aac", ".wav", ".flac", ".webm", ".m4b", ".epub", ".pdf"];
         var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(n=> mediaExtensions.Contains(Path.GetExtension(n),StringComparer.InvariantCultureIgnoreCase));
          
         await _inventoryService.CreateFromPaths(files);
