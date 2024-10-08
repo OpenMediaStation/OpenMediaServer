@@ -53,6 +53,7 @@ builder.Services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
 builder.Services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
 builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
+builder.Services.AddSingleton<IDiscoveryMovieShowService, DiscoveryMovieShowService>();
 
 builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 
