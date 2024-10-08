@@ -1,3 +1,5 @@
+using System.Reflection;
+using Microsoft.OpenApi.Models;
 using OpenMediaServer;
 using OpenMediaServer.APIs;
 using OpenMediaServer.Endpoints;
@@ -22,17 +24,33 @@ builder.Host.UseSerilog();
 
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+var info = new OpenApiInfo()
+{
+    Title = "OpenMediaServer",
+    Version = "v1",
+    Description = "Description of your API"
+};
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", info);
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+});
 
 builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
 builder.Services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
 builder.Services.AddSingleton<IInventoryService, InventoryService>();
 builder.Services.AddSingleton<IStreamingService, StreamingService>();
 builder.Services.AddSingleton<IOmdbAPI, OMDbAPI>();
-builder.Services.AddSingleton<IApiEndpoints, ApiEndpoints>();
+builder.Services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
 builder.Services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
 builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 builder.Services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
+builder.Services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
 builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
 
@@ -61,10 +79,11 @@ var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>(
 await contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
 contentDiscoveryService?.Watch(Globals.MediaFolder);
 
-app.Services.GetService<IApiEndpoints>()?.Map(app);
+app.Services.GetService<IGeneralApiEndpoints>()?.Map(app);
 app.Services.GetService<IStreamingEndpoints>()?.Map(app);
 app.Services.GetService<IMetadataEndpoints>()?.Map(app);
 app.Services.GetService<IFileInfoEndpoints>()?.Map(app);
+app.Services.GetService<IInventoryEndpoints>()?.Map(app);
 
 app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
 
