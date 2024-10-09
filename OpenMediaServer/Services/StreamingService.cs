@@ -122,7 +122,7 @@ public class StreamingService : IStreamingService
         foreach (var segment in segmentTimeStamps)
         {
             sb.AppendLine($"#EXTINF:{segment.Duration},");
-            sb.AppendLine($"http://localhost:32768/stream/Movie/e401c3ba-4d55-424e-b286-bd71b7964ccd/segments/segment{segment.Start}-{segment.End}.ts");
+            sb.AppendLine($"{request.Scheme}://{request.Host.Value}/stream/{category}/{id}/segments/segment{segment.Start}-{segment.End}.ts");
         }
 
         sb.AppendLine("#EXT-X-ENDLIST");
