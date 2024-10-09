@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Text;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 
@@ -93,7 +93,31 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         var keyframeOutput = await ffprobe.StandardOutput.ReadToEndAsync();
         await ffprobe.WaitForExitAsync();
-        var keyframeTimeStamps = JObject.Parse(keyframeOutput)["packets"]?.Where(p => (string?)p["flags"] == "K_").Select(p => (double)p["pts_time"]).ToArray();
+
+        // Parse JSON with System.Text.Json
+        var temp1 = JsonNode.Parse(keyframeOutput)?["packets"]?.AsArray();
+        var temp2 = temp1?.Where(p => p?["flags"]?.GetValue<string>() == "K_");
+        var temp3 = temp2?.Select(p =>
+        {
+            var ptsTimeString = p?["pts_time"]?.GetValue<string>();
+
+            if (double.TryParse(ptsTimeString, out var ptsTimeValue))
+            {
+                return ptsTimeValue;  // Return the parsed double value if conversion is successful
+            }
+
+            return (double?)null;  // Return null if parsing fails
+        });
+        
+        var keyframeTimestamps = temp3
+                    .Where(p => p.HasValue)
+                    .Select(p => p.Value)
+                    .ToArray();
+
+        if (keyframeTimestamps == null || keyframeTimestamps.Length == 0)
+        {
+            return Results.BadRequest("No keyframes found");
+        }
 
         var segmentTimeStamps = GetSegmentTimes(10.0).ToArray();
 
@@ -121,8 +145,8 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         IEnumerable<(double Start, double End, double Duration)> GetSegmentTimes(double minSegmentDuration = 10.0)
         {
-            var start = keyframeTimeStamps.First();
-            foreach (var timestamp in keyframeTimeStamps.Skip(1))
+            var start = keyframeTimestamps.First();
+            foreach (var timestamp in keyframeTimestamps.Skip(1))
             {
                 if (timestamp - start >= minSegmentDuration)
                 {
@@ -130,7 +154,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                     start = timestamp;
                 }
             }
-            var lastTimeStamp = keyframeTimeStamps.Last();
+            var lastTimeStamp = keyframeTimestamps.Last();
             if (lastTimeStamp > start)
             {
                 yield return (start, lastTimeStamp, lastTimeStamp - start);
