@@ -6,16 +6,10 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService) : IStreamingService
 {
-    private readonly ILogger<StreamingService> _logger;
-    private readonly IInventoryService _inventoryService;
-
-    public StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService)
-    {
-        _logger = logger;
-        _inventoryService = inventoryService;
-    }
+    private readonly ILogger<StreamingService> _logger = logger;
+    private readonly IInventoryService _inventoryService = inventoryService;
 
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null)
     {
@@ -58,22 +52,18 @@ public class StreamingService : IStreamingService
         return stream;
     }
 
-    public async Task<IResult> GetTranscodedMediaStream(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
+    public async Task<IResult> GetTranscodingPlaylist(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
-        
-        if(item == null)
-            throw new Exception("Requested Item not found in category while prepare transcoding");
-
+        var item = await _inventoryService.GetItem<InventoryItem>(id, category) ?? throw new Exception("Requested Item not found in category while prepare transcoding");
         var path = "";
-        
+
         if (versionId == null)
         {
             var playVersion = item.Versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
-                return null;
+                return Results.BadRequest("PlayVersion not found");
             }
             path = playVersion.Path;
         }
@@ -83,12 +73,12 @@ public class StreamingService : IStreamingService
 
             if (playVersion == null)
             {
-                return null;
+                return Results.BadRequest("PlayVersion not found");
             }
 
             path = playVersion.Path;
         }
-        
+
         var ffprobeStartInfo = new ProcessStartInfo
         {
             FileName = "ffprobe",
@@ -98,17 +88,17 @@ public class StreamingService : IStreamingService
             CreateNoWindow = true,
             UseShellExecute = false,
         };
-        
+
         var ffprobe = Process.Start(ffprobeStartInfo) ?? throw new Exception($"Failed to start ffprobe process");
-        
+
         var keyframeOutput = await ffprobe.StandardOutput.ReadToEndAsync();
         await ffprobe.WaitForExitAsync();
-        var keyframeTimeStamps = JObject.Parse(keyframeOutput)["packets"].Where(p=>(string)p["flags"] == "K_").Select(p=>(double)p["pts_time"]).ToArray();
+        var keyframeTimeStamps = JObject.Parse(keyframeOutput)["packets"]?.Where(p => (string?)p["flags"] == "K_").Select(p => (double)p["pts_time"]).ToArray();
 
         var segmentTimeStamps = GetSegmentTimes(10.0).ToArray();
-        
+
         var segmentMaxDuration = segmentTimeStamps.Max(sTS => sTS.Duration);
-        
+
         var sb = new StringBuilder();
         sb.AppendLine("#EXTM3U");
         sb.AppendLine("#EXT-X-VERSION:3");
@@ -144,6 +134,69 @@ public class StreamingService : IStreamingService
             if (lastTimeStamp > start)
             {
                 yield return (start, lastTimeStamp, lastTimeStamp - start);
+            }
+        }
+    }
+
+    public async Task<IResult> GetTranscodingSegment(Guid id, string category, HttpContext context, double segmentStart, double segmentEnd, Guid? versionId = null)
+    {
+        Process? ffmpeg = null;
+        try
+        {
+            var path = "";
+            var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+
+            if (item == null)
+                throw new ApplicationException($"Item with id {id} was not found");
+
+            if (versionId != null)
+            {
+                path = item.Versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
+            }
+            else
+            {
+                path = item.Versions?.FirstOrDefault()?.Path;
+            }
+
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ApplicationException("version not found");
+
+            var startInfo = new ProcessStartInfo()
+            {
+                FileName = "ffmpeg",
+                // Arguments = $"-i pipe:0 -ss {segmentStart} -t {segmentDuration} -force_key_frames \"expr:gte(t,n_forced*{segmentDuration})\" -map 0:v -map 0:a -analyzeduration 100M -probesize 100M -c:v libx264 -c:a aac -f mpegts pipe:1",
+                // Arguments = $"-v error -copyts -ss {(segmentStart >= 2 ? segmentStart-2: 0.0)} -i pipe:0 -vf \"trim=start={segmentStart}:end={segmentEnd}\" -threads 4 -force_key_frames \"expr:gte(t,n_forced*2)\" -preset fast -an -map 0:v -map 0:a -analyzeduration 100M -probesize 100M -c:v libx264 -c:a aac -f mpegts pipe:1",
+                // Arguments = $"-v error -copyts -ss {(segmentStart >= 2 ? segmentStart-2: 0.0)} -i \"{path}\" -vf \"trim=start={segmentStart}:end={segmentEnd}\" -af \"atrim=start={segmentStart}:end={segmentEnd}\" -threads 4 -force_key_frames \"expr:gte(t,n_forced*2)\" -preset fast -analyzeduration 100M -probesize 100M -c:v libx264 -c:a aac -f mpegts pipe:1",
+                Arguments = $"-v error -copyts -ss {(segmentStart >= 2 ? segmentStart - 2 : 0.0)} -i \"{path}\" -vf \"trim=start={segmentStart}:end={segmentEnd}\" -af \"atrim=start={segmentStart}:end={segmentEnd}\" -threads 4 -force_key_frames \"expr:gte(t,n_forced*2)\" -preset fast -analyzeduration 100M -probesize 100M -c:v libx264 -f mpegts pipe:1",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            ffmpeg = Process.Start(startInfo);
+            if (ffmpeg == null) return Results.Problem("Failed to start ffmpeg");
+
+            context.RequestAborted.Register(ffmpeg.Kill);
+
+            // var preTranscodedStream = await _streamingService.GetMediaStream(id, category, versionId);
+            // if (preTranscodedStream == null)
+            //     return Results.NotFound("Id not found in category");
+
+            // _ = preTranscodedStream.CopyToAsync(ffmpeg.StandardInput.BaseStream);
+
+            // Setze Cache-Control Header
+            context.Response.Headers.CacheControl = "public, max-age=31536000";
+            context.Response.Headers.Expires = DateTime.UtcNow.AddYears(1).ToString("R");
+
+            return Results.Stream(ffmpeg.StandardOutput.BaseStream, /*enableRangeProcessing: true,*/ contentType: "video/MP2T");
+        }
+        finally
+        {
+            if (ffmpeg != null)
+            {
+                if (!ffmpeg.HasExited)
+                    context.RequestAborted.Register(ffmpeg.Kill);
             }
         }
     }
