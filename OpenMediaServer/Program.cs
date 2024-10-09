@@ -54,6 +54,7 @@ builder.Services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
 builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
 builder.Services.AddSingleton<IDiscoveryMovieShowService, DiscoveryMovieShowService>();
+builder.Services.AddSingleton<IDiscoveryBookService, DiscoveryBookService>();
 
 builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 
