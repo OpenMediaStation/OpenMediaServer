@@ -3,8 +3,20 @@ USER root
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
+
+RUN echo "deb http://deb.debian.org/debian/ bookworm main contrib non-free-firmware non-free" >> /etc/apt/sources.list
 RUN apt-get update
-RUN apt-get install -y ffmpeg libgdiplus
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    i965-va-driver \
+    intel-media-va-driver-non-free \
+    libva-drm2 \
+    libva-x11-2 \
+    vainfo \
+    libgdiplus && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
