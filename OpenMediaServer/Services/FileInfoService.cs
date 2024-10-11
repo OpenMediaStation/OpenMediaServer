@@ -1,4 +1,5 @@
 using FFMpegCore;
+using FFMpegCore.Exceptions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models.FileInfo;
@@ -20,7 +21,17 @@ public class FileInfoService : IFileInfoService
     {
         var fileInfos = await ListFileInfo(parentCategory);
 
-        var mappingInput = await FFProbe.AnalyseAsync(path);
+        IMediaAnalysis? mappingInput;
+
+        try
+        {
+            mappingInput = await FFProbe.AnalyseAsync(path);
+        }
+        catch (FFMpegException ffmEx)
+        {
+            _logger.LogWarning(ffmEx, "FileInfo could not be generated");
+            return null;
+        }
 
         FileInfoModel fileInfo = MapFileInfo(parentId, parentCategory, mappingInput);
 

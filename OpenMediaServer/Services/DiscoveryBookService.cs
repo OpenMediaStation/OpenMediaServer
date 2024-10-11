@@ -69,7 +69,7 @@ public class DiscoveryBookService : IDiscoveryBookService
                 }
 
                 // Do this after the path check because a file info will be created
-                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Books"))?.Id;
+                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Book"))?.Id;
 
                 existingBooks.Versions = existingBooks.Versions?.Append(version);
 
@@ -89,7 +89,7 @@ public class DiscoveryBookService : IDiscoveryBookService
                 {
                     Id = versionId,
                     Path = path,
-                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Books"))?.Id
+                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Book"))?.Id
                 }
             ],
             Title = title,

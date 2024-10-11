@@ -30,7 +30,7 @@ public class FileSystemRepository : IFileSystemRepository
         FileInfo file = new FileInfo(path);
         file.Directory?.Create();
 
-        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(item));
+        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(item, options: Globals.JsonOptions));
     }
 
     public async Task<T?> ReadObject<T>(string path)
@@ -38,7 +38,7 @@ public class FileSystemRepository : IFileSystemRepository
         try
         {
             var text = await File.ReadAllTextAsync(path);
-            return JsonSerializer.Deserialize<T>(text);
+            return JsonSerializer.Deserialize<T>(text, options: Globals.JsonOptions);
         }
         catch (FileNotFoundException fileEx)
         {
