@@ -17,4 +17,5 @@ public class MetadataModel
     public MetadataMovieModel? Movie { get; set; }
     public MetadataShowModel? Show { get; set; }
     public MetadataShowModel? Episode { get; set; }
+    public MetadataBookModel? Book { get; set; }
 }

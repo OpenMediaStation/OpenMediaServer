@@ -23,7 +23,7 @@ public class DiscoveryBookServiceShould
         _storageRepository = new FileSystemRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
-        _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService);
+        _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
     }
 
     [Theory]

@@ -55,6 +55,7 @@ builder.Services.AddSingleton<IMetadataService, MetadataService>();
 builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
 builder.Services.AddSingleton<IDiscoveryMovieShowService, DiscoveryMovieShowService>();
 builder.Services.AddSingleton<IDiscoveryBookService, DiscoveryBookService>();
+builder.Services.AddSingleton<IGoogleBooksApi, GoogleBooksApi>();
 
 builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 

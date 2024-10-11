@@ -11,14 +11,15 @@ public class DiscoveryBookService : IDiscoveryBookService
     private readonly ILogger<DiscoveryBookService> _logger;
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
-
+    private readonly IMetadataService _metadataService;
     private readonly string _regex = @"(?<category>(Books)|\w+?)/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?/?(?<title>([ \w\.-]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?((-|\.)(?<fileInfo>[\w\.-]*?))?\.(?<extension>\S{3,4})$";
 
-    public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService)
+    public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
     {
         _logger = logger;
         _fileInfoService = fileInfoService;
         _inventoryService = inventoryService;
+        _metadataService = metadataService;
     }
 
     public async Task CreateBook(string path)
@@ -96,17 +97,17 @@ public class DiscoveryBookService : IDiscoveryBookService
             FolderPath = folderPath
         };
 
-        // var metadata = await _metadataService.CreateNewMetadata
-        // (
-        //     parentId: book.Id,
-        //     title: book.Title,
-        //     category: book.Category,
-        //     year: groups.TryGetValue("year", out var movieTitleYear) ?
-        //             movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
-        //             movieFolderYear.Value : null
-        // );
+        var metadata = await _metadataService.CreateNewMetadata
+        (
+            parentId: book.Id,
+            title: book.Title,
+            category: book.Category,
+            year: groups.TryGetValue("year", out var movieTitleYear) ?
+                    movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
+                    movieFolderYear.Value : null
+        );
 
-        // book.MetadataId = metadata?.Id;
+        book.MetadataId = metadata?.Id;
 
         await _inventoryService.AddItem(book);
     }

@@ -12,13 +12,15 @@ public class MetadataService : IMetadataService
     private readonly IOmdbAPI _omdbAPI;
     private readonly IConfiguration _configuration;
     private readonly IFileSystemRepository _storageRepository;
+    private readonly IGoogleBooksApi _googleBooksApi;
 
-    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository)
+    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi)
     {
         _logger = logger;
         _omdbAPI = omdbAPI;
         _configuration = configuration;
         _storageRepository = storageRepository;
+        _googleBooksApi = googleBooksApi;
     }
 
     public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null)
@@ -165,6 +167,33 @@ public class MetadataService : IMetadataService
                             BoxOffice = omdbData?.BoxOffice,
                             Production = omdbData?.Production,
                             Website = omdbData?.Website,
+                        }
+                    };
+
+                    break;
+                }
+
+            case "Book":
+                {
+                    var result = await _googleBooksApi.GetBookMetadata
+                    (
+                        title: title
+                    );
+
+                    var data = result?.Items?.FirstOrDefault()?.VolumeInfo;
+
+                    metadata = new MetadataModel()
+                    {
+                        Title = data?.Title,
+                        Book = new()
+                        {
+                            Authors = data?.Authors,
+                            Publisher = data?.Publisher,
+                            PublishedDate = data?.PublishedDate,
+                            Description = data?.Description,
+                            PageCount = data?.PageCount,
+                            Language = data?.Language,
+                            Thumbnail = data?.ImageLinks?.Thumbnail
                         }
                     };
 
