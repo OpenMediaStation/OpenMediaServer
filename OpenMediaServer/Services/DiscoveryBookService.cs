@@ -12,7 +12,7 @@ public class DiscoveryBookService : IDiscoveryBookService
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
 
-    private readonly string _regex = @"(?<category>(Books)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$";
+    private readonly string _regex = @"(?<category>(Books)|\w+?)/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?/?(?<title>([ \w\.-]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?((-|\.)(?<fileInfo>[\w\.-]*?))?\.(?<extension>\S{3,4})$";
 
     public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService)
     {
@@ -38,7 +38,6 @@ public class DiscoveryBookService : IDiscoveryBookService
             return;
         }
         var groups = match.Groups;
-        var category = groups["category"].Value;
         var folderTitle = groups["folderTitle"].Value;
         var title = groups["title"].Value; 
         var extension = groups["extension"].Value; 
@@ -70,7 +69,7 @@ public class DiscoveryBookService : IDiscoveryBookService
                 }
 
                 // Do this after the path check because a file info will be created
-                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
+                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Books"))?.Id;
 
                 existingBooks.Versions = existingBooks.Versions?.Append(version);
 
@@ -90,7 +89,7 @@ public class DiscoveryBookService : IDiscoveryBookService
                 {
                     Id = versionId,
                     Path = path,
-                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, category))?.Id
+                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Books"))?.Id
                 }
             ],
             Title = title,
