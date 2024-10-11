@@ -37,14 +37,16 @@ public class StreamingEndpoints : IStreamingEndpoints
         }
         else
         {
-            var stream = await _streamingService.GetMediaStream(id, category);
+            var stream = await _streamingService.GetMediaStream(id, category, versionId);
 
             if (stream == null)
             {
                 return Results.NotFound("Id not found in category");
             }
 
-            return Results.Stream(stream, enableRangeProcessing: true, contentType: "video/webm"); // TODO content type
+            var mimeType = await _streamingService.GetMimeType(id, category, versionId);
+
+            return Results.Stream(stream, enableRangeProcessing: true, contentType: mimeType);
         }
     }
 }

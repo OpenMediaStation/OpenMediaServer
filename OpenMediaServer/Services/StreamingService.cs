@@ -1,15 +1,19 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json.Nodes;
+using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
+using OpenMediaServer.Models.FileInfo;
+using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService) : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService) : IStreamingService
 {
     private readonly ILogger<StreamingService> _logger = logger;
     private readonly IInventoryService _inventoryService = inventoryService;
+    private readonly IFileInfoService _fileInfoService = fileInfoService;
 
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null)
     {
@@ -50,6 +54,47 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
 
         return stream;
+    }
+
+    public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null)
+    {
+        // Get file info
+        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+
+        if (item == null)
+        {
+            _logger.LogWarning("Item not found in category while getting file type");
+
+            return null;
+        }
+
+        InventoryItemVersion? version;
+
+        if (versionId == null)
+        {
+            version = item.Versions?.FirstOrDefault();
+        }
+        else
+        {
+            version = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+        }
+
+        if (version == null || version.FileInfoId == null)
+        {
+            return null;
+        }
+
+        var fileInfo = await _fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+
+        // Determine mime type
+        var formatName = fileInfo?.MediaData?.Format.FormatName;
+
+        if (formatName == null)
+            return null;
+
+        var mimeType = MimeTypeHelper.GetMimeType(formatName);
+
+        return mimeType;
     }
 
     public async Task<IResult> GetTranscodingPlaylist(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
@@ -108,7 +153,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
             return (double?)null;  // Return null if parsing fails
         });
-        
+
         var keyframeTimestamps = temp3
                     .Where(p => p.HasValue)
                     .Select(p => p.Value)
