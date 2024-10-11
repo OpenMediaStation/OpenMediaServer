@@ -40,7 +40,8 @@ public class DiscoveryBookService : IDiscoveryBookService
         var groups = match.Groups;
         var category = groups["category"].Value;
         var folderTitle = groups["folderTitle"].Value;
-        var title = groups["title"].Value;
+        var title = groups["title"].Value; 
+        var extension = groups["extension"].Value; 
 
         var books = await _inventoryService.ListItems<Book>("Book");
         var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
@@ -49,7 +50,7 @@ public class DiscoveryBookService : IDiscoveryBookService
 
         if (!string.IsNullOrEmpty(folderTitle))
         {
-            folderPath = Path.Combine(Globals.MediaFolder, category, folderTitle);
+            folderPath = path.Replace($"/{title}.{extension}", "");
             existingBooks = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
         }
 
