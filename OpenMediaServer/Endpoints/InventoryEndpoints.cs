@@ -17,6 +17,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         group.MapGet("/show", GetShow);
         group.MapGet("/episode", GetEpisode);
         group.MapGet("/season", GetSeason);
+        group.MapGet("/book", GetBook);
 
         group.MapGet("/categories", ListCategories);
         group.MapGet("/items", ListItems); 
@@ -68,6 +69,20 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
     public async Task<IResult> GetSeason(Guid id)
     {
         var item = await _inventoryService.GetItem<Season>(id: id, category: "Season");
+
+        if (item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in seasons");
+        }
+    }
+
+    public async Task<IResult> GetBook(Guid id)
+    {
+        var item = await _inventoryService.GetItem<Book>(id: id, category: "Book");
 
         if (item != null)
         {
