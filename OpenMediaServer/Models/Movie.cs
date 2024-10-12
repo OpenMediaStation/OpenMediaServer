@@ -1,5 +1,3 @@
-using System;
-
 namespace OpenMediaServer.Models;
 
 public class Movie : InventoryItem

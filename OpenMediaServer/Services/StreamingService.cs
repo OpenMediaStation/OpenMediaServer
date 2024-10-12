@@ -4,7 +4,6 @@ using System.Text.Json.Nodes;
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
-using OpenMediaServer.Models.FileInfo;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;

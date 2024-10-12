@@ -1,5 +1,3 @@
-using System;
-
 namespace OpenMediaServer.Models.Metadata;
 
 /// <summary>
@@ -16,6 +14,6 @@ public class MetadataModel
     // Specific information
     public MetadataMovieModel? Movie { get; set; }
     public MetadataShowModel? Show { get; set; }
-    public MetadataShowModel? Episode { get; set; }
+    public MetadataEpisodeModel? Episode { get; set; }
     public MetadataBookModel? Book { get; set; }
 }

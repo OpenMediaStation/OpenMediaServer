@@ -1,7 +1,3 @@
-using System;
-using System;
-using System.Collections.Generic;
-
 namespace OpenMediaServer.Helpers;
 
 public class MimeTypeHelper
