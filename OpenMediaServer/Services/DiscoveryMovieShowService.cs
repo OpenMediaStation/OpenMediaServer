@@ -67,7 +67,7 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
 
                 existingMovie.Versions = existingMovie.Versions?.Append(version);
 
-                await _inventoryService.Update(existingMovie);
+                await _inventoryService.UpdateByTitle(existingMovie);
             }
 
             return;
@@ -174,7 +174,7 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
             show.SeasonIds ??= [];
             show.SeasonIds = show.SeasonIds.Append(season.Id);
 
-            await _inventoryService.Update(show);
+            await _inventoryService.UpdateById(show);
         }
 
         // Episode
@@ -219,7 +219,7 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
             season.EpisodeIds ??= [];
             season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
 
-            await _inventoryService.Update(season);
+            await _inventoryService.UpdateById(season);
         }
     }
 }

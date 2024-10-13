@@ -114,17 +114,35 @@ public class InventoryService : IInventoryService
         }
         catch (ArgumentException)
         {
-            await Update(item);
+            await UpdateByTitle(item);
         }
     }
 
-    public async Task Update<T>(T item) where T : InventoryItem
+    public async Task UpdateByTitle<T>(T item) where T : InventoryItem
     {
         var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
 
         items ??= [];
 
         var existingItem = items.FirstOrDefault(i => i.Title == item.Title);
+
+        if (existingItem != null)
+        {
+            items.Remove(existingItem);
+        }
+
+        items.Add(item);
+
+        await _storageRepository.WriteObject(GetPath(item), items);
+    }
+
+    public async Task UpdateById<T>(T item) where T : InventoryItem
+    {
+        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
+
+        items ??= [];
+
+        var existingItem = items.FirstOrDefault(i => i.Id == item.Id);
 
         if (existingItem != null)
         {
