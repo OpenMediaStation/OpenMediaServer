@@ -170,6 +170,11 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
             };
 
             await _inventoryService.AddItem(season);
+
+            show.SeasonIds ??= [];
+            show.SeasonIds = show.SeasonIds.Append(season.Id);
+
+            await _inventoryService.Update(show);
         }
 
         // Episode
@@ -210,6 +215,11 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
             episode.MetadataId = metadata?.Id;
 
             await _inventoryService.AddItem(episode);
+
+            season.EpisodeIds ??= [];
+            season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
+
+            await _inventoryService.Update(season);
         }
     }
 }
