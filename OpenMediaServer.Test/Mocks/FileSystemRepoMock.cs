@@ -14,12 +14,22 @@ public class FileSystemRepoMock : IFileSystemRepository
         throw new NotImplementedException();
     }
 
+    public Stream? GetStream(string path)
+    {
+        throw new NotImplementedException();
+    }
+
     public async Task<T?> ReadObject<T>(string path)
     {
         return default;
     }
 
     public Task<string> ReadText(string path)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task WriteBytes(string path, byte[] bytes)
     {
         throw new NotImplementedException();
     }

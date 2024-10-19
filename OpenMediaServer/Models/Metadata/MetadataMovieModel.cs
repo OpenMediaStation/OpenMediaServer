@@ -17,6 +17,8 @@ public class MetadataMovieModel
     public string? Country { get; set; }
     public string? Awards { get; set; }
     public string? Poster { get; set; }
+    public string? Backdrop { get; set; }
+    public string? Logo { get; set; }
     public List<Rating>? Ratings { get; set; }
     public string? Metascore { get; set; }
     public string? ImdbRating { get; set; }

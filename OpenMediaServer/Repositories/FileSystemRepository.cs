@@ -66,4 +66,26 @@ public class FileSystemRepository : IFileSystemRepository
             return [];
         }
     }
+
+    public async Task WriteBytes(string path, byte[] bytes)
+    {
+        FileInfo file = new FileInfo(path);
+        file.Directory?.Create();
+
+        await File.WriteAllBytesAsync(path, bytes);
+    }
+
+    public Stream? GetStream(string path)
+    {
+        try
+        {
+            var stream = new FileStream(path, FileMode.Open);
+            return stream;
+        }
+        catch (FileNotFoundException fileEx)
+        {
+            _logger.LogWarning(fileEx, "Stream could not be found");
+            return null;
+        }
+    }
 }

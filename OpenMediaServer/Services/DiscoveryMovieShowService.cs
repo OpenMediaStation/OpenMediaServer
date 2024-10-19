@@ -169,6 +169,17 @@ public class DiscoveryMovieShowService(ILogger<DiscoveryMovieShowService> logger
                 FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
             };
 
+            var metadata = await _metadataService.CreateNewMetadata
+            (
+                parentId: season.Id,
+                title: show.Title,
+                year: groups["yearFolder"].Value,
+                category: season.Category,
+                season: seasonNr
+            );
+
+            season.MetadataId = metadata?.Id;
+
             await _inventoryService.AddItem(season);
 
             show.SeasonIds ??= [];

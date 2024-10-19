@@ -18,11 +18,21 @@ public class MimeTypeHelper
         { "webm", "video/webm" },
         { "m4b", "audio/mp4" },
         { "epub", "application/epub" },
-        { "pdf", "application/pdf" }
+        { "pdf", "application/pdf" },
+        { "jpg", "image/jpeg" },
+        { "jpeg", "image/jpeg" },
+        { "png", "image/png" },
+        { "gif", "image/gif" },
+        { "bmp", "image/bmp" },
+        { "tiff", "image/tiff" },
+        { "svg", "image/svg+xml" },
+        { "webp", "image/webp" }
     };
 
     public static string GetMimeType(string codecName)
     {
+        codecName = codecName.Replace(".", "");
+
         if (codecName.Contains(','))
         {
             var codecs = codecName.Split(',');

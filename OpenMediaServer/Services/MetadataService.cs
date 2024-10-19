@@ -3,6 +3,7 @@ using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Metadata;
+using TMDbLib.Objects.General;
 
 namespace OpenMediaServer.Services;
 
@@ -13,32 +14,56 @@ public class MetadataService : IMetadataService
     private readonly IConfiguration _configuration;
     private readonly IFileSystemRepository _storageRepository;
     private readonly IGoogleBooksApi _googleBooksApi;
+    private readonly ITMDbAPI _tMDbAPI;
 
-    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi)
+    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi, ITMDbAPI tMDbAPI)
     {
         _logger = logger;
         _omdbAPI = omdbAPI;
         _configuration = configuration;
         _storageRepository = storageRepository;
         _googleBooksApi = googleBooksApi;
+        _tMDbAPI = tMDbAPI;
     }
 
-    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null)
+    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = "en")
     {
         var metadatas = await ListMetadata(category);
 
         MetadataModel? metadata = new();
+        var metadataId = Guid.NewGuid();
 
         switch (category)
         {
             case "Movie":
                 {
                     var omdbData = await _omdbAPI.GetMetadata
-                     (
-                         name: title,
-                         apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
-                         year: year
-                     );
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                        year: year
+                    );
+
+                    var tmdbData = await _tMDbAPI.GetMovie
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        year: year
+                    );
+
+                    ImagesWithId? tmdbImages = null;
+
+                    if (tmdbData?.Id != null)
+                    {
+                        tmdbImages = await _tMDbAPI.GetMovieImages(tmdbData.Id, apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                    }
+
+                    var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+                    var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+
+                    await WriteImage(tmdbData?.BackdropPath, "backdrop", "Movie", metadataId.ToString());
+                    await WriteImage(logoPath, "logo", "Movie", metadataId.ToString());
+                    await WriteImage(posterPath, "poster", "Movie", metadataId.ToString());
 
                     metadata = new MetadataModel()
                     {
@@ -57,8 +82,10 @@ public class MetadataService : IMetadataService
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
-                            Poster = omdbData?.Poster,
-                            Ratings = omdbData?.Ratings?.ConvertAll(rating => new Models.Rating
+                            Poster = posterPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/poster" : omdbData?.Poster,
+                            Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/backdrop" : null,
+                            Logo = logoPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/logo" : null,
+                            Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                             {
                                 Source = rating.Source,
                                 Value = rating.Value
@@ -86,6 +113,27 @@ public class MetadataService : IMetadataService
                         year: year
                     );
 
+                    var tmdbData = await _tMDbAPI.GetShow
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        year: year
+                    );
+
+                    ImagesWithId? tmdbImages = null;
+
+                    if (tmdbData?.Id != null)
+                    {
+                        tmdbImages = await _tMDbAPI.GetShowImages(tmdbData.Id, apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                    }
+
+                    var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+                    var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+
+                    await WriteImage(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
+                    await WriteImage(logoPath, "logo", "Show", metadataId.ToString());
+                    await WriteImage(posterPath, "poster", "Show", metadataId.ToString());
+
                     metadata = new MetadataModel()
                     {
                         Title = omdbData?.Title,
@@ -103,7 +151,9 @@ public class MetadataService : IMetadataService
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
-                            Poster = omdbData?.Poster,
+                            Poster = posterPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/poster" : omdbData?.Poster,
+                            Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/backdrop" : null,
+                            Logo = logoPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/logo" : null,
                             Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                             {
                                 Source = rating.Source,
@@ -118,6 +168,35 @@ public class MetadataService : IMetadataService
                             BoxOffice = omdbData?.BoxOffice,
                             Production = omdbData?.Production,
                             Website = omdbData?.Website,
+                        }
+                    };
+
+                    break;
+                }
+
+            case "Season":
+                {
+                    var tmdbData = await _tMDbAPI.GetShow
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        year: year
+                    );
+
+                    var seasonInfo = tmdbData?.Seasons.Where(i => i.SeasonNumber == season).FirstOrDefault();
+
+                    await WriteImage(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
+
+                    metadata = new MetadataModel()
+                    {
+                        Title = tmdbData?.Name,
+                        Season = new()
+                        {
+                            Poster = seasonInfo?.PosterPath != null ? $"{Globals.Domain}/images/Season/{metadataId}/poster" : null,
+                            AirDate = seasonInfo?.AirDate,
+                            EpisodeCount = seasonInfo?.EpisodeCount,
+                            Overview = seasonInfo?.Overview,
+                            Popularity = seasonInfo?.Popularity,
                         }
                     };
 
@@ -207,8 +286,7 @@ public class MetadataService : IMetadataService
                     return null;
                 }
         }
-
-        metadata.Id = Guid.NewGuid();
+        metadata.Id = metadataId;
         metadata.Category = category;
         metadata.ParentId = parentId;
 
@@ -261,5 +339,22 @@ public class MetadataService : IMetadataService
         await _storageRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "metadata", metadataModel.Category) + ".json", metadatas);
 
         return true;
+    }
+
+    private async Task WriteImage(string? url, string fileName, string category, string id)
+    {
+        if (url == null)
+            return;
+
+        var bytes = await _tMDbAPI.GetImageFromId(url, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+
+        if (bytes == null)
+            return;
+
+        var extension = url.Split(".").LastOrDefault();
+        var fullFileName = fileName + "." + extension;
+        var path = Path.Combine(Globals.ConfigFolder, "images", category, id, fullFileName);
+
+        await _storageRepository.WriteBytes(path, bytes);
     }
 }

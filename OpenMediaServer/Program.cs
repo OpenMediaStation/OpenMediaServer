@@ -50,6 +50,7 @@ builder.Services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
 builder.Services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
 builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
 builder.Services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
+builder.Services.AddSingleton<IImageEndpoints, ImageEndpoints>();
 builder.Services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
 builder.Services.AddSingleton<IMetadataService, MetadataService>();
 builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
@@ -88,6 +89,7 @@ app.Services.GetService<IStreamingEndpoints>()?.Map(app);
 app.Services.GetService<IMetadataEndpoints>()?.Map(app);
 app.Services.GetService<IFileInfoEndpoints>()?.Map(app);
 app.Services.GetService<IInventoryEndpoints>()?.Map(app);
+app.Services.GetService<IImageEndpoints>()?.Map(app);
 
 app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
 
