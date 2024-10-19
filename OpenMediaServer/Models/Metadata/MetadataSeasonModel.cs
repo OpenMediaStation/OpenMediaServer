@@ -8,6 +8,5 @@ public class MetadataSeasonModel
     public DateTime? AirDate { get; set; }
     public int? EpisodeCount { get; set; }
     public string? Overview { get; set; }
-    public double? Popularity { get; set; }
 }
 

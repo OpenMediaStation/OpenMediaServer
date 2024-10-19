@@ -16,4 +16,6 @@ public interface ITMDbAPI
     Task<ProfileImages?> GetPersonImages(int personId, string? apiKey);
     Task<PosterImages?> GetSeasonImages(int showId, int seasonNr, string? apiKey);
     Task<StillImages?> GetEpisodeImages(int showId, int seasonNr, int episodeNr, string? apiKey);
+    Task<TvSeason?> GetSeason(int showId, int seasonNr, string? apiKey);
+    Task<TvEpisode?> GetEpisode(int showId, int seasonNr, int episodeNr, string? apiKey);
 }

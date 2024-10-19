@@ -64,6 +64,33 @@ public class TMDbAPI : ITMDbAPI
         return show;
     }
 
+    public async Task<TvSeason?> GetSeason(int showId, int seasonNr, string? apiKey)
+    {
+        TMDbClient client = new(apiKey);
+
+        var result = await client.GetTvSeasonAsync
+        (
+            tvShowId: showId,
+            seasonNumber: seasonNr
+        );
+
+        return result;
+    }
+
+    public async Task<TvEpisode?> GetEpisode(int showId, int seasonNr, int episodeNr, string? apiKey)
+    {
+        TMDbClient client = new(apiKey);
+
+        var result = await client.GetTvEpisodeAsync
+        (
+            tvShowId: showId,
+            seasonNumber: seasonNr,
+            episodeNumber: episodeNr
+        );
+
+        return result;
+    }
+
     public async Task<Person?> GetPerson(string name, string? apiKey)
     {
         TMDbClient client = new(apiKey);

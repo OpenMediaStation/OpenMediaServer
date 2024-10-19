@@ -4,6 +4,7 @@ using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Metadata;
 using TMDbLib.Objects.General;
+using TMDbLib.Objects.TvShows;
 
 namespace OpenMediaServer.Services;
 
@@ -183,7 +184,12 @@ public class MetadataService : IMetadataService
                         year: year
                     );
 
-                    var seasonInfo = tmdbData?.Seasons.Where(i => i.SeasonNumber == season).FirstOrDefault();
+                    TvSeason? seasonInfo = null;
+
+                    if (tmdbData != null && season != null)
+                    {
+                        seasonInfo = await _tMDbAPI.GetSeason(tmdbData.Id, (int)season, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                    }
 
                     await WriteImage(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
 
@@ -194,9 +200,8 @@ public class MetadataService : IMetadataService
                         {
                             Poster = seasonInfo?.PosterPath != null ? $"{Globals.Domain}/images/Season/{metadataId}/poster" : null,
                             AirDate = seasonInfo?.AirDate,
-                            EpisodeCount = seasonInfo?.EpisodeCount,
+                            EpisodeCount = seasonInfo?.Episodes.Count,
                             Overview = seasonInfo?.Overview,
-                            Popularity = seasonInfo?.Popularity,
                         }
                     };
 
@@ -213,6 +218,22 @@ public class MetadataService : IMetadataService
                         season: season,
                         episode: episode
                     );
+
+                    var showData = await _tMDbAPI.GetShow
+                    (
+                        name: title,
+                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        year: year
+                    );
+
+                    TvEpisode? episodeInfo = null;
+
+                    if (showData != null && season != null && episode != null)
+                    {
+                        episodeInfo = await _tMDbAPI.GetEpisode(showData.Id, (int)season, (int)episode, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                    }
+
+                    await WriteImage(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
 
                     metadata = new MetadataModel()
                     {
@@ -231,7 +252,7 @@ public class MetadataService : IMetadataService
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
-                            Poster = omdbData?.Poster,
+                            Backdrop = episodeInfo?.StillPath != null ? $"{Globals.Domain}/images/Episode/{metadataId}/backdrop" : omdbData?.Poster,
                             Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                             {
                                 Source = rating.Source,
