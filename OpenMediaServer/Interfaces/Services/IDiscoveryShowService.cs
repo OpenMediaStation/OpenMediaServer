@@ -3,8 +3,7 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Interfaces.Services;
 
-public interface IDiscoveryMovieShowService
+public interface IDiscoveryShowService
 {
-    Task CreateMovie(string path);
     Task CreateShow(string path);
 }

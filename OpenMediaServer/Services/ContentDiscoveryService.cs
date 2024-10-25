@@ -2,11 +2,12 @@ using OpenMediaServer.Interfaces.Services;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryMovieShowService movieShowService, IDiscoveryBookService _bookService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
-    private readonly IDiscoveryMovieShowService _movieShowService = movieShowService;
-    private readonly IDiscoveryBookService bookService = _bookService;
+    private readonly IDiscoveryShowService _showService = showService;
+    private readonly IDiscoveryMovieService _movieService = movieService;
+    private readonly IDiscoveryBookService _bookService = _bookService;
 
     public async Task ActiveScan(string path)
     {
@@ -45,13 +46,13 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
             {
                 case "Movies":
                     {
-                        await _movieShowService.CreateMovie(path);
+                        await _movieService.CreateMovie(path);
 
                         break;
                     }
                 case "Shows":
                     {
-                        await _movieShowService.CreateShow(path);
+                        await _showService.CreateShow(path);
 
                         break;
                     }

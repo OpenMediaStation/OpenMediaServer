@@ -9,53 +9,23 @@ using Shouldly;
 
 namespace OpenMediaServer.Test.Services;
 
-public class DiscoveryMovieShowServiceShould
+public class DiscoveryShowServiceShould
 {
-    private readonly ILogger<DiscoveryMovieShowService> _logger;
+    private readonly ILogger<DiscoveryShowService> _logger;
     private readonly FileSystemRepoMock _storageRepository;
     private readonly IMetadataService _metadataService;
     private readonly IFileInfoService _fileInfoService;
-    private readonly IDiscoveryMovieShowService _inventoryMovieShowService;
+    private readonly IDiscoveryShowService _inventoryMovieShowService;
     private readonly IInventoryService _inventoryService;
 
-    public DiscoveryMovieShowServiceShould()
+    public DiscoveryShowServiceShould()
     {
-        _logger = Substitute.For<ILogger<DiscoveryMovieShowService>>();
+        _logger = Substitute.For<ILogger<DiscoveryShowService>>();
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
-        _inventoryMovieShowService = new DiscoveryMovieShowService(_logger, _fileInfoService, _metadataService, _inventoryService);
-    }
-
-    [Theory]
-    [InlineData("/media/Movies/Ex Machina.mkv", "Ex Machina", null)]
-    [InlineData("/media/Movies/Ex Machina/Ex Machina.mkv", "Ex Machina", "/media/Movies/Ex Machina")]
-    [InlineData("/media/Movies/Hunger Games.mp4", "Hunger Games", null)]
-    [InlineData("/media/Movies/Hunger Games (German).mp4", "Hunger Games", null)]
-    [InlineData("/media/Movies/Hunger Games - Directors Cut.mp4", "Hunger Games", null)]
-    [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games - Directors Cut", null)]
-    [InlineData("/media/Movies/Det arktiska Skandinavien/Det arktiska Skandinavien.mp4", "Det arktiska Skandinavien", "/media/Movies/Det arktiska Skandinavien")]
-    public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
-    {
-        // Arrange
-
-        // Act
-        await _inventoryMovieShowService.CreateMovie(path);
-        var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Movie>>(resultJson);
-
-        // Assert
-        var resultItem = result.First();
-        resultItem.Id.ShouldNotBe(Guid.Empty);
-        resultItem.Title.ShouldBe(title);
-        resultItem.Category.ShouldBe("Movie");
-        resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
-        resultItem.FolderPath.ShouldBe(folderPath);
+        _inventoryMovieShowService = new DiscoveryShowService(_logger, _fileInfoService, _metadataService, _inventoryService);
     }
 
     [Theory]
@@ -66,6 +36,7 @@ public class DiscoveryMovieShowServiceShould
     [InlineData("/media/Shows/Mr Robot/Season 4/S1E3.mp4", "S1E3", null)]
     [InlineData("/media/Shows/Mr Robot/Season 4/Mr Robot S1E3.mp4", "Mr Robot S1E3", null)]
     [InlineData("/media/Shows/Mr Robot/Season 4/Mr Robot Episode name S04E03.mp4", "Episode name", null)]
+    [InlineData("/media/Shows/Mr Robot/Season 4/Episode name.mp4", "Episode name", null)]
     [InlineData("/media/Shows/Mr Robot/Season 4/Episode name S04E03.mp4", "Episode name", null)]
     public async Task CreateFromPaths_FirstItemEpisode(string path, string title, string? folderPath)
     {
