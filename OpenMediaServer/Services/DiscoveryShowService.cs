@@ -12,6 +12,12 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
     private readonly IInventoryService _inventoryService = inventoryService;
     private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?(?<folderTitle>[ \w.]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w\.]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$";
 
+    /// <summary>
+    /// Scann shows
+    /// Requirement: S01E01 contained in episode name
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
     public async Task CreateShow(string path)
     {
         var pathRegex = new Regex
@@ -30,7 +36,17 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
         var category = groups["category"].Value;
         var folderTitle = groups["folderTitle"].Value;
         var title = groups["title"].Value;
-
+        var year = groups["yearFolder"].Value;
+        int? episodeNr = null;
+        int? seasonNr = null;
+        if (int.TryParse(groups["episode"].Value, out int episodeNrTemp))
+        {
+            episodeNr = episodeNrTemp;
+        }
+        if (int.TryParse(groups["season"].Value, out var seasonNrTemp))
+        {
+            seasonNr = seasonNrTemp;
+        }
 
         _logger.LogDebug("Show detected");
 
@@ -52,7 +68,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
             (
                 parentId: show.Id,
                 title: show.Title,
-                year: groups["yearFolder"].Value,
+                year: year,
                 category: show.Category
             );
 
@@ -72,7 +88,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
 
                 ShowId = show.Id,
                 Title = groups["seasonFolder"].Value,
-                SeasonNr = int.TryParse(groups["season"].Value, out var seasonNr) ? seasonNr : null,
+                SeasonNr = seasonNr,
                 FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
             };
 
@@ -80,7 +96,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
             (
                 parentId: season.Id,
                 title: show.Title,
-                year: groups["yearFolder"].Value,
+                year: year,
                 category: season.Category,
                 season: seasonNr
             );
@@ -106,7 +122,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
                 Id = Guid.NewGuid(),
 
                 SeasonId = season.Id,
-                Title = title,
+                Title = $"{folderTitle} S{seasonNr}E{episodeNr}",
                 Versions =
                 [
                     new()
@@ -116,7 +132,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
                         FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
                     }
                 ],
-                EpisodeNr = int.TryParse(groups["episode"].Value, out var episodeNr) ? episodeNr : null,
+                EpisodeNr = episodeNr,
                 SeasonNr = season.SeasonNr
             };
 
@@ -124,7 +140,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
             (
                 parentId: episode.Id,
                 title: episode.Title,
-                year: groups["yearFolder"].Value,
+                year: year,
                 category: episode.Category,
                 episode: episode.EpisodeNr,
                 season: episode.SeasonNr
