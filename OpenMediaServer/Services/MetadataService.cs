@@ -68,10 +68,10 @@ public class MetadataService : IMetadataService
 
                     metadata = new MetadataModel()
                     {
-                        Title = omdbData?.Title,
+                        Title = omdbData?.Title ?? tmdbData?.Title,
                         Movie = new()
                         {
-                            Year = omdbData?.Year,
+                            Year = omdbData?.Year ?? tmdbData?.ReleaseDate.ToString(),
                             Rated = omdbData?.Rated,
                             Released = omdbData?.Released,
                             Runtime = omdbData?.Runtime,
@@ -79,7 +79,7 @@ public class MetadataService : IMetadataService
                             Director = omdbData?.Director,
                             Writer = omdbData?.Writer,
                             Actors = omdbData?.Actors,
-                            Plot = omdbData?.Plot,
+                            Plot = omdbData?.Plot ?? tmdbData?.Overview,
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
