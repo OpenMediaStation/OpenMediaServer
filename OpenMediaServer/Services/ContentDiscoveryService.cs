@@ -82,6 +82,8 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         watcher.Filter = "**";
         watcher.IncludeSubdirectories = true;
         watcher.Changed += new FileSystemEventHandler(OnChanged);
+        watcher.Created += new FileSystemEventHandler(OnChanged);
+        watcher.Deleted += new FileSystemEventHandler(OnChanged);
         watcher.EnableRaisingEvents = true;
     }
 

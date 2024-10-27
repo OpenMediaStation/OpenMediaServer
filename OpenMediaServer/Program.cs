@@ -13,14 +13,12 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure logging
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Verbose()
-    .WriteTo.Console()
-    .WriteTo.File("/config/logs/log-.txt", rollingInterval: RollingInterval.Day)
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+// Configure Serilog with appsettings.json configuration
+builder.Host.UseSerilog((context, config) =>
+{
+    config.ReadFrom.Configuration(context.Configuration)
+          .Enrich.FromLogContext();
+});
 
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
@@ -41,57 +39,71 @@ builder.Services.AddSwaggerGen(c =>
     c.IncludeXmlComments(xmlPath);
 });
 
-builder.Services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
-builder.Services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
-builder.Services.AddSingleton<IInventoryService, InventoryService>();
-builder.Services.AddSingleton<IStreamingService, StreamingService>();
-builder.Services.AddSingleton<IOmdbAPI, OMDbAPI>();
-builder.Services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
-builder.Services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
-builder.Services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
-builder.Services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
-builder.Services.AddSingleton<IImageEndpoints, ImageEndpoints>();
-builder.Services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
-builder.Services.AddSingleton<IMetadataService, MetadataService>();
-builder.Services.AddSingleton<IFileInfoService, FileInfoService>();
-builder.Services.AddSingleton<IDiscoveryShowService, DiscoveryShowService>();
-builder.Services.AddSingleton<IDiscoveryMovieService, DiscoveryMovieService>();
-builder.Services.AddSingleton<IDiscoveryBookService, DiscoveryBookService>();
-builder.Services.AddSingleton<IGoogleBooksApi, GoogleBooksApi>();
-builder.Services.AddSingleton<ITMDbAPI, TMDbAPI>();
+// Register application services and endpoints
+RegisterServices(builder.Services);
 
-builder.Services.AddHttpClient<IOmdbAPI, OMDbAPI>();
-
+// Configure CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("AllowAll", policyBuilder =>
     {
-        builder.AllowAnyOrigin()
-               .AllowAnyHeader()
-               .AllowAnyMethod();
+        policyBuilder.AllowAnyOrigin()
+                     .AllowAnyHeader()
+                     .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
 
+// Configure middleware
 app.UseCors("AllowAll");
-
 app.UseSwagger();
 app.UseSwaggerUI();
-
 app.UseHttpsRedirection();
 
-var contentDiscoveryService = app.Services.GetService<IContentDiscoveryService>();
-await contentDiscoveryService?.ActiveScan(Globals.MediaFolder);
-contentDiscoveryService?.Watch(Globals.MediaFolder);
+// Run initial content scan and set up watchers
+var contentDiscoveryService = app.Services.GetRequiredService<IContentDiscoveryService>();
+await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
+contentDiscoveryService.Watch(Globals.MediaFolder);
 
-app.Services.GetService<IGeneralApiEndpoints>()?.Map(app);
-app.Services.GetService<IStreamingEndpoints>()?.Map(app);
-app.Services.GetService<IMetadataEndpoints>()?.Map(app);
-app.Services.GetService<IFileInfoEndpoints>()?.Map(app);
-app.Services.GetService<IInventoryEndpoints>()?.Map(app);
-app.Services.GetService<IImageEndpoints>()?.Map(app);
+// Map endpoints
+MapEndpoints(app);
 
 app.Lifetime.ApplicationStopping.Register(() => Log.Information("Application shutting down"));
-
 app.Run();
+
+// Method to register services
+void RegisterServices(IServiceCollection services)
+{
+    services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
+    services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
+    services.AddSingleton<IInventoryService, InventoryService>();
+    services.AddSingleton<IStreamingService, StreamingService>();
+    services.AddSingleton<IOmdbAPI, OMDbAPI>();
+    services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
+    services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
+    services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
+    services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
+    services.AddSingleton<IImageEndpoints, ImageEndpoints>();
+    services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
+    services.AddSingleton<IMetadataService, MetadataService>();
+    services.AddSingleton<IFileInfoService, FileInfoService>();
+    services.AddSingleton<IDiscoveryShowService, DiscoveryShowService>();
+    services.AddSingleton<IDiscoveryMovieService, DiscoveryMovieService>();
+    services.AddSingleton<IDiscoveryBookService, DiscoveryBookService>();
+    services.AddSingleton<IGoogleBooksApi, GoogleBooksApi>();
+    services.AddSingleton<ITMDbAPI, TMDbAPI>();
+
+    services.AddHttpClient<IOmdbAPI, OMDbAPI>();
+}
+
+// Method to map endpoints
+void MapEndpoints(WebApplication app)
+{
+    app.Services.GetRequiredService<IGeneralApiEndpoints>().Map(app);
+    app.Services.GetRequiredService<IStreamingEndpoints>().Map(app);
+    app.Services.GetRequiredService<IMetadataEndpoints>().Map(app);
+    app.Services.GetRequiredService<IFileInfoEndpoints>().Map(app);
+    app.Services.GetRequiredService<IInventoryEndpoints>().Map(app);
+    app.Services.GetRequiredService<IImageEndpoints>().Map(app);
+}
