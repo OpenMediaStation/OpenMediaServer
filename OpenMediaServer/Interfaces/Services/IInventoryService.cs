@@ -13,4 +13,5 @@ public interface IInventoryService
     Task<T?> GetItem<T>(string category, Func<T, bool> predicate) where T : InventoryItem;
     Task UpdateByTitle<T>(T item) where T : InventoryItem;
     Task UpdateById<T>(T item) where T : InventoryItem;
+    Task RemoveById<T>(T item) where T : InventoryItem;
 }

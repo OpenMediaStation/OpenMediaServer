@@ -154,6 +154,22 @@ public class InventoryService : IInventoryService
         await _storageRepository.WriteObject(GetPath(item), items);
     }
 
+    public async Task RemoveById<T>(T item) where T : InventoryItem
+    {
+        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
+
+        items ??= [];
+
+        var existingItem = items.FirstOrDefault(i => i.Id == item.Id);
+
+        if (existingItem != null)
+        {
+            items.Remove(existingItem);
+        }
+
+        await _storageRepository.WriteObject(GetPath(item), items);
+    }
+
     private string GetPath(InventoryItem item)
     {
         return Path.Join(Globals.ConfigFolder, "inventory", item.Category + ".json");

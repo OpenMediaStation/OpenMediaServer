@@ -4,10 +4,11 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Endpoints;
 
-public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventoryService inventoryService) : IInventoryEndpoints
+public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventoryService inventoryService, IContentDiscoveryService contentDiscovery) : IInventoryEndpoints
 {
     private readonly ILogger<InventoryEndpoints> _logger = logger;
     private readonly IInventoryService _inventoryService = inventoryService;
+    private readonly IContentDiscoveryService _contentDiscovery = contentDiscovery;
 
     public void Map(WebApplication app)
     {
@@ -22,6 +23,15 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         group.MapGet("/categories", ListCategories);
         group.MapGet("/items", ListItems); 
         group.MapGet("/item", GetItem);
+
+        group.MapPost("/rescan", Rescan);
+    }
+
+    public async Task<IResult> Rescan()
+    {
+        await _contentDiscovery.Rescan();
+
+        return Results.Ok();
     }
 
     public async Task<IResult> GetMovie(Guid id)
