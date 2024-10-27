@@ -139,7 +139,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
             var metadata = await _metadataService.CreateNewMetadata
             (
                 parentId: episode.Id,
-                title: episode.Title,
+                title: show.Title,
                 year: year,
                 category: episode.Category,
                 episode: episode.EpisodeNr,
