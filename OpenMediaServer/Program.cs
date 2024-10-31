@@ -62,18 +62,18 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.Authority = Globals.AuthIssuer; // Authentik issuer URL
-    // options.Audience = "api://default"; // This should match your Authentik client ID
+    options.Authority = Globals.AuthIssuer;
+    options.Audience = Globals.ClientId;
     options.RequireHttpsMetadata = true;
 
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidIssuer = Globals.AuthIssuer,
-        ValidateAudience = false, // TODO
-        // ValidAudience = "api://default", // Match this to your Authentik Client ID
+        ValidateAudience = true, 
+        ValidAudience = Globals.ClientId,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero // Optional: reduce allowed clock skew
+        ClockSkew = TimeSpan.Zero
     };
 });
 
