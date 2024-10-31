@@ -12,6 +12,8 @@ public class TMDbAPIShould
 
     public TMDbAPIShould()
     {
+        Setup.Configure();
+
         var logger = new Mock<ILogger<TMDbAPI>>();
         Api = new TMDbAPI(logger: logger.Object, httpClient: new HttpClient());
     }

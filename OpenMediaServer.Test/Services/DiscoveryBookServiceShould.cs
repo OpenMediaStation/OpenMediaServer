@@ -19,6 +19,8 @@ public class DiscoveryBookServiceShould
 
     public DiscoveryBookServiceShould()
     {
+        Setup.Configure();
+
         _logger = Substitute.For<ILogger<DiscoveryBookService>>();
         _storageRepository = new FileSystemRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();

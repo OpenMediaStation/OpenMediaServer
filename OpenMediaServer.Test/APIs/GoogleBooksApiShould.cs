@@ -11,6 +11,8 @@ public class GoogleBooksApiShould
 
     public GoogleBooksApiShould()
     {
+        Setup.Configure();
+
         Api = new GoogleBooksApi(logger: Substitute.For<ILogger<GoogleBooksApi>>(), httpClient: new HttpClient());
     }
 

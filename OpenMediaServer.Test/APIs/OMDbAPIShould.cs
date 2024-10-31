@@ -12,6 +12,8 @@ public class OMDbAPIShould
 
     public OMDbAPIShould()
     {
+        Setup.Configure();
+
         var logger = new Mock<ILogger<OMDbAPI>>();
         Api = new OMDbAPI(logger: logger.Object, httpClient: new HttpClient());
     }

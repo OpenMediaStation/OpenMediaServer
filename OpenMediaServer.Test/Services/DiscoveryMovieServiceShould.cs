@@ -20,6 +20,8 @@ public class DiscoveryMovieServiceShould
 
     public DiscoveryMovieServiceShould()
     {
+        Setup.Configure();
+
         _logger = Substitute.For<ILogger<DiscoveryMovieService>>();
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();

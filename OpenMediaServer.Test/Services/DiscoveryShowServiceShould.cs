@@ -20,6 +20,8 @@ public class DiscoveryShowServiceShould
 
     public DiscoveryShowServiceShould()
     {
+        Setup.Configure();
+
         _logger = Substitute.For<ILogger<DiscoveryShowService>>();
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
