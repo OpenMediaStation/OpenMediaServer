@@ -18,7 +18,7 @@ public class MetadataEndpoints : IMetadataEndpoints
 
     public void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/metadata");
+        var group = app.MapGroup("/api/metadata").RequireAuthorization();
 
         group.MapGet("list", ListMetadata);
         group.MapGet("", GetMetadata);

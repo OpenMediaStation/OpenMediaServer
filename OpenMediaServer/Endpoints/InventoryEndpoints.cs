@@ -12,7 +12,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public void Map(WebApplication app)
     {
-        var group = app.MapGroup("/api/inventory");
+        var group = app.MapGroup("/api/inventory").RequireAuthorization();
 
         group.MapGet("/movie", GetMovie);
         group.MapGet("/show", GetShow);

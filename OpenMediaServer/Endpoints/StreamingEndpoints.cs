@@ -16,7 +16,7 @@ public class StreamingEndpoints : IStreamingEndpoints
 
     public void Map(WebApplication app)
     {
-        var group = app.MapGroup("/stream");
+        var group = app.MapGroup("/stream").RequireAuthorization();
 
         group.MapGet("/{category}/{id}", StreamContent);
         group.MapGet("/{category}/{id}/segments/segment{segmentStart}-{segmentEnd}.ts", StreamSegment);

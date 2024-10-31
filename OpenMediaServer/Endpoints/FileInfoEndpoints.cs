@@ -13,8 +13,8 @@ public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoServi
     {
         var group = app.MapGroup("/api/fileInfo");
 
-        group.MapGet("list", ListFileInfos);
-        group.MapGet("", GetFileInfos);
+        group.MapGet("list", ListFileInfos).RequireAuthorization();
+        group.MapGet("", GetFileInfos).RequireAuthorization();
     }
 
       public async Task<IResult> ListFileInfos(string category)

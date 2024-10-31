@@ -1,4 +1,6 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenMediaServer;
 using OpenMediaServer.APIs;
@@ -53,6 +55,30 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.Authority = Globals.AuthIssuer; // Authentik issuer URL
+    // options.Audience = "api://default"; // This should match your Authentik client ID
+    options.RequireHttpsMetadata = true;
+
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidIssuer = Globals.AuthIssuer,
+        ValidateAudience = false, // TODO
+        // ValidAudience = "api://default", // Match this to your Authentik Client ID
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero // Optional: reduce allowed clock skew
+    };
+});
+
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 // Configure middleware
@@ -60,6 +86,8 @@ app.UseCors("AllowAll");
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Run initial content scan and set up watchers
 var contentDiscoveryService = app.Services.GetRequiredService<IContentDiscoveryService>();

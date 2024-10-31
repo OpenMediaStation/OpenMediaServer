@@ -13,7 +13,7 @@ public class ImageEndpoints (ILogger<ImageEndpoints> logger, IFileSystemReposito
     {
         var group = app.MapGroup("/images");
 
-        group.MapGet("/{category}/{metadataId}/{type}", GetImage);
+        group.MapGet("/{category}/{metadataId}/{type}", GetImage).RequireAuthorization();
     }
 
     public IResult GetImage(string category, Guid metadataId, string type)
