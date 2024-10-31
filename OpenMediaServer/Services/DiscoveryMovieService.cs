@@ -11,39 +11,60 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
     private readonly IFileInfoService _fileInfoService = fileInfoService;
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly string _regex = @"(?<category>(Movies|\w+?))/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<title>[ \w.-.']+?)(?:\((?<year>\d{4})\)|\((?<addition>\D+?)\))?(?:\s*[-.]\s*(?<hyphenAddition>[ \w.-]+?))?([-\.](?<fileInfo>[\w.]*?))?\.(?<extension>\S{3,4})$";
 
+    private readonly string _folderRegex = @"^(?<title>[ \w\.\-'`´]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?$";
+    private readonly string _fileRegex = @"^(?<title>[ \w\.\-'`´]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?(?: ?\- ?(?<version>[\w ]+))?(?:\.(?<extension>\w{3,4}))$"; 
+    //OldRegex: @"(?<category>(Movies|\w+?))/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<title>[ \w.-.']+?)(?:\((?<year>\d{4})\)|\((?<addition>\D+?)\))?(?:\s*[-.]\s*(?<hyphenAddition>[ \w.-]+?))?([-\.](?<fileInfo>[\w.]*?))?\.(?<extension>\S{3,4})$";
+    
     public async Task CreateMovie(string path)
     {
-        var pathRegex = new Regex
+        var fileRegex = new Regex
         (
-            pattern: _regex,
+            pattern: _fileRegex,
+            options: RegexOptions.Compiled
+        );
+        var folderRegex = new Regex
+        (
+            pattern: _folderRegex,
             options: RegexOptions.Compiled
         );
 
-        var match = pathRegex.Match(path.Replace(Globals.MediaFolder, string.Empty));
+        var parts = path.Replace(Globals.MediaFolder+Path.DirectorySeparatorChar, string.Empty).Split(Path.DirectorySeparatorChar);
+
+        var lastTwoParts = parts.TakeLast(2).ToArray();
+        
+        var filePart = lastTwoParts.Last();
+        var folderPart = parts.Length >2 ? lastTwoParts.First() : string.Empty;
+        
+        //todo if(fileName matches "part1" or "cd1" or similar. match on folder instead.(for Title))
+        
+        var match = fileRegex.Match(filePart);
         if (!match.Success)
         {
             _logger.LogWarning("Invalid path: {Path}", path);
             return;
         }
-        var groups = match.Groups;
-        var category = groups["category"].Value;
-        var folderTitle = groups["folderTitle"].Value;
-        var title = groups["title"].Value.Trim();
-        var addition = groups["addition"].Value;
-        var hypenAddition = groups["hyphenAddition"].Value;
-
+        
+        var folderMatch = folderRegex.Match(folderPart);
+        
+        var fileGroups = match.Groups;
+        var folderGroups = folderMatch.Groups;
+        
+        var category = parts.First();
+        var folderTitle = folderGroups["title"].Value;
+        var title = fileGroups["title"].Value.Replace("."," ").Trim();
+        var versionName = fileGroups["version"].Value;
+        
         _logger.LogDebug("Movie detected");
 
         var movies = await _inventoryService.ListItems<Movie>("Movie");
-        var existingMovie = movies?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
+        var existingMovie = movies?.Where(i => i.Versions?.Any(j => j.Path == path) ?? false).FirstOrDefault();
 
         string? folderPath = null;
 
         if (!string.IsNullOrEmpty(folderTitle))
         {
-            folderPath = Path.Combine(Globals.MediaFolder, category, folderTitle);
+            folderPath = Path.Combine(parts.Take(parts.Length - 1).Prepend(Globals.MediaFolder).ToArray());
             existingMovie = movies?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
         }
 
@@ -55,6 +76,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 {
                     Id = Guid.NewGuid(),
                     Path = path,
+                    Name = versionName
                 };
 
                 if (existingMovie.Versions?.Any(i => i.Path == path) ?? false)
@@ -86,7 +108,8 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                     FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, category))?.Id
                 }
             ],
-            Title = !string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" : title,
+            Title = //!string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" :
+                title,
             FolderPath = folderPath
         };
 
@@ -95,8 +118,8 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
             parentId: movie.Id,
             title: movie.Title,
             category: movie.Category,
-            year: groups.TryGetValue("year", out var movieTitleYear) ?
-                    movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
+            year: fileGroups.TryGetValue("year", out var movieTitleYear) ?
+                    movieTitleYear.Value : fileGroups.TryGetValue("folderYear", out var movieFolderYear) ?
                     movieFolderYear.Value : null
         );
 

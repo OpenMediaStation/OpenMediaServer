@@ -32,13 +32,15 @@ public class DiscoveryMovieServiceShould
 
     [Theory]
     [InlineData("/media/Movies/Ex Machina.mkv", "Ex Machina", null)]
+    [InlineData("/media/Movies/Millers.Girl.2024.mkv", "Millers Girl", null)]
     [InlineData("/media/Movies/Don't hex the water.mp4", "Don't hex the water", null)]
     [InlineData("/media/Movies/Ex Machina/Ex Machina.mkv", "Ex Machina", "/media/Movies/Ex Machina")]
     [InlineData("/media/Movies/Hunger Games.mp4", "Hunger Games", null)]
     [InlineData("/media/Movies/Hunger Games (German).mp4", "Hunger Games", null)]
     [InlineData("/media/Movies/Hunger Games - Directors Cut.mp4", "Hunger Games", null)]
     [InlineData("/media/Movies/Det arktiska Skandinavien/Det arktiska Skandinavien.mp4", "Det arktiska Skandinavien", "/media/Movies/Det arktiska Skandinavien")]
-    [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games - Directors Cut", "/media/Movies/Hunger Games - Directors Cut")]
+    [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games", "/media/Movies/Hunger Games - Directors Cut")]
+    [InlineData("/media/Movies/BlueRay/New/FilmName/FilmName.mkv", "FilmName","/media/Movies/BlueRay/New/FilmName")]
     public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
     {
         // Arrange
