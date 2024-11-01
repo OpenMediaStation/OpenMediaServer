@@ -52,11 +52,26 @@ public class FileSystemRepository : IFileSystemRepository
         }
     }
 
-    public IEnumerable<string> GetFiles(string path)
+    public IEnumerable<string> EnumerateFiles(string path)
     {
         try
         {
             var files = Directory.EnumerateFiles(path);
+            return files;
+        }
+        catch (DirectoryNotFoundException dirEx)
+        {
+            _logger.LogDebug(dirEx, "Directory could not be found while enumerating files");
+
+            return [];
+        }
+    }
+
+    public IEnumerable<string> GetFiles(string path, string searchPattern)
+    {
+        try
+        {
+            var files =  Directory.GetFiles(path, searchPattern);
             return files;
         }
         catch (DirectoryNotFoundException dirEx)

@@ -9,7 +9,12 @@ public class FileSystemRepoMock : IFileSystemRepository
 {
     public List<string?> WrittenObjects { get; set; } = new();
 
-    public IEnumerable<string> GetFiles(string path)
+    public IEnumerable<string> EnumerateFiles(string path)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IEnumerable<string> GetFiles(string path, string searchPattern)
     {
         throw new NotImplementedException();
     }

@@ -16,8 +16,9 @@ public class MetadataService : IMetadataService
     private readonly IFileSystemRepository _storageRepository;
     private readonly IGoogleBooksApi _googleBooksApi;
     private readonly ITMDbAPI _tMDbAPI;
+    private readonly IImageService _imageService;
 
-    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi, ITMDbAPI tMDbAPI)
+    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi, ITMDbAPI tMDbAPI, IImageService imageService)
     {
         _logger = logger;
         _omdbAPI = omdbAPI;
@@ -25,6 +26,7 @@ public class MetadataService : IMetadataService
         _storageRepository = storageRepository;
         _googleBooksApi = googleBooksApi;
         _tMDbAPI = tMDbAPI;
+        _imageService = imageService;
     }
 
     public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = "en")
@@ -369,13 +371,6 @@ public class MetadataService : IMetadataService
 
         var bytes = await _tMDbAPI.GetImageFromId(url, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
 
-        if (bytes == null)
-            return;
-
-        var extension = url.Split(".").LastOrDefault();
-        var fullFileName = fileName + "." + extension;
-        var path = Path.Combine(Globals.ConfigFolder, "images", category, id, fullFileName);
-
-        await _storageRepository.WriteBytes(path, bytes);
+        await _imageService.WriteImage(bytes, url, fileName, category, id);
     }
 }

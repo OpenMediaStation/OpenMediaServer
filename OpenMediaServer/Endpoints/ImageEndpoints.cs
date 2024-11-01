@@ -1,36 +1,29 @@
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
+using OpenMediaServer.Interfaces.Services;
 
 namespace OpenMediaServer.Endpoints;
 
-public class ImageEndpoints (ILogger<ImageEndpoints> logger, IFileSystemRepository fileRepo) : IImageEndpoints
+public class ImageEndpoints(ILogger<ImageEndpoints> logger, IImageService imageService) : IImageEndpoints
 {
     private readonly ILogger<ImageEndpoints> _logger = logger;
-    private readonly IFileSystemRepository _fileRepo = fileRepo;
+    private readonly IImageService _imageService = imageService;
 
     public void Map(WebApplication app)
     {
-        var group = app.MapGroup("/images");
+        var group = app.MapGroup("/images").RequireAuthorization();
 
-        group.MapGet("/{category}/{metadataId}/{type}", GetImage).RequireAuthorization();
+        group.MapGet("/{category}/{metadataId}/{type}", GetImage);
     }
 
-    public IResult GetImage(string category, Guid metadataId, string type)
+    public IResult GetImage(string category, Guid metadataId, string type, int? width, int? height)
     {
-        var directoryPath = Path.Combine(Globals.ConfigFolder, "images", category, metadataId.ToString());
-        
-        var file = Directory.GetFiles(directoryPath, type + ".*").FirstOrDefault();
-        var extension = file?.Split('.').LastOrDefault();
+        var path = _imageService.GetPath(category, metadataId, type, width, height);
+        var extension = path?.Split('.').LastOrDefault();
+        var stream = _imageService.GetImageStream(path);
 
-        if (file == null || extension == null)
-        {
-            return Results.NotFound("Id not found in images");
-        }
-
-        var stream = _fileRepo.GetStream(file);
-
-        if (stream != null)
+        if (stream != null && extension != null)
         {
             return Results.Stream(stream, contentType: MimeTypeHelper.GetMimeType(extension));
         }

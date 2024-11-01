@@ -133,6 +133,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IDiscoveryBookService, DiscoveryBookService>();
     services.AddSingleton<IGoogleBooksApi, GoogleBooksApi>();
     services.AddSingleton<ITMDbAPI, TMDbAPI>();
+    services.AddSingleton<IImageService, ImageService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

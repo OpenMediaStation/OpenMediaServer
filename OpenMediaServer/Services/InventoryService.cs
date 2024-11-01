@@ -17,7 +17,7 @@ public class InventoryService : IInventoryService
 
     public IEnumerable<string> ListCategories()
     {
-        var files = _storageRepository.GetFiles(Path.Join(Globals.ConfigFolder, "inventory"));
+        var files = _storageRepository.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
         var fileNames = files.Select(i => i.Split("/").Last().Replace(".json", ""));
 
         return fileNames;
