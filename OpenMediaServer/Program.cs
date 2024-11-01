@@ -81,9 +81,9 @@ builder.Services.AddAuthentication(options =>
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-         ValidIssuer = options.Configuration?.Issuer ?? Globals.AuthIssuer ?? throw new ArgumentException("AuthIssuer must be set"),
-        ValidateAudience = true, 
-        ValidAudience =  Globals.ClientId,
+        ValidIssuer = Globals.AuthIssuer,
+        ValidateAudience = true,
+        ValidAudience = Globals.ClientId,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };

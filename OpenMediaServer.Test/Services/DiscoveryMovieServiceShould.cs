@@ -41,6 +41,7 @@ public class DiscoveryMovieServiceShould
     [InlineData("/media/Movies/Det arktiska Skandinavien/Det arktiska Skandinavien.mp4", "Det arktiska Skandinavien", "/media/Movies/Det arktiska Skandinavien")]
     [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games", "/media/Movies/Hunger Games - Directors Cut")]
     [InlineData("/media/Movies/BlueRay/New/FilmName/FilmName.mkv", "FilmName","/media/Movies/BlueRay/New/FilmName")]
+    [InlineData("/media/Movies/This is - Movie Name/This is - Movie Name.mp4", "This is - Movie Name", "/media/Movies/This is - Movie Name")]
     public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
     {
         // Arrange
