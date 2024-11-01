@@ -1,5 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenMediaServer;
@@ -62,16 +64,26 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.Authority = Globals.AuthIssuer;
+    options.Authority = Globals.AuthConfigurationUrl ?? Globals.AuthIssuer;
     options.Audience = Globals.ClientId;
     options.RequireHttpsMetadata = true;
 
+    if (Globals.AuthConfigurationUrl != null) //Get configuration and initialize the Globals
+    {
+        options.ConfigurationManager = new ConfigurationManager<OpenIdConnectConfiguration>(Globals.AuthConfigurationUrl, new OpenIdConnectConfigurationRetriever());
+        options.Configuration = options.ConfigurationManager.GetConfigurationAsync(CancellationToken.None).GetAwaiter().GetResult();
+        Globals.AuthIssuer = options.Configuration?.Issuer ?? throw new ArgumentException("AuthIssuer configuration failed. Please verify the .well-known endpoint.");
+        Globals.AuthorizeUrl =  options.Configuration?.AuthorizationEndpoint ?? throw new ArgumentException("AuthorizeUrl configuration failed. Please verify the .well-known endpoint.");
+        Globals.DeviceCodeUrl = options.Configuration?.DeviceAuthorizationEndpoint ?? throw new ArgumentException("DeviceCodeUrl configuration failed. Please verify the .well-known endpoint.");
+        Globals.TokenUrl =  options.Configuration?.TokenEndpoint ?? throw new ArgumentException("TokenUrl configuration failed. Please verify the .well-known endpoint.");
+    }
+    
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidIssuer = Globals.AuthIssuer,
+         ValidIssuer = options.Configuration?.Issuer ?? Globals.AuthIssuer ?? throw new ArgumentException("AuthIssuer must be set"),
         ValidateAudience = true, 
-        ValidAudience = Globals.ClientId,
+        ValidAudience =  Globals.ClientId,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
     };
