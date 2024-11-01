@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using SixLabors.ImageSharp;
@@ -28,7 +29,7 @@ public class ImageService : IImageService
         }
         else
         {
-            file = _fileSystemRepository.GetFiles(directoryPath, type + ".*").FirstOrDefault();
+            file = _fileSystemRepository.GetFiles(directoryPath, type + ".*").Where(file => Regex.IsMatch(Path.GetFileName(file), @"^[^.]+\.[^.]+$")).FirstOrDefault();
         }
 
         var extension = file?.Split('.').LastOrDefault();
