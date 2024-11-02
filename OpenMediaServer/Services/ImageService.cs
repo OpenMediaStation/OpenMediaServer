@@ -27,6 +27,10 @@ public class ImageService : IImageService
         {
             file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.w{width}.*").FirstOrDefault();
         }
+        else if (height != null)
+        {
+            file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.h{height}.*").FirstOrDefault();
+        }
         else
         {
             file = _fileSystemRepository.GetFiles(directoryPath, type + ".*").Where(file => Regex.IsMatch(Path.GetFileName(file), @"^[^.]+\.[^.]+$")).FirstOrDefault();
@@ -70,6 +74,11 @@ public class ImageService : IImageService
         {
             await ResizeImage(bytes, 150, null, GetPath(fileName, category, id, extension, "w150"));
             await ResizeImage(bytes, 300, null, GetPath(fileName, category, id, extension, "w300"));
+            await ResizeImage(bytes, 500, null, GetPath(fileName, category, id, extension, "w500"));
+
+            await ResizeImage(bytes, null, 150, GetPath(fileName, category, id, extension, "h150"));
+            await ResizeImage(bytes, null, 300, GetPath(fileName, category, id, extension, "h300"));
+            await ResizeImage(bytes, null, 500, GetPath(fileName, category, id, extension, "h500"));
         }
     }
 
