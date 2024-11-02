@@ -85,7 +85,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidAudience = Globals.ClientId,
         ValidateLifetime = true,
-        ClockSkew = TimeSpan.Zero
+        ClockSkew = TimeSpan.Zero,
+        ValidateIssuerSigningKey = true,
     };
 });
 
