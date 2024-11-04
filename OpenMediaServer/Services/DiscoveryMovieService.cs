@@ -50,7 +50,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         var fileGroups = match.Groups;
         var folderGroups = folderMatch.Groups;
         
-        var category = parts.First();
+        var category = "Movie";
         var folderTitle = folderGroups["title"].Value;
         var title = fileGroups["title"].Value.Replace("."," ").Trim();
         var versionName = fileGroups["version"].Value;
