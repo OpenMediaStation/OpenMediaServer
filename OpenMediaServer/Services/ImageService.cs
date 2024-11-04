@@ -10,6 +10,8 @@ public class ImageService : IImageService
 {
     private readonly IConfiguration _configuration;
     private readonly IFileSystemRepository _fileSystemRepository;
+    private readonly int[] _imageSizes = [150, 300, 500];
+    
 
     public ImageService(IConfiguration configuration, IFileSystemRepository fileSystemRepository)
     {
@@ -25,10 +27,12 @@ public class ImageService : IImageService
 
         if (width != null)
         {
+            width = _imageSizes.Order().LastOrDefault(size => size > width || width > _imageSizes.Max());
             file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.w{width}.*").FirstOrDefault();
         }
         else if (height != null)
         {
+            height = _imageSizes.Order().LastOrDefault(size => size > width || width > _imageSizes.Max());
             file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.h{height}.*").FirstOrDefault();
         }
         else
@@ -72,13 +76,11 @@ public class ImageService : IImageService
 
         if (extension != "svg")
         {
-            await ResizeImage(bytes, 150, null, GetPath(fileName, category, id, extension, "w150"));
-            await ResizeImage(bytes, 300, null, GetPath(fileName, category, id, extension, "w300"));
-            await ResizeImage(bytes, 500, null, GetPath(fileName, category, id, extension, "w500"));
-
-            await ResizeImage(bytes, null, 150, GetPath(fileName, category, id, extension, "h150"));
-            await ResizeImage(bytes, null, 300, GetPath(fileName, category, id, extension, "h300"));
-            await ResizeImage(bytes, null, 500, GetPath(fileName, category, id, extension, "h500"));
+            foreach (var size in _imageSizes)
+            {
+                await ResizeImage(bytes, size, null, GetPath(fileName, category, id, extension, "w"+size));
+                await ResizeImage(bytes, null, size, GetPath(fileName, category, id, extension, "h"+size));
+            }
         }
     }
 
