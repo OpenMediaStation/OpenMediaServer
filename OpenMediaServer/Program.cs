@@ -94,6 +94,11 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Set ApiKeys
+var configuration = app.Services.GetRequiredService<IConfiguration>();
+Globals.OmdbApiKey = Environment.GetEnvironmentVariable("OMDB_KEY") ?? configuration.GetValue<string>("OpenMediaServer:OMDbKey") ?? throw new ArgumentException("OmdbKey missing");
+Globals.TmdbApiKey = Environment.GetEnvironmentVariable("TMDB_KEY") ?? configuration.GetValue<string>("OpenMediaServer:TMDBKey") ?? throw new ArgumentException("TmdbKey missing");
+
 // Configure middleware
 app.UseCors("AllowAll");
 app.UseSwagger();

@@ -43,14 +43,14 @@ public class MetadataService : IMetadataService
                     var omdbData = await _omdbAPI.GetMetadata
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                        apiKey: Globals.OmdbApiKey,
                         year: year
                     );
 
                     var tmdbData = await _tMDbAPI.GetMovie
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        apiKey: Globals.TmdbApiKey,
                         year: year
                     );
 
@@ -58,7 +58,7 @@ public class MetadataService : IMetadataService
 
                     if (tmdbData?.Id != null)
                     {
-                        tmdbImages = await _tMDbAPI.GetMovieImages(tmdbData.Id, apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                        tmdbImages = await _tMDbAPI.GetMovieImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
                     }
 
                     var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
@@ -112,14 +112,14 @@ public class MetadataService : IMetadataService
                     var omdbData = await _omdbAPI.GetMetadata
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                        apiKey: Globals.OmdbApiKey,
                         year: year
                     );
 
                     var tmdbData = await _tMDbAPI.GetShow
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        apiKey: Globals.TmdbApiKey,
                         year: year
                     );
 
@@ -127,7 +127,7 @@ public class MetadataService : IMetadataService
 
                     if (tmdbData?.Id != null)
                     {
-                        tmdbImages = await _tMDbAPI.GetShowImages(tmdbData.Id, apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                        tmdbImages = await _tMDbAPI.GetShowImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
                     }
 
                     var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
@@ -182,7 +182,7 @@ public class MetadataService : IMetadataService
                     var tmdbData = await _tMDbAPI.GetShow
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        apiKey: Globals.TmdbApiKey,
                         year: year
                     );
 
@@ -190,7 +190,7 @@ public class MetadataService : IMetadataService
 
                     if (tmdbData != null && season != null)
                     {
-                        seasonInfo = await _tMDbAPI.GetSeason(tmdbData.Id, (int)season, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                        seasonInfo = await _tMDbAPI.GetSeason(tmdbData.Id, (int)season, Globals.TmdbApiKey);
                     }
 
                     await WriteImage(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
@@ -215,7 +215,7 @@ public class MetadataService : IMetadataService
                     var omdbData = await _omdbAPI.GetMetadata
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:OMDbKey"),
+                        apiKey: Globals.OmdbApiKey,
                         year: year,
                         season: season,
                         episode: episode
@@ -224,7 +224,7 @@ public class MetadataService : IMetadataService
                     var showData = await _tMDbAPI.GetShow
                     (
                         name: title,
-                        apiKey: _configuration.GetValue<string>("OpenMediaServer:TMDBKey"),
+                        apiKey: Globals.TmdbApiKey,
                         year: year
                     );
 
@@ -232,7 +232,7 @@ public class MetadataService : IMetadataService
 
                     if (showData != null && season != null && episode != null)
                     {
-                        episodeInfo = await _tMDbAPI.GetEpisode(showData.Id, (int)season, (int)episode, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+                        episodeInfo = await _tMDbAPI.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
                     }
 
                     await WriteImage(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
@@ -369,7 +369,7 @@ public class MetadataService : IMetadataService
         if (url == null)
             return;
 
-        var bytes = await _tMDbAPI.GetImageFromId(url, _configuration.GetValue<string>("OpenMediaServer:TMDBKey"));
+        var bytes = await _tMDbAPI.GetImageFromId(url, Globals.TmdbApiKey);
 
         await _imageService.WriteImage(bytes, url, fileName, category, id);
     }
