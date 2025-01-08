@@ -32,7 +32,7 @@ public class ImageService : IImageService
         }
         else if (height != null)
         {
-            height = _imageSizes.Order().LastOrDefault(size => size > width || width > _imageSizes.Max());
+            height = _imageSizes.Order().LastOrDefault(size => size > height || height > _imageSizes.Max());
             file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.h{height}.*").FirstOrDefault();
         }
         else
