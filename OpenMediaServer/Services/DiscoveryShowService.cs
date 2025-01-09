@@ -10,7 +10,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
     private readonly IFileInfoService _fileInfoService = fileInfoService;
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w.-.']+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,})";
+    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-']+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d+))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,})";
 
     /// <summary>
     /// Scann shows
