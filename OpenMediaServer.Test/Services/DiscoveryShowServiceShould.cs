@@ -39,6 +39,8 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/Mr Robot/Season 4/Episode name S04E03.mp4", "Mr Robot S4E3", null)]
     [InlineData("/media/Shows/Babylon Berlin/Season 1/Folge 1 Staffel 1 S01E01.mp4", "Babylon Berlin S1E1", null)]
     [InlineData("/media/Shows/Cyberpunk Edgerunners/Season 1/Cyberpunk Edgerunners S01E02.mp4", "Cyberpunk Edgerunners S1E2", null)]
+    [InlineData("/media/Shows/The Expanse/Season 1/The EXPANSE - S01E02.mp4", "The Expanse S1E2", null)]
+    [InlineData("/media/Shows/The 100/Season 1/S01E02.mp4", "The 100 S1E2", null)]
     public async Task CreateFromPaths_FirstItemEpisode(string path, string title, string? folderPath)
     {
         // Arrange
@@ -62,6 +64,25 @@ public class DiscoveryShowServiceShould
     }
 
     [Theory]
+    [InlineData("/media/Shows/Mr Robot/Season 1/Mr Robot S01E01.mp4", "/media/Shows/Mr Robot/Season 1", 1)]
+    [InlineData("/media/Shows/The Expanse/Season 5/S01E02.mp4", "/media/Shows/The Expanse/Season 5", 5)]
+    public async Task CreateFromPaths_FirstItemSeason(string path, string? folderPath, int seasonNr)
+    {
+        // Arrange
+
+        // Act
+        await _inventoryShowService.CreateShow(path);
+        var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Season\""));
+        var result = JsonSerializer.Deserialize<IEnumerable<Episode>>(resultJson);
+
+        // Assert
+        var resultItem = result.First();
+        resultItem.Id.ShouldNotBe(Guid.Empty);
+        resultItem.FolderPath.ShouldBe(folderPath);
+        resultItem.SeasonNr.ShouldBe(seasonNr);
+    }
+
+    [Theory]
     [InlineData("/media/Shows/Mr Robot/Season 1/Mr Robot S01E01.mp4", "Mr Robot", "/media/Shows/Mr Robot")]
     [InlineData("/media/Shows/Mr Robot/Season 10/Mr Robot S01E01.mp4", "Mr Robot", "/media/Shows/Mr Robot")]
     [InlineData("/media/Shows/Mr Robot/Season 1/S01E02.mp4", "Mr Robot", "/media/Shows/Mr Robot")]
@@ -71,6 +92,8 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/Babylon Berlin/Season 1/Folge 1 Staffel 1 S01E01.mp4", "Babylon Berlin", "/media/Shows/Babylon Berlin")]
     [InlineData("/media/Shows/Cyberpunk Edgerunners/Season 1/Cyberpunk Edgerunners S01E02.mp4", "Cyberpunk Edgerunners", "/media/Shows/Cyberpunk Edgerunners")]
     [InlineData("/media/Shows/Cyberpunk Edgerunners/Season 1/S01E02.mp4", "Cyberpunk Edgerunners", "/media/Shows/Cyberpunk Edgerunners")]
+    [InlineData("/media/Shows/The Expanse/Season 1/The EXPANSE - S01E02.mp4", "The Expanse", "/media/Shows/The Expanse")]
+    [InlineData("/media/Shows/The 100/Season 1/S01E02.mp4", "The 100", "/media/Shows/The 100")]
     public async Task CreateFromPaths_FirstItemShow(string path, string title, string? folderPath)
     {
         // Arrange

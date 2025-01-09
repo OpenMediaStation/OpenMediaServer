@@ -10,7 +10,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
     private readonly IFileInfoService _fileInfoService = fileInfoService;
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w.-.']+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,4})$";
+    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?(?<title>([ \w.-.']+?))((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d*))([eE](?<episode>\d+)))?((-|\.)(?<fileInfo>[\w\.]*?))?\.(?<extension>\S{3,})";
 
     /// <summary>
     /// Scann shows
@@ -20,6 +20,12 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
     /// <returns></returns>
     public async Task CreateShow(string path)
     {
+        var splitPath = path.Split('/');
+        var folderTitle = splitPath
+            .SkipWhile(i => i != "Shows") // Skip elements until "Shows" is found
+            .Skip(1)                      // Skip "Shows" itself
+            .FirstOrDefault();            // Get the next element, or null if none exists
+
         var pathRegex = new Regex
         (
             pattern: _regex,
@@ -34,7 +40,6 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
         }
         var groups = match.Groups;
         var category = groups["category"].Value;
-        var folderTitle = groups["folderTitle"].Value;
         var title = groups["title"].Value;
         var year = groups["yearFolder"].Value;
         int? episodeNr = null;
