@@ -49,6 +49,6 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
             return Results.NotFound();
         }
 
-        return Results.Stream(stream);
+        return Results.Stream(stream, contentType: "text/vtt; charset=utf-8"); // TODO dynamic content type
     }
 }
