@@ -5,13 +5,13 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService) : IDiscoveryMovieService
+public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService) : IDiscoveryMovieService
 {
     private readonly ILogger<DiscoveryMovieService> _logger = logger;
     private readonly IFileInfoService _fileInfoService = fileInfoService;
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
-
+    private readonly IAddonService _addonDiscoveryService = addonDiscoveryService;
     private readonly string _folderRegex = @"^(?<title>[ \w\.\-'`´]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?$";
     private readonly string _fileRegex = @"^(?<title>[ \w\.\-'`´]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?(?: ?\- ?(?<version>[\w ]+))?(?:\.(?<extension>\w{3,4}))$"; 
     //OldRegex: @"(?<category>(Movies|\w+?))/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<title>[ \w.-.']+?)(?:\((?<year>\d{4})\)|\((?<addition>\D+?)\))?(?:\s*[-.]\s*(?<hyphenAddition>[ \w.-]+?))?([-\.](?<fileInfo>[\w.]*?))?\.(?<extension>\S{3,4})$";
@@ -89,6 +89,9 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
                 existingMovie.Versions = existingMovie.Versions?.Append(version);
 
+                var addons = _addonDiscoveryService.DiscoverAddons(path);
+                existingMovie.Addons = existingMovie.Addons?.Concat(addons);
+
                 await _inventoryService.UpdateByTitle(existingMovie);
             }
 
@@ -110,7 +113,8 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
             ],
             Title = //!string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" :
                 title,
-            FolderPath = folderPath
+            FolderPath = folderPath,
+            Addons = _addonDiscoveryService.DiscoverAddons(path)
         };
 
         var metadata = await _metadataService.CreateNewMetadata

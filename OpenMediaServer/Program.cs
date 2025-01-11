@@ -130,6 +130,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
     services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
     services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
+    services.AddSingleton<IAddonEndpoints, AddonEndpoints>();
     services.AddSingleton<IImageEndpoints, ImageEndpoints>();
     services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
     services.AddSingleton<IMetadataService, MetadataService>();
@@ -140,6 +141,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IGoogleBooksApi, GoogleBooksApi>();
     services.AddSingleton<ITMDbAPI, TMDbAPI>();
     services.AddSingleton<IImageService, ImageService>();
+    services.AddSingleton<IAddonService, AddonService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }
@@ -153,4 +155,5 @@ void MapEndpoints(WebApplication app)
     app.Services.GetRequiredService<IFileInfoEndpoints>().Map(app);
     app.Services.GetRequiredService<IInventoryEndpoints>().Map(app);
     app.Services.GetRequiredService<IImageEndpoints>().Map(app);
+    app.Services.GetRequiredService<IAddonEndpoints>().Map(app);
 }

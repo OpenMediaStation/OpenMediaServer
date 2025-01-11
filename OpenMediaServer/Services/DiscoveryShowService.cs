@@ -4,12 +4,13 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService) : IDiscoveryShowService
+public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService) : IDiscoveryShowService
 {
     private readonly ILogger<DiscoveryShowService> _logger = logger;
     private readonly IFileInfoService _fileInfoService = fileInfoService;
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
+    private readonly IAddonService _addonService = addonService;
     private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-']+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d+)) ?[eE](?<episode>\d+))( ?- ?(?<extraInfo>.*?))?\.(?<extension>\S{3,})";
 
     /// <summary>
@@ -138,7 +139,8 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
                     }
                 ],
                 EpisodeNr = episodeNr,
-                SeasonNr = season.SeasonNr
+                SeasonNr = season.SeasonNr,
+                Addons = _addonService.DiscoverAddons(path)
             };
 
             var metadata = await _metadataService.CreateNewMetadata

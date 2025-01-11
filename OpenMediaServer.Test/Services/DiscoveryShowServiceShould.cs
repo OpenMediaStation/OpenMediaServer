@@ -17,6 +17,7 @@ public class DiscoveryShowServiceShould
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryShowService _inventoryShowService;
     private readonly IInventoryService _inventoryService;
+    private readonly IAddonService _addonService;
 
     public DiscoveryShowServiceShould()
     {
@@ -26,8 +27,9 @@ public class DiscoveryShowServiceShould
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
+        _addonService = Substitute.For<IAddonService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
-        _inventoryShowService = new DiscoveryShowService(_logger, _fileInfoService, _metadataService, _inventoryService);
+        _inventoryShowService = new DiscoveryShowService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService);
     }
 
     [Theory]

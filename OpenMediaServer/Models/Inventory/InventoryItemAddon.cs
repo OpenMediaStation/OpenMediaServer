@@ -10,4 +10,5 @@ public class InventoryItemAddon
     public Guid Id { get; set; }
     public string Path { get; set; }
     public string Category { get; set; }
+    public InventoryItemAddonSubtitle? Subtitle {get; set;}
 }

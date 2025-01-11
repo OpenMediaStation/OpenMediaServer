@@ -17,6 +17,7 @@ public class DiscoveryMovieServiceShould
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryMovieService _inventoryMovieShowService;
     private readonly IInventoryService _inventoryService;
+    private readonly IAddonService _addonService;
 
     public DiscoveryMovieServiceShould()
     {
@@ -26,8 +27,9 @@ public class DiscoveryMovieServiceShould
         _storageRepository = new FileSystemRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
+        _addonService = Substitute.For<IAddonService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
-        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService);
+        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService);
     }
 
     [Theory]
