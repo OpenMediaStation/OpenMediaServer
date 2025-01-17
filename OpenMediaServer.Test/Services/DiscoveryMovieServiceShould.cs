@@ -44,6 +44,9 @@ public class DiscoveryMovieServiceShould
     [InlineData("/media/Movies/Hunger Games - Directors Cut/Hunger Games - Directors Cut.mp4", "Hunger Games", "/media/Movies/Hunger Games - Directors Cut")]
     [InlineData("/media/Movies/BlueRay/New/FilmName/FilmName.mkv", "FilmName","/media/Movies/BlueRay/New/FilmName")]
     [InlineData("/media/Movies/This is - Movie Name/This is - Movie Name.mp4", "This is - Movie Name", "/media/Movies/This is - Movie Name")]
+    [InlineData("/media/Movies/Divergent 3： Allegiant/Divergent 3： Allegiant.mp4", "Divergent 3： Allegiant", "/media/Movies/Divergent 3： Allegiant")]
+    [InlineData("/media/Movies/Divergent 3： Allegiant.mp4", "Divergent 3： Allegiant", null)]
+    [InlineData("/media/Movies/Türkisch für Anfänger/Türkisch für Anfänger ｜ Komödie [13012323].mp4", "Türkisch für Anfänger", "/media/Movies/Türkisch für Anfänger")]
     public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
     {
         // Arrange
