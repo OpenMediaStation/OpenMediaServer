@@ -77,7 +77,8 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/The Expanse/Season 5/The Expanse S05E02.mp4", "/media/Shows/The Expanse/Season 5", 5)]
     [InlineData("/media/Shows/The Expanse/Season 5/The Expanse - S05E02.mp4", "/media/Shows/The Expanse/Season 5", 5)]
     [InlineData("/media/Shows/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/Cyberpunk Edegrunners/Season 1", 1)]
-    public async Task CreateFromPaths_FirstItemSeason(string path, string? folderPath, int seasonNr)
+    [InlineData("/media/Shows/Cyberpunk Edegrunners/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/Cyberpunk Edegrunners", 1, "Season 1")]
+    public async Task CreateFromPaths_FirstItemSeason(string path, string? folderPath, int seasonNr, string? title = null)
     {
         // Arrange
 
@@ -91,6 +92,11 @@ public class DiscoveryShowServiceShould
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.FolderPath.ShouldBe(folderPath);
         resultItem.SeasonNr.ShouldBe(seasonNr);
+
+        if (title != null)
+        {
+            resultItem.Title.ShouldBe(title);
+        }
     }
 
     [Theory]

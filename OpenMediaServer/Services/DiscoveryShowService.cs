@@ -88,12 +88,19 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
 
         if (season == null)
         {
+            string seasonTitle = groups["seasonFolder"].Value;
+
+            if (string.IsNullOrWhiteSpace(seasonTitle))
+            {
+                seasonTitle = $"Season {seasonNr}";
+            }
+
             season = new Season
             {
                 Id = Guid.NewGuid(),
 
                 ShowId = show.Id,
-                Title = groups["seasonFolder"].Value,
+                Title =  seasonTitle,
                 SeasonNr = seasonNr,
                 FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
             };
