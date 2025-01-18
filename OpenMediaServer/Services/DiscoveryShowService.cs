@@ -11,14 +11,8 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
     private readonly IMetadataService _metadataService = metadataService;
     private readonly IInventoryService _inventoryService = inventoryService;
     private readonly IAddonService _addonService = addonService;
-    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-']+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(([sS](?<season>\d+)) ?[eE](?<episode>\d+))( ?- ?(?<extraInfo>.*?))?\.(?<extension>\S{3,})";
+    private readonly string _regex = @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-':]+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)).*?\.(?<extension>\S{3,})";
 
-    /// <summary>
-    /// Scann shows
-    /// Requirement: S01E01 contained in episode name
-    /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
     public async Task CreateShow(string path)
     {
         var splitPath = path.Split('/');
@@ -49,9 +43,17 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
         {
             episodeNr = episodeNrTemp;
         }
+        else if (int.TryParse(groups["episodeParens"].Value, out int episodeParensNrTemp))
+        {
+            episodeNr = episodeParensNrTemp;
+        }
         if (int.TryParse(groups["season"].Value, out var seasonNrTemp))
         {
             seasonNr = seasonNrTemp;
+        }
+        else if (int.TryParse(groups["seasonParens"].Value, out int seasonParensNrTemp))
+        {
+            seasonNr = seasonParensNrTemp;
         }
 
         _logger.LogDebug("Show detected");
@@ -100,7 +102,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
                 Id = Guid.NewGuid(),
 
                 ShowId = show.Id,
-                Title =  seasonTitle,
+                Title = seasonTitle,
                 SeasonNr = seasonNr,
                 FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
             };
