@@ -239,18 +239,18 @@ public class MetadataService : IMetadataService
 
                     metadata = new MetadataModel()
                     {
-                        Title = omdbData?.Title,
+                        Title = omdbData?.Title ?? episodeInfo?.Name,
                         Episode = new()
                         {
-                            Year = omdbData?.Year,
-                            Rated = omdbData?.Rated,
-                            Released = omdbData?.Released,
-                            Runtime = omdbData?.Runtime,
+                            Year = omdbData?.Year ?? episodeInfo?.AirDate?.Year.ToString(),
+                            Rated = omdbData?.Rated ?? episodeInfo?.VoteAverage.ToString(),
+                            Released = omdbData?.Released ?? episodeInfo?.AirDate.ToString(),
+                            Runtime = omdbData?.Runtime ?? episodeInfo?.Runtime.ToString(),
                             Genre = omdbData?.Genre,
                             Director = omdbData?.Director,
                             Writer = omdbData?.Writer,
                             Actors = omdbData?.Actors,
-                            Plot = omdbData?.Plot,
+                            Plot = omdbData?.Plot ?? episodeInfo?.Overview,
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
