@@ -131,6 +131,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
     services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
     services.AddSingleton<IAddonEndpoints, AddonEndpoints>();
+    services.AddSingleton<IFavoriteEndpoints, FavoriteEndpoints>();
     services.AddSingleton<IImageEndpoints, ImageEndpoints>();
     services.AddSingleton<IInventoryEndpoints, InventoryEndpoints>();
     services.AddSingleton<IMetadataService, MetadataService>();
@@ -156,4 +157,5 @@ void MapEndpoints(WebApplication app)
     app.Services.GetRequiredService<IInventoryEndpoints>().Map(app);
     app.Services.GetRequiredService<IImageEndpoints>().Map(app);
     app.Services.GetRequiredService<IAddonEndpoints>().Map(app);
+    app.Services.GetRequiredService<IFavoriteEndpoints>().Map(app);
 }
