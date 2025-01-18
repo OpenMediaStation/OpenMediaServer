@@ -48,6 +48,10 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/Die Saat/Season 1/Folge 1： Die Saat – Tödliche Macht (S01⧸E01) [12953643].mp4", "Die Saat S1E1", null)]
     [InlineData("/media/Shows/Babylon Berlin/Season 3/Folge 7 ｜ Staffel 3 (S03⧸E07) [12185541].mp4", "Babylon Berlin S3E7", null)]
     [InlineData("/media/Shows/Motherland Fort Salem/Season 1/Motherland Fort Salem (2020) - S01E04 .mkv", "Motherland Fort Salem S1E4", null)]
+    [InlineData("/media/Shows/Whiskey on the rocks/Season 1/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/Whiskey on the rocks/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/Whiskey on the rocks/Season 1/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/Whiskey on the rocks/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
     public async Task CreateFromPaths_FirstItemEpisode(string path, string title, string? folderPath)
     {
         // Arrange
