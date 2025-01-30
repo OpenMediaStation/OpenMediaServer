@@ -128,6 +128,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IOmdbAPI, OMDbAPI>();
     services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
     services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
+    services.AddSingleton<IProgressEndpoints, ProgressEndpoints>();
     services.AddSingleton<IStreamingEndpoints, StreamingEndpoints>();
     services.AddSingleton<IFileInfoEndpoints, FileInfoEndpoints>();
     services.AddSingleton<IAddonEndpoints, AddonEndpoints>();
@@ -143,6 +144,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<ITMDbAPI, TMDbAPI>();
     services.AddSingleton<IImageService, ImageService>();
     services.AddSingleton<IAddonService, AddonService>();
+    services.AddSingleton<IProgressService, ProgressService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }
@@ -158,4 +160,5 @@ void MapEndpoints(WebApplication app)
     app.Services.GetRequiredService<IImageEndpoints>().Map(app);
     app.Services.GetRequiredService<IAddonEndpoints>().Map(app);
     app.Services.GetRequiredService<IFavoriteEndpoints>().Map(app);
+    app.Services.GetRequiredService<IProgressEndpoints>().Map(app);
 }

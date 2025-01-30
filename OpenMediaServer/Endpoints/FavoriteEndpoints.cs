@@ -23,7 +23,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
 
     public async Task<IResult> Favorite(HttpContext httpContext, Guid inventoryItemId, string category)
     {
-        var userId = GetUserId(httpContext);
+        var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
             return Results.Forbid();
@@ -49,7 +49,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
 
     public async Task<IResult> Unfavorite(HttpContext httpContext, Guid inventoryItemId, string category)
     {
-        var userId = GetUserId(httpContext);
+        var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
             return Results.Forbid();
@@ -75,7 +75,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
 
     public async Task<IResult> ListAllInCategory(HttpContext httpContext, string category)
     {
-        var userId = GetUserId(httpContext);
+        var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
             return Results.Forbid();
@@ -89,7 +89,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
 
     public async Task<IResult> IsFavorited(HttpContext httpContext, Guid inventoryItemId, string category)
     {
-        var userId = GetUserId(httpContext);
+        var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
             return Results.Forbid();
@@ -101,14 +101,8 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
         return Results.Ok(favorites?.Contains(inventoryItemId) ?? false);
     }
 
-    private string? GetUserId(HttpContext httpContext)
-    {
-        return httpContext.User.FindFirst("sub")?.Value ??
-               httpContext.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-    }
-
     private string GetFavoritesFilePath(string userId, string category)
     {
-        return Path.Combine(Globals.ConfigFolder, "users", userId, "favorites", category) + ".json";
+        return Path.Combine(Globals.GetUserStorage(userId), "favorites", category) + ".json";
     }
 }
