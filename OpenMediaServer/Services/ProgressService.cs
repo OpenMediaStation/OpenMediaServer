@@ -56,14 +56,11 @@ public class ProgressService : IProgressService
         {
             progresses.RemoveAll(i => i.Id == progress.Id);
 
-            var updatedProgress = new Progress()
-            {
-                ProgressPercentage = progress.ProgressPercentage,
-                ProgressSeconds = progress.ProgressSeconds,
-                Completions = progress.Completions,
-            };
+            existingProgress.ProgressPercentage = progress.ProgressPercentage;
+            existingProgress.ProgressSeconds = progress.ProgressSeconds;
+            existingProgress.Completions = progress.Completions;
 
-            progresses.Add(updatedProgress);
+            progresses.Add(existingProgress);
 
             await _fileSystemRepository.WriteObject(path, progresses);
         }

@@ -39,7 +39,7 @@ public class ProgressEndpoints : IProgressEndpoints
 
         await _progressService.UpdateProgress(progress, userId);
 
-        return Results.NotFound();
+        return Results.Ok();
     }
 
     public async Task<IResult> GetProgress(HttpContext httpContext, string category, Guid? progressId, Guid? parentId)
