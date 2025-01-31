@@ -45,7 +45,7 @@ public class DiscoveryMovieServiceShould
     [InlineData("/media/Movies/Hunger Games - Directors Cut.mp4", "Hunger Games - Directors Cut", null)]
     [InlineData("/media/Movies/Hunger Games - Directors Cut (2024).mkv", "Hunger Games - Directors Cut", null)]
     [InlineData("/media/Movies/This is - Movie Name/This is - Movie Name.mp4", "This is - Movie Name", "/media/Movies/This is - Movie Name")]
-    [InlineData("/media/Movies/3D/This is - Movie Name-3D-HSBS.mkv", "This is - Movie Name", "/media/Movies/3D")]
+    [InlineData("/media/Movies/3D/This is - Movie Name-3D-HSBS.mkv", "This is - Movie Name", null)]
     [InlineData("/media/Movies/Hunger Games (german) - 3d-hou.mkv", "Hunger Games", null)]
     [InlineData("/media/Movies/Crouching.Tiger.Hidden.Dragon.4K.UltraHD.HDR.BDrip-HDC.mkv", "Crouching Tiger Hidden Dragon", null)]
     [InlineData("/media/Movies/Divergent 3： Allegiant/Divergent 3： Allegiant.mp4", "Divergent 3： Allegiant", "/media/Movies/Divergent 3： Allegiant")]

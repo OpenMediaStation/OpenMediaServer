@@ -140,7 +140,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
         string? folderPath = null;
 
-        if (!string.IsNullOrEmpty(folderTitle))
+        if (!string.IsNullOrEmpty(folderTitle) && title.StartsWith(folderTitle))
         {
             folderPath = Path.Combine(parts.Take(parts.Length - 1).Prepend(Globals.MediaFolder).ToArray());
             existingMovie = movies?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
