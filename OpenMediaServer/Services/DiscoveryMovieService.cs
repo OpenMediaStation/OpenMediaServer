@@ -129,7 +129,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         var folderGroups = folderMatch.Groups;
         
         var category = "Movie";
-        var folderTitle = folderGroups["title"].Value;
+        var folderTitle = folderGroups["title"].Value.Trim();
         title = !String.IsNullOrEmpty(folderTitle) && filePart.StartsWith(folderTitle) ? folderTitle.Trim() : title?.Trim() ?? fileGroups["title"].Value.Replace("."," ").Trim();
         var versionName = fileGroups["version"].Value;
         
