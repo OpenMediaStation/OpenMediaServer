@@ -26,6 +26,8 @@ public class ProgressEndpoints : IProgressEndpoints
 
     public async Task<IResult> UpdateProgress(HttpContext httpContext, Progress progress)
     {
+        _logger.LogTrace("Updating progress");
+
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
@@ -44,6 +46,8 @@ public class ProgressEndpoints : IProgressEndpoints
 
     public async Task<IResult> GetProgress(HttpContext httpContext, string category, Guid? progressId, Guid? parentId)
     {
+        _logger.LogTrace("Getting progress");
+
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {

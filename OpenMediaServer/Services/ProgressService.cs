@@ -16,23 +16,28 @@ public class ProgressService : IProgressService
         _fileSystemRepository = fileSystemRepository;
     }
 
-    public async Task CreateProgress(string userId, string category, Guid? parentId)
+    public async Task CreateProgress(string userId, Progress newProgress)
     {
-        if (parentId == null)
+        if (newProgress.ParentId == null)
         {
             throw new ArgumentNullException("parentId");
         }
 
-        var path = GetProgressFilePath(userId, category);
+        if (newProgress.Category == null)
+        {
+            throw new ArgumentNullException("category");
+        }
+
+        var path = GetProgressFilePath(userId, newProgress.Category);
         List<Progress> progresses = await _fileSystemRepository.ReadObject<List<Progress>>(path) ?? [];
 
         var progress = new Progress()
         {
             Id = Guid.NewGuid(),
-            ParentId = parentId,
-            Category = category,
-            ProgressPercentage = 0,
-            ProgressSeconds = 0,
+            ParentId = newProgress.ParentId,
+            Category = newProgress.Category,
+            ProgressPercentage = newProgress.ProgressPercentage ?? 0,
+            ProgressSeconds = newProgress.ProgressSeconds ?? 0,
             Completions = 0,
         };
 
@@ -66,7 +71,7 @@ public class ProgressService : IProgressService
         }
         else
         {
-            await CreateProgress(category: progress.Category, userId: userId, parentId: progress.ParentId);
+            await CreateProgress(newProgress: progress, userId: userId);
         }
     }
 

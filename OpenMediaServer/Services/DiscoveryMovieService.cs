@@ -67,7 +67,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
     ];
 
     private readonly string _folderRegex = @"^(?<title>[ \w\.\-'`´:：]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?$";
-    private readonly string _fileRegex = @"^(?<title>[ \w\.\-'`´:：]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?(?: ?\-(?<version>[\w]+))?(?:\.(?<extension>\w{3,4}))$"; 
+    private readonly string _fileRegex = @"^(?<title>[ \w\.\-'`´:：]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?(?: ?\-(?<version>[\w\-]+))?(?:\.(?<extension>\w{3,4}))$"; 
     private readonly string _fileRegexWithoutVersion = @"^(?<title>[ \w\.\-'`´:：]+?)(?: ?\((?<language>[A-Z][a-zA-Z]+)\) ?)?(?:[\.\( ](?<year>\d{4})[\.\) ]?)?(?:\.(?<extension>\w{3,4}))$";
     //OldRegex: @"(?<category>(Movies|\w+?))/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<title>[ \w.-.']+?)(?:\((?<year>\d{4})\)|\((?<addition>\D+?)\))?(?:\s*[-.]\s*(?<hyphenAddition>[ \w.-]+?))?([-\.](?<fileInfo>[\w.]*?))?\.(?<extension>\S{3,4})$";
     
@@ -145,6 +145,10 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
             folderPath = Path.Combine(parts.Take(parts.Length - 1).Prepend(Globals.MediaFolder).ToArray());
             existingMovie = movies?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
         }
+        else
+        {
+            versionName = "";
+        }
 
         if (existingMovie != null)
         {
@@ -186,7 +190,8 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 {
                     Id = versionId,
                     Path = path,
-                    FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id
+                    FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id,
+                    Name = versionName,
                 }
             ],
             Title = //!string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" :

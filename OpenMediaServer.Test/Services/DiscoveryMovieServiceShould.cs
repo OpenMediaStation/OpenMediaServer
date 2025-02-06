@@ -46,12 +46,14 @@ public class DiscoveryMovieServiceShould
     [InlineData("/media/Movies/Hunger Games - Directors Cut (2024).mkv", "Hunger Games - Directors Cut", null)]
     [InlineData("/media/Movies/This is - Movie Name/This is - Movie Name.mp4", "This is - Movie Name", "/media/Movies/This is - Movie Name")]
     [InlineData("/media/Movies/3D/This is - Movie Name-3D-HSBS.mkv", "This is - Movie Name", null)]
+    [InlineData("/media/Movies/3D/This is - Movie Name/This is - Movie Name-3D-HSBS.mkv", "This is - Movie Name", "/media/Movies/3D/This is - Movie Name", "3D-HSBS")]
+    [InlineData("/media/Movies/3D/This is - Movie Name (2010)/This is - Movie Name (2010) -3D-HOU.mkv", "This is - Movie Name", "/media/Movies/3D/This is - Movie Name (2010)", "3D-HOU")]
     [InlineData("/media/Movies/Hunger Games (german) - 3d-hou.mkv", "Hunger Games", null)]
     [InlineData("/media/Movies/Crouching.Tiger.Hidden.Dragon.4K.UltraHD.HDR.BDrip-HDC.mkv", "Crouching Tiger Hidden Dragon", null)]
     [InlineData("/media/Movies/Divergent 3： Allegiant/Divergent 3： Allegiant.mp4", "Divergent 3： Allegiant", "/media/Movies/Divergent 3： Allegiant")]
     [InlineData("/media/Movies/Divergent 3： Allegiant.mp4", "Divergent 3： Allegiant", null)]
     [InlineData("/media/Movies/Türkisch für Anfänger/Türkisch für Anfänger ｜ Komödie [13012323].mp4", "Türkisch für Anfänger", "/media/Movies/Türkisch für Anfänger")]
-    public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath)
+    public async Task CreateFromPaths_FirstItemMovie(string path, string title, string? folderPath, string versionName = "")
     {
         // Arrange
 
@@ -70,6 +72,8 @@ public class DiscoveryMovieServiceShould
         resultItem.Versions.Count().ShouldBe(1);
         resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
         resultItem.Versions.First().Path.ShouldBe(path);
+        resultItem.Versions.First().Name.ShouldBe(versionName);
         resultItem.FolderPath.ShouldBe(folderPath);
+        
     }
 }
