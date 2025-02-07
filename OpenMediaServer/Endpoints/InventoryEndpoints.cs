@@ -29,7 +29,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> Rescan()
     {
-        await _contentDiscovery.Rescan();
+        await _contentDiscovery.ActiveScan(Globals.MediaFolder);
 
         return Results.Ok();
     }

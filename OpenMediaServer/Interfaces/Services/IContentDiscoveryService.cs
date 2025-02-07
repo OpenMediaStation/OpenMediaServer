@@ -6,5 +6,5 @@ public interface IContentDiscoveryService
 {
     void Watch(string path);
     Task ActiveScan(string path);
-    Task Rescan();
+    Task MoveToBinIfDeleted();
 }

@@ -14,7 +14,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     /// entries to the bin folder. After that a new scan can check if an entry like this has already existed before and reuse the same id. 
     /// </summary>
     /// <returns></returns>
-    public async Task Rescan()
+    public async Task MoveToBinIfDeleted()
     {
         var paths = GetPaths(Globals.MediaFolder);
 
@@ -27,9 +27,6 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         await HandleDelete(paths, books);
 
         // TODO Shows
-
-        // Do this at last because the bin must be written beforehand
-        await ActiveScan(Globals.MediaFolder);
     }
 
     /// <summary>
@@ -39,6 +36,9 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     /// <returns></returns>
     public async Task ActiveScan(string path)
     {
+        // This must be done before any scanning so that deleted items got moved to the bin
+        await MoveToBinIfDeleted();
+
         IEnumerable<string> files = GetPaths(path);
 
         await CreateFromPaths(files);
