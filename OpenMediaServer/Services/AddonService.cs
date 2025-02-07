@@ -105,20 +105,33 @@ public class AddonService : IAddonService
         return addons;
     }
 
-    private IEnumerable<string> EnumerateFiles(string path, string prefix)
+    public IEnumerable<string> GetPaths(string path, SearchOption searchOption = SearchOption.AllDirectories)
     {
         string[] mediaExtensions =
         [
             ".vtt"
         ];
 
-        var files = Directory
-            .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
-            .Where(n => mediaExtensions.Contains(Path.GetExtension(n), StringComparer.InvariantCultureIgnoreCase));
+        try
+        {
+            var files = Directory
+                .EnumerateFiles(path, "*.*", SearchOption.AllDirectories)
+                .Where(n => mediaExtensions.Contains(Path.GetExtension(n), StringComparer.InvariantCultureIgnoreCase));
+
+            return files;
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return [];
+        }
+    }
+
+    private IEnumerable<string> EnumerateFiles(string path, string prefix)
+    {
+        var files = GetPaths(path);
 
         var filesWithPrefix = files.Where(i => i.Split("/").LastOrDefault()?.Contains(prefix) ?? false);
 
         return filesWithPrefix;
     }
-
 }

@@ -3,14 +3,11 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService inventoryService, IBinService binService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;
     private readonly IDiscoveryMovieService _movieService = movieService;
-    private readonly IDiscoveryBookService _bookService = _bookService;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IBinService _binService = binService;
 
     /// <summary>
     /// This method aims to do a full cleanup of the inventory. It first checks if there is something which was deleted and moves those 
@@ -35,6 +32,11 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         await ActiveScan(Globals.MediaFolder);
     }
 
+    /// <summary>
+    /// Searches for new items but does not delete old ones. If something was deleted by Rescan beforehand and is now in bin it will be restored.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
     public async Task ActiveScan(string path)
     {
         IEnumerable<string> files = GetPaths(path);
@@ -109,7 +111,22 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
             foreach (var item in items)
             {
                 // TODO delete file infos
-                // TODO delete addons
+
+                if (item.Addons != null)
+                {
+                    var addonPaths = _addonService.GetPaths(item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"), SearchOption.TopDirectoryOnly);
+
+                    foreach (var addon in item.Addons)
+                    {
+                        if (!addonPaths.Contains(addon.Path))
+                        {
+                            var temp = item.Addons.ToList();
+                            temp.Remove(addon);
+                            item.Addons = temp;
+                            await _inventoryService.UpdateById(item);
+                        }
+                    }
+                }
 
                 if (item.Versions != null)
                 {
