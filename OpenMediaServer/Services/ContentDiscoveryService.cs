@@ -3,7 +3,7 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;
@@ -110,8 +110,6 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         {
             foreach (var item in items)
             {
-                // TODO delete file infos
-
                 if (item.Addons != null)
                 {
                     var addonPaths = _addonService.GetPaths(item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"), SearchOption.TopDirectoryOnly);
@@ -138,6 +136,8 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                             temp.Remove(version);
                             item.Versions = temp;
                             await _inventoryService.UpdateById(item);
+
+                            await _fileInfo.DeleteFileInfoByParentId(item.Category, version.Id);
                         }
                     }
 
