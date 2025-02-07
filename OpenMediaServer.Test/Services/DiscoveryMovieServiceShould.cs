@@ -18,6 +18,7 @@ public class DiscoveryMovieServiceShould
     private readonly IDiscoveryMovieService _inventoryMovieShowService;
     private readonly IInventoryService _inventoryService;
     private readonly IAddonService _addonService;
+    private readonly IBinService _binService;
 
     public DiscoveryMovieServiceShould()
     {
@@ -28,8 +29,9 @@ public class DiscoveryMovieServiceShould
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
+        _binService = Substitute.For<IBinService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
-        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService);
+        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService);
     }
 
     [Theory]

@@ -145,6 +145,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IImageService, ImageService>();
     services.AddSingleton<IAddonService, AddonService>();
     services.AddSingleton<IProgressService, ProgressService>();
+    services.AddSingleton<IBinService, BinService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

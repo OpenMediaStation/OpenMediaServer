@@ -3,18 +3,22 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService inventoryService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService inventoryService, IBinService binService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;
     private readonly IDiscoveryMovieService _movieService = movieService;
     private readonly IDiscoveryBookService _bookService = _bookService;
     private readonly IInventoryService _inventoryService = inventoryService;
+    private readonly IBinService _binService = binService;
 
+    /// <summary>
+    /// This method aims to do a full cleanup of the inventory. It first checks if there is something which was deleted and moves those 
+    /// entries to the bin folder. After that a new scan can check if an entry like this has already existed before and reuse the same id. 
+    /// </summary>
+    /// <returns></returns>
     public async Task Rescan()
     {
-        await ActiveScan(Globals.MediaFolder);
-
         var paths = GetPaths(Globals.MediaFolder);
 
         var movies = await _inventoryService.ListItems<Movie>("Movie");
@@ -26,6 +30,9 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         await HandleDelete(paths, books);
 
         // TODO Shows
+
+        // Do this at last because the bin must be written beforehand
+        await ActiveScan(Globals.MediaFolder);
     }
 
     public async Task ActiveScan(string path)
@@ -101,6 +108,9 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         {
             foreach (var item in items)
             {
+                // TODO delete file infos
+                // TODO delete addons
+
                 if (item.Versions != null)
                 {
                     foreach (var version in item.Versions)
@@ -116,6 +126,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
                     if (!item.Versions.Any())
                     {
+                        await _binService.AddItem(item);
                         await _inventoryService.RemoveById(item);
                     }
                 }
