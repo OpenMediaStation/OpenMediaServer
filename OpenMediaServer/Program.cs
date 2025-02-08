@@ -107,9 +107,15 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Run initial content scan and set up watchers
+// Run initial content scan
 var contentDiscoveryService = app.Services.GetRequiredService<IContentDiscoveryService>();
-await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
+
+Task.Run(async () => 
+{
+    await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
+});
+
+// Setup watcher
 contentDiscoveryService.Watch(Globals.MediaFolder);
 
 // Map endpoints
