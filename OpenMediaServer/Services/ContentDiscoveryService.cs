@@ -108,13 +108,52 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
     }
 
-    private async Task UpdateSeason(IEnumerable<string> paths, IEnumerable<Episode>? items)
+    private async Task UpdateShow(IEnumerable<Season>? seasons)
+    {
+        if (seasons != null)
+        {
+            foreach (var season in seasons)
+            {
+                var show = await _inventoryService.GetItem<Show>(season.ShowId, "Show");
+
+                if (show != null)
+                {
+                    var seasonIds = show.SeasonIds?.ToList();
+                    seasonIds?.RemoveAll(i => i == season.Id);
+
+                    show.SeasonIds = seasonIds;
+
+                    await _inventoryService.UpdateById(show);
+                }
+
+                if (show != null && (!show?.SeasonIds?.Any() ?? true))
+                {
+                    await _binService.AddItem(show!);
+                    await _inventoryService.RemoveById(show!);
+                }
+            }
+        }
+    }
+
+    private async Task UpdateSeason(IEnumerable<Episode>? items)
     {
         if (items != null)
         {
+            List<Season> seasons = [];
+
             foreach (var episode in items)
             {
                 var season = await _inventoryService.GetItem<Season>(episode.SeasonId, "Season");
+
+                if (season != null)
+                {
+                    seasons.Add(season);
+                }
+            }
+
+            foreach (var episode in items)
+            {
+                var season = seasons.FirstOrDefault(i => i.Id == episode.SeasonId);
 
                 if (season != null)
                 {
@@ -124,6 +163,14 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     season.EpisodeIds = episodeIds;
 
                     await _inventoryService.UpdateById(season);
+                }
+
+                if (season != null && (!season?.EpisodeIds?.Any() ?? true))
+                {
+                    await UpdateShow(seasons);
+
+                    await _binService.AddItem(season!);
+                    await _inventoryService.RemoveById(season!);
                 }
             }
         }
@@ -170,7 +217,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     {
                         if (typeof(Episode).IsAssignableFrom(typeof(T)))
                         {
-                            await UpdateSeason(paths, items as IEnumerable<Episode>);
+                            await UpdateSeason(items as IEnumerable<Episode>);
                         }
 
                         await _binService.AddItem(item);

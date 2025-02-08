@@ -28,22 +28,32 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         if (show == null)
         {
-            show = new Show
+            show = await _binService.GetItem<Show>(folderTitle, "Show");
+
+            if (show == null)
             {
-                Id = Guid.NewGuid(),
-                Title = folderTitle,
-                FolderPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle)
-            };
+                show = new Show
+                {
+                    Id = Guid.NewGuid(),
+                    Title = folderTitle,
+                };
 
-            var metadata = await _metadataService.CreateNewMetadata
-            (
-                parentId: show.Id,
-                title: show.Title,
-                year: discoveryInfo?.Year,
-                category: show.Category
-            );
+                var metadata = await _metadataService.CreateNewMetadata
+                (
+                    parentId: show.Id,
+                    title: show.Title,
+                    year: discoveryInfo?.Year,
+                    category: show.Category
+                );
 
-            show.MetadataId = metadata?.Id;
+                show.MetadataId = metadata?.Id;
+            }
+            else
+            {
+                await _binService.RemoveById(show);
+            }
+
+            show.FolderPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
 
             await _inventoryService.AddItem(show);
         }
@@ -55,29 +65,39 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
         {
             if (string.IsNullOrWhiteSpace(discoveryInfo?.SeasonFolder))
             {
-                discoveryInfo.SeasonFolder = $"Season {discoveryInfo?.SeasonNr}";
+                discoveryInfo!.SeasonFolder = $"Season {discoveryInfo?.SeasonNr}";
             }
 
-            season = new Season
+            season = await _binService.GetItem<Season>(discoveryInfo!.SeasonFolder, "Season");
+
+            if (season == null)
             {
-                Id = Guid.NewGuid(),
+                season = new Season
+                {
+                    Id = Guid.NewGuid(),
 
-                ShowId = show.Id,
-                Title = discoveryInfo?.SeasonFolder,
-                SeasonNr = discoveryInfo?.SeasonNr,
-                FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory()
-            };
+                    ShowId = show.Id,
+                    Title = discoveryInfo?.SeasonFolder,
+                    SeasonNr = discoveryInfo?.SeasonNr,
+                };
 
-            var metadata = await _metadataService.CreateNewMetadata
-            (
-                parentId: season.Id,
-                title: show.Title,
-                year: discoveryInfo?.Year,
-                category: season.Category,
-                season: discoveryInfo?.SeasonNr
-            );
+                var metadata = await _metadataService.CreateNewMetadata
+                (
+                    parentId: season.Id,
+                    title: show.Title,
+                    year: discoveryInfo?.Year,
+                    category: season.Category,
+                    season: discoveryInfo?.SeasonNr
+                );
 
-            season.MetadataId = metadata?.Id;
+                season.MetadataId = metadata?.Id;
+            }
+            else
+            {
+                await _binService.RemoveById(season);
+            }
+
+            season.FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory();
 
             await _inventoryService.AddItem(season);
 
@@ -121,6 +141,10 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 episode.MetadataId = metadata?.Id;
             }
+            else
+            {
+                await _binService.RemoveById(episode);
+            }
 
             episode.Addons = _addonService.DiscoverAddons(path);
             episode.Versions =
@@ -137,11 +161,6 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
             season.EpisodeIds ??= [];
             season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
-
-            if (episode != null)
-            {
-                await _binService.RemoveById(episode);
-            }
 
             await _inventoryService.UpdateById(season);
         }
