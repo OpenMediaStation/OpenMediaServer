@@ -26,6 +26,10 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
         await HandleDelete(paths, books);
 
+        var episodes = await _inventoryService.ListItems<Episode>("Episode");
+
+        await HandleDelete(paths, episodes);
+
         // TODO Shows
     }
 
@@ -104,6 +108,27 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
     }
 
+    private async Task UpdateSeason(IEnumerable<string> paths, IEnumerable<Episode>? items)
+    {
+        if (items != null)
+        {
+            foreach (var episode in items)
+            {
+                var season = await _inventoryService.GetItem<Season>(episode.SeasonId, "Season");
+
+                if (season != null)
+                {
+                    var episodeIds = season.EpisodeIds?.ToList();
+                    episodeIds?.RemoveAll(i => i == episode.Id);
+
+                    season.EpisodeIds = episodeIds;
+
+                    await _inventoryService.UpdateById(season);
+                }
+            }
+        }
+    }
+
     private async Task HandleDelete<T>(IEnumerable<string> paths, IEnumerable<T>? items) where T : InventoryItem
     {
         if (items != null)
@@ -143,6 +168,11 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
                     if (!item.Versions.Any())
                     {
+                        if (typeof(Episode).IsAssignableFrom(typeof(T)))
+                        {
+                            await UpdateSeason(paths, items as IEnumerable<Episode>);
+                        }
+
                         await _binService.AddItem(item);
                         await _inventoryService.RemoveById(item);
                     }

@@ -5,14 +5,8 @@ using OpenMediaServer.Models.Discovery;
 
 namespace OpenMediaServer.Services;
 
-public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService) : IDiscoveryShowService
+public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileInfoService _fileInfoService, IMetadataService _metadataService, IInventoryService _inventoryService, IAddonService _addonService, IBinService _binService) : IDiscoveryShowService
 {
-    private readonly ILogger<DiscoveryShowService> _logger = logger;
-    private readonly IFileInfoService _fileInfoService = fileInfoService;
-    private readonly IMetadataService _metadataService = metadataService;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IAddonService _addonService = addonService;
-
     public async Task CreateShow(string path)
     {
         var splitPath = path.Split('/');
@@ -98,43 +92,56 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> logger, IFileInf
 
         if (episode == null)
         {
+            var title = $"{folderTitle} S{discoveryInfo?.SeasonNr}E{discoveryInfo?.EpisodeNr}";
+
+            episode = await _binService.GetItem<Episode>(title, "Episode");
+
             var versionId = Guid.NewGuid();
-            episode = new Episode
+
+            if (episode == null)
             {
-                Id = Guid.NewGuid(),
+                episode = new Episode
+                {
+                    Id = Guid.NewGuid(),
+                    SeasonId = season.Id,
+                    Title = title,
+                    EpisodeNr = discoveryInfo?.EpisodeNr,
+                    SeasonNr = season.SeasonNr,
+                };
 
-                SeasonId = season.Id,
-                Title = $"{folderTitle} S{discoveryInfo?.SeasonNr}E{discoveryInfo?.EpisodeNr}",
-                Versions =
-                [
-                    new()
-                    {
-                        Id = versionId,
-                        Path = path,
-                        FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
-                    }
-                ],
-                EpisodeNr = discoveryInfo?.EpisodeNr,
-                SeasonNr = season.SeasonNr,
-                Addons = _addonService.DiscoverAddons(path)
-            };
+                var metadata = await _metadataService.CreateNewMetadata
+                (
+                    parentId: episode.Id,
+                    title: show.Title,
+                    year: discoveryInfo?.Year,
+                    category: episode.Category,
+                    episode: episode.EpisodeNr,
+                    season: episode.SeasonNr
+                );
 
-            var metadata = await _metadataService.CreateNewMetadata
-            (
-                parentId: episode.Id,
-                title: show.Title,
-                year: discoveryInfo?.Year,
-                category: episode.Category,
-                episode: episode.EpisodeNr,
-                season: episode.SeasonNr
-            );
+                episode.MetadataId = metadata?.Id;
+            }
 
-            episode.MetadataId = metadata?.Id;
+            episode.Addons = _addonService.DiscoverAddons(path);
+            episode.Versions =
+            [
+                new()
+                {
+                    Id = versionId,
+                    Path = path,
+                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
+                }
+            ];
 
             await _inventoryService.AddItem(episode);
 
             season.EpisodeIds ??= [];
             season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
+
+            if (episode != null)
+            {
+                await _binService.RemoveById(episode);
+            }
 
             await _inventoryService.UpdateById(season);
         }
