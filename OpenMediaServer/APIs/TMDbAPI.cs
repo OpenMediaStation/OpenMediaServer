@@ -23,7 +23,8 @@ public class TMDbAPI : ITMDbAPI
     public async Task<Movie?> GetMovie(string name, string? apiKey, string? year = null)
     {
         TMDbClient client = new(apiKey);
-
+        client.DefaultLanguage = Globals.PreferredLanguage;
+        
         _ = int.TryParse(year, out var yearParsed);
 
         var result = await client.SearchMovieAsync
@@ -45,6 +46,7 @@ public class TMDbAPI : ITMDbAPI
     public async Task<TvShow?> GetShow(string name, string? apiKey, string? year = null)
     {
         TMDbClient client = new(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         _ = int.TryParse(year, out var yearParsed);
 
@@ -59,7 +61,7 @@ public class TMDbAPI : ITMDbAPI
         if (search == null)
             return null;
 
-        var show = await client.GetTvShowAsync(search.Id);
+        var show = await client.GetTvShowAsync(search.Id, language: Globals.PreferredLanguage, includeImageLanguage: Globals.PreferredLanguage);
 
         return show;
     }
@@ -67,11 +69,14 @@ public class TMDbAPI : ITMDbAPI
     public async Task<TvSeason?> GetSeason(int showId, int seasonNr, string? apiKey)
     {
         TMDbClient client = new(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         var result = await client.GetTvSeasonAsync
         (
             tvShowId: showId,
-            seasonNumber: seasonNr
+            seasonNumber: seasonNr,
+            language: Globals.PreferredLanguage,
+            includeImageLanguage: Globals.PreferredLanguage
         );
 
         return result;
@@ -80,12 +85,15 @@ public class TMDbAPI : ITMDbAPI
     public async Task<TvEpisode?> GetEpisode(int showId, int seasonNr, int episodeNr, string? apiKey)
     {
         TMDbClient client = new(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         var result = await client.GetTvEpisodeAsync
         (
             tvShowId: showId,
             seasonNumber: seasonNr,
-            episodeNumber: episodeNr
+            episodeNumber: episodeNr,
+            language: Globals.PreferredLanguage,
+            includeImageLanguage: Globals.PreferredLanguage
         );
 
         return result;
@@ -94,6 +102,7 @@ public class TMDbAPI : ITMDbAPI
     public async Task<Person?> GetPerson(string name, string? apiKey)
     {
         TMDbClient client = new(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         var result = await client.SearchPersonAsync
         (
@@ -113,6 +122,7 @@ public class TMDbAPI : ITMDbAPI
     public async Task<ImagesWithId?> GetMovieImages(int movieId, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         var result = await client.GetMovieImagesAsync(movieId);
 
@@ -122,8 +132,9 @@ public class TMDbAPI : ITMDbAPI
     public async Task<ImagesWithId?> GetShowImages(int showId, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
-        var result = await client.GetTvShowImagesAsync(showId);
+        var result = await client.GetTvShowImagesAsync(showId, language: Globals.PreferredLanguage, includeImageLanguage: Globals.PreferredLanguage);
 
         return result;
     }
@@ -131,8 +142,9 @@ public class TMDbAPI : ITMDbAPI
     public async Task<PosterImages?> GetSeasonImages(int showId, int seasonNr, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
-        var result = await client.GetTvSeasonImagesAsync(showId, seasonNr);
+        var result = await client.GetTvSeasonImagesAsync(showId, seasonNr, language: Globals.PreferredLanguage);
 
         return result;
     }
@@ -140,8 +152,9 @@ public class TMDbAPI : ITMDbAPI
     public async Task<StillImages?> GetEpisodeImages(int showId, int seasonNr, int episodeNr, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
-        var result = await client.GetTvEpisodeImagesAsync(showId, seasonNr, episodeNr);
+        var result = await client.GetTvEpisodeImagesAsync(showId, seasonNr, episodeNr, language: Globals.PreferredLanguage);
 
         return result;
     }
@@ -149,6 +162,7 @@ public class TMDbAPI : ITMDbAPI
     public async Task<ProfileImages?> GetPersonImages(int personId, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
 
         var result = await client.GetPersonImagesAsync(personId);
 
@@ -158,6 +172,7 @@ public class TMDbAPI : ITMDbAPI
     public async Task<byte[]?> GetImageFromId(string imagePath, string? apiKey)
     {
         TMDbClient client = new TMDbClient(apiKey);
+        client.DefaultLanguage = Globals.PreferredLanguage;
         await client.GetConfigAsync();
 
         var result = await client.GetImageBytesAsync("original", imagePath);

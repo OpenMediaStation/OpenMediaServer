@@ -20,6 +20,8 @@ public static class Globals
     public static string OmdbApiKey { get; set; }
     public static string TmdbApiKey { get; set; }
 
+    public static string PreferredLanguage { get; set; } = Environment.GetEnvironmentVariable("PREFFERED_LANGUAGE") ?? "en";
+    
     public static JsonSerializerOptions JsonOptions { get; set; } = new()
     {
         NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals
