@@ -118,6 +118,42 @@ public class ProgressService : IProgressService
 
             await UpdateProgress(seasonProgress, userId);
         }
+        else if (progress.Category == "Season")
+        {
+            var seasons = await _inventoryService.ListItems<Season>("Season");
+            var filteredSeasons = seasons?.Where(i => i.Id == progress.ParentId);
+            var showId = filteredSeasons?.FirstOrDefault()?.ShowId;
+            var seasonIds = seasons?.Where(i => i.ShowId == showId).Select(i => i.Id);
+
+            int seasonCount = seasonIds?.Count() ?? 0;
+
+            var seasonProgresses = await ListProgresses(userId, "Season");
+            seasonProgresses = seasonProgresses?.Where(i => i.ParentId != null && (seasonIds?.Contains(i.ParentId.Value) ?? false));
+
+            var seasonProgress = new Progress();
+            seasonProgress.Category = "Show";
+            seasonProgress.ParentId = showId;
+
+            // Calculate average of all episode completions
+            while (seasonProgresses?.Count() < seasonCount)
+            {
+                seasonProgresses = seasonProgresses.Append(new Progress() { Completions = 0 });
+            }
+            seasonProgress.Completions = (int)Math.Floor(seasonProgresses?.Select(i => i.Completions).Average(i => i) ?? 0);
+
+            // Get existing season id if existing
+            if (showId != null)
+            {
+                var showProgresses = await ListProgresses(userId, "Show");
+                var existingProgresses = showProgresses?.Where(i => i.ParentId == showId);
+                if (existingProgresses?.Any() ?? false)
+                {
+                    seasonProgress.Id = existingProgresses.First().Id;
+                }
+            }
+
+            await UpdateProgress(seasonProgress, userId);
+        }
     }
 
     public async Task<Progress?> GetProgress(string userId, string category, Guid? progressId = null, Guid? parentId = null)
