@@ -1,6 +1,7 @@
 using System;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Models;
 using OpenMediaServer.Models.Progress;
 
 namespace OpenMediaServer.Services;
@@ -9,11 +10,13 @@ public class ProgressService : IProgressService
 {
     private readonly ILogger<ProgressService> _logger;
     private readonly IFileSystemRepository _fileSystemRepository;
+    private readonly IInventoryService _inventoryService;
 
-    public ProgressService(ILogger<ProgressService> logger, IFileSystemRepository fileSystemRepository)
+    public ProgressService(ILogger<ProgressService> logger, IFileSystemRepository fileSystemRepository, IInventoryService inventoryService)
     {
         _logger = logger;
         _fileSystemRepository = fileSystemRepository;
+        _inventoryService = inventoryService;
     }
 
     public async Task CreateProgress(string userId, Progress newProgress)
@@ -38,7 +41,7 @@ public class ProgressService : IProgressService
             Category = newProgress.Category,
             ProgressPercentage = newProgress.ProgressPercentage ?? 0,
             ProgressSeconds = newProgress.ProgressSeconds ?? 0,
-            Completions = 0,
+            Completions = newProgress.Completions,
         };
 
         progresses.Add(progress);
@@ -51,6 +54,11 @@ public class ProgressService : IProgressService
         if (progress.Category == null)
         {
             throw new ArgumentNullException("progress.Category");
+        }
+
+        if (progress.ParentId == null)
+        {
+            throw new ArgumentNullException("progress.ParentId");
         }
 
         var path = GetProgressFilePath(userId, progress.Category);
@@ -72,6 +80,43 @@ public class ProgressService : IProgressService
         else
         {
             await CreateProgress(newProgress: progress, userId: userId);
+        }
+
+        if (progress.Category == "Episode")
+        {
+            var episodes = await _inventoryService.ListItems<Episode>("Episode");
+            var filteredEpisodes = episodes?.Where(i => i.Id == progress.ParentId);
+            var seasonId = filteredEpisodes?.FirstOrDefault()?.SeasonId;
+            var episodeIds = episodes?.Where(i => i.SeasonId == seasonId).Select(i => i.Id);
+
+            int episodeCount = episodeIds?.Count() ?? 0;
+
+            var episodeProgresses = await ListProgresses(userId, "Episode");
+            episodeProgresses = episodeProgresses?.Where(i => i.ParentId != null && (episodeIds?.Contains(i.ParentId.Value) ?? false));
+
+            var seasonProgress = new Progress();
+            seasonProgress.Category = "Season";
+            seasonProgress.ParentId = seasonId;
+
+            // Calculate average of all episode completions
+            while (episodeProgresses?.Count() < episodeCount)
+            {
+                episodeProgresses = episodeProgresses.Append(new Progress() { Completions = 0 });
+            }
+            seasonProgress.Completions = (int)Math.Floor(episodeProgresses?.Select(i => i.Completions).Average(i => i) ?? 0);
+
+            // Get existing season id if existing
+            if (seasonId != null)
+            {
+                var seasonProgresses = await ListProgresses(userId, "Season");
+                var existingProgresses = seasonProgresses?.Where(i => i.ParentId == seasonId);
+                if (existingProgresses?.Any() ?? false)
+                {
+                    seasonProgress.Id = existingProgresses.First().Id;
+                }
+            }
+
+            await UpdateProgress(seasonProgress, userId);
         }
     }
 
