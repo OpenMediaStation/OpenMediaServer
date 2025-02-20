@@ -36,16 +36,7 @@ public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoServi
 
     public async Task<IResult> GetFileInfos(string category, [FromQuery] Guid[] ids)
     {
-        var fileInfos = new List<FileInfoModel>();
-
-        foreach (var item in ids)
-        {
-            var fileInfo = await _fileInfoService.GetFileInfo(category, item);
-            if (fileInfo != null)
-            {
-                fileInfos.Add(fileInfo);
-            }
-        }
+        var fileInfos = await _fileInfoService.GetFileInfos(category, ids.ToList());
 
         return Results.Ok(fileInfos);
     }
