@@ -1,6 +1,8 @@
 using System;
+using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Models.FileInfo;
 
 namespace OpenMediaServer.Endpoints;
 
@@ -14,20 +16,37 @@ public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoServi
         var group = app.MapGroup("/api/fileInfo");
 
         group.MapGet("list", ListFileInfos).RequireAuthorization();
-        group.MapGet("", GetFileInfos).RequireAuthorization();
+        group.MapGet("", GetFileInfo).RequireAuthorization();
+        group.MapGet("/batch", GetFileInfos).RequireAuthorization();
     }
 
-      public async Task<IResult> ListFileInfos(string category)
+    public async Task<IResult> ListFileInfos(string category)
     {
         var fileInfos = await _fileInfoService.ListFileInfo(category);
 
         return Results.Ok(fileInfos);
     }
 
-    public async Task<IResult> GetFileInfos(string category, Guid id)
+    public async Task<IResult> GetFileInfo(string category, Guid id)
     {
         var fileInfo = await _fileInfoService.GetFileInfo(category, id);
 
         return Results.Ok(fileInfo);
+    }
+
+    public async Task<IResult> GetFileInfos(string category, [FromQuery] Guid[] ids)
+    {
+        var fileInfos = new List<FileInfoModel>();
+
+        foreach (var item in ids)
+        {
+            var fileInfo = await _fileInfoService.GetFileInfo(category, item);
+            if (fileInfo != null)
+            {
+                fileInfos.Add(fileInfo);
+            }
+        }
+
+        return Results.Ok(fileInfos);
     }
 }

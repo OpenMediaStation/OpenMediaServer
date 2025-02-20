@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -19,6 +20,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
         group.MapDelete("", Unfavorite).RequireAuthorization();
         group.MapGet("/category/{category}", ListAllInCategory).RequireAuthorization();
         group.MapGet("", IsFavorited).RequireAuthorization();
+        group.MapGet("/batch", IsFavoritedBatch).RequireAuthorization();
     }
 
     public async Task<IResult> Favorite(HttpContext httpContext, Guid inventoryItemId, string category)
@@ -99,6 +101,22 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
         var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path);
 
         return Results.Ok(favorites?.Contains(inventoryItemId) ?? false);
+    }
+
+    public async Task<IResult> IsFavoritedBatch(HttpContext httpContext, [FromQuery] Guid[] ids, [FromQuery] string category)
+    {
+        var userId = Globals.GetUserId(httpContext);
+        if (userId == null)
+        {
+            return Results.Forbid();
+        }
+
+        var path = GetFavoritesFilePath(userId, category);
+        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path) ?? [];
+
+        var result = ids.ToDictionary(id => id, id => favorites.Contains(id));
+
+        return Results.Ok(result);
     }
 
     private string GetFavoritesFilePath(string userId, string category)

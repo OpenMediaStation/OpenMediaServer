@@ -1,4 +1,5 @@
 using System;
+using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models.Metadata;
@@ -22,6 +23,7 @@ public class MetadataEndpoints : IMetadataEndpoints
 
         group.MapGet("list", ListMetadata);
         group.MapGet("", GetMetadata);
+        group.MapGet("/batch", GetMetadatas);
         group.MapPost("", UpdateOrAddMetadata);
     }
 
@@ -37,6 +39,22 @@ public class MetadataEndpoints : IMetadataEndpoints
         var metadata = await _metadataService.GetMetadata(category, id);
 
         return Results.Ok(metadata);
+    }
+
+    public async Task<IResult> GetMetadatas(string category, [FromQuery] Guid[] ids)
+    {
+        var metadatas = new List<MetadataModel>();
+
+        foreach (var item in ids)
+        {
+            var metadata = await _metadataService.GetMetadata(category, item);
+            if (metadata != null)
+            {
+                metadatas.Add(metadata);
+            }
+        }
+
+        return Results.Ok(metadatas);
     }
 
     public async Task<IResult> UpdateOrAddMetadata(MetadataModel metadataModel)

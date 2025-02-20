@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models.Progress;
@@ -20,6 +21,7 @@ public class ProgressEndpoints : IProgressEndpoints
         var group = app.MapGroup("/api/progress").RequireAuthorization();
 
         group.MapGet("", GetProgress);
+        group.MapGet("/batch", GetProgresses);
         group.MapGet("list", ListProgresses);
         group.MapPost("", UpdateProgress);
     }
@@ -64,6 +66,35 @@ public class ProgressEndpoints : IProgressEndpoints
             }
 
             return Results.Ok(progress);
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(ex.Message);
+        }
+    }
+
+    public async Task<IResult> GetProgresses(HttpContext httpContext, string category, [FromQuery] Guid[] ids)
+    {
+        var userId = Globals.GetUserId(httpContext);
+        if (userId == null)
+        {
+            return Results.Forbid();
+        }
+
+        try
+        {
+            var progresses = new List<Progress>();
+
+            foreach (var id in ids)
+            {
+                var progress = await _progressService.GetProgress(userId, category, null, id);
+                if (progress != null)
+                {
+                    progresses.Add(progress);
+                }
+            }
+
+            return Results.Ok(progresses);
         }
         catch (ArgumentNullException ex)
         {

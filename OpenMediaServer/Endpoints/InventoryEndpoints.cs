@@ -1,3 +1,5 @@
+using System.Collections;
+using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -17,11 +19,12 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         group.MapGet("/movie", GetMovie);
         group.MapGet("/show", GetShow);
         group.MapGet("/episode", GetEpisode);
+        group.MapGet("/episode/batch", GetEpisodes);
         group.MapGet("/season", GetSeason);
         group.MapGet("/book", GetBook);
 
         group.MapGet("/categories", ListCategories);
-        group.MapGet("/items", ListItems); 
+        group.MapGet("/items", ListItems);
         group.MapGet("/item", GetItem);
 
         group.MapPost("/rescan", Rescan);
@@ -74,6 +77,27 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         {
             return Results.NotFound("Id not found in episodes");
         }
+    }
+
+    public async Task<IResult> GetEpisodes([FromQuery] Guid[] ids)
+    {
+        if (ids == null || !ids.Any())
+        {
+            return Results.BadRequest("Invalid or missing episode IDs.");
+        }
+
+        var items = new List<Episode>();
+
+        foreach (var id in ids)
+        {
+            var item = await _inventoryService.GetItem<Episode>(id: id, category: "Episode");
+            if (item != null)
+            {
+                items.Add(item);
+            }
+        }
+
+        return Results.Ok(items);
     }
 
     public async Task<IResult> GetSeason(Guid id)
@@ -131,10 +155,10 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
     }
 
     public async Task<IResult> GetItem(string category, Guid id)
-    {            
+    {
         var item = await _inventoryService.GetItem<InventoryItem>(id: id, category: category);
 
-        if ( item != null)
+        if (item != null)
         {
             return Results.Ok(item);
         }
