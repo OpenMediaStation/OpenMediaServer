@@ -38,7 +38,7 @@ public class OMDbAPI : IOmdbAPI
         query["episode"] = episode.ToString();
         query["type"] = type; //Accepted types: movie, series, episode
         if (!string.IsNullOrEmpty(year))
-            query["year"] = year;
+            query["y"] = year;
         
         var url = $"http://www.omdbapi.com/?{query}";
 

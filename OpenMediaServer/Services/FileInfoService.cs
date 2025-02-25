@@ -60,6 +60,46 @@ public class FileInfoService : IFileInfoService
         return metadata;
     }
 
+    public async Task<IEnumerable<FileInfoModel>?> GetFileInfos(string category, List<Guid> ids)
+    {
+        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
+
+        var fileInfoModels = new List<FileInfoModel>();
+
+        if (fileInfos == null)
+        {
+            return [];
+        }
+
+        foreach (var fileInfo in fileInfos)
+        {
+            if ( fileInfo != null && ids.Contains(fileInfo.Id))
+            {
+                fileInfoModels.Add(fileInfo);
+            }
+        }
+
+        return fileInfoModels;
+    }
+
+    public async Task DeleteFileInfo(string category, Guid id)
+    {
+        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
+
+        fileInfos = fileInfos?.Where(i => i.Id != id);
+
+        await _fileSystemRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json", fileInfos);
+    }
+
+    public async Task DeleteFileInfoByParentId(string category, Guid parentId)
+    {
+        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
+
+        fileInfos = fileInfos?.Where(i => i.ParentId != parentId);
+
+        await _fileSystemRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json", fileInfos);
+    }
+
     private FileInfoModel MapFileInfo(Guid parentId, string parentCategory, IMediaAnalysis mappingInput)
     {
         var fileInfo = new FileInfoModel

@@ -29,13 +29,15 @@ public class MetadataService : IMetadataService
         _imageService = imageService;
     }
 
-    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = "en")
+    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null)
     {
         var metadatas = await ListMetadata(category);
 
         MetadataModel? metadata = new();
         var metadataId = Guid.NewGuid();
 
+        language ??= Globals.PreferredLanguage;
+        
         switch (category)
         {
             case "Movie":
@@ -81,7 +83,7 @@ public class MetadataService : IMetadataService
                             Director = omdbData?.Director,
                             Writer = omdbData?.Writer,
                             Actors = omdbData?.Actors,
-                            Plot = omdbData?.Plot ?? tmdbData?.Overview,
+                            Plot = tmdbData?.Overview ?? omdbData?.Plot,
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
@@ -150,7 +152,7 @@ public class MetadataService : IMetadataService
                             Director = omdbData?.Director,
                             Writer = omdbData?.Writer,
                             Actors = omdbData?.Actors,
-                            Plot = omdbData?.Plot,
+                            Plot = tmdbData?.Overview ?? omdbData?.Plot,
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,
@@ -197,7 +199,7 @@ public class MetadataService : IMetadataService
 
                     metadata = new MetadataModel()
                     {
-                        Title = tmdbData?.Name,
+                        Title = seasonInfo?.Name,
                         Season = new()
                         {
                             Poster = seasonInfo?.PosterPath != null ? $"{Globals.Domain}/images/Season/{metadataId}/poster" : null,
@@ -239,18 +241,18 @@ public class MetadataService : IMetadataService
 
                     metadata = new MetadataModel()
                     {
-                        Title = omdbData?.Title ?? episodeInfo?.Name,
+                        Title = episodeInfo?.Name ?? omdbData?.Title,
                         Episode = new()
                         {
-                            Year = omdbData?.Year ?? episodeInfo?.AirDate?.Year.ToString(),
-                            Rated = omdbData?.Rated ?? episodeInfo?.VoteAverage.ToString(),
-                            Released = omdbData?.Released ?? episodeInfo?.AirDate.ToString(),
-                            Runtime = omdbData?.Runtime ?? episodeInfo?.Runtime.ToString(),
+                            Year = omdbData?.Year,
+                            Rated = omdbData?.Rated,
+                            Released = omdbData?.Released,
+                            Runtime = omdbData?.Runtime,
                             Genre = omdbData?.Genre,
                             Director = omdbData?.Director,
                             Writer = omdbData?.Writer,
                             Actors = omdbData?.Actors,
-                            Plot = omdbData?.Plot ?? episodeInfo?.Overview,
+                            Plot = episodeInfo?.Overview ?? omdbData?.Plot,
                             Language = omdbData?.Language,
                             Country = omdbData?.Country,
                             Awards = omdbData?.Awards,

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
@@ -92,6 +93,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
+builder.Services.Configure<JsonOptions>(options => { options.SerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals; });
+
 var app = builder.Build();
 
 // Set ApiKeys
@@ -107,9 +110,15 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Run initial content scan and set up watchers
+// Run initial content scan
 var contentDiscoveryService = app.Services.GetRequiredService<IContentDiscoveryService>();
-await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
+
+Task.Run(async () => 
+{
+    await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
+});
+
+// Setup watcher
 contentDiscoveryService.Watch(Globals.MediaFolder);
 
 // Map endpoints
@@ -145,6 +154,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IImageService, ImageService>();
     services.AddSingleton<IAddonService, AddonService>();
     services.AddSingleton<IProgressService, ProgressService>();
+    services.AddSingleton<IBinService, BinService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }
