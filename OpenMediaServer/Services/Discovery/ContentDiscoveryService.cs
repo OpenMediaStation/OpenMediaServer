@@ -4,7 +4,7 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IAudiobookDiscoveryService _audiobookDiscoveryService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IDiscoveryAudiobookService _audiobookDiscoveryService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;

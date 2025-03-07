@@ -17,4 +17,5 @@ public class MetadataModel
     public MetadataSeasonModel? Season { get; set; }
     public MetadataEpisodeModel? Episode { get; set; }
     public MetadataBookModel? Book { get; set; }
+    public MetadataAudiobookModel? Audiobook { get; set; }
 }

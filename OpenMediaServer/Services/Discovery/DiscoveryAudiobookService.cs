@@ -7,7 +7,7 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryAudiobookService : IAudiobookDiscoveryService
+public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 {
     private readonly ILogger<DiscoveryBookService> _logger;
     private readonly IFileInfoService _fileInfoService;
