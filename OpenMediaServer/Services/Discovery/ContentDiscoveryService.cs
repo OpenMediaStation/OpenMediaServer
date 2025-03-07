@@ -1,9 +1,10 @@
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Discovery;
 using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IAudiobookDiscoveryService _audiobookDiscoveryService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;
@@ -26,11 +27,13 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
         await HandleDelete(paths, books);
 
+        var audiobooks = await _inventoryService.ListItems<Audiobook>("Audiobook");
+
+        await HandleDelete(paths, books);
+
         var episodes = await _inventoryService.ListItems<Episode>("Episode");
 
         await HandleDelete(paths, episodes);
-
-        // TODO Shows
     }
 
     /// <summary>
@@ -73,6 +76,12 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                 case "Books":
                     {
                         await _bookService.CreateBook(path);
+
+                        break;
+                    }
+                case "Audiobooks":
+                    {
+                        await _audiobookDiscoveryService.CreateAudiobook(path);
 
                         break;
                     }
