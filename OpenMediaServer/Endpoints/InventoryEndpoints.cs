@@ -24,6 +24,9 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         group.MapGet("/season", GetSeason);
         group.MapGet("/season/batch", GetSeasons);
         group.MapGet("/book", GetBook);
+        group.MapGet("/book/batch", GetBooks);
+        group.MapGet("/audiobook", GetAudiobook);
+        group.MapGet("/audiobook/batch", GetAudiobooks);
 
         group.MapGet("/categories", ListCategories);
         group.MapGet("/items", ListItems);
@@ -172,6 +175,61 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         }
     }
 
+    public async Task<IResult> GetBooks([FromQuery] Guid[] ids)
+    {
+        if (ids == null || !ids.Any())
+        {
+            return Results.BadRequest("Invalid or missing season IDs.");
+        }
+
+        var items = new List<Book>();
+
+        foreach (var id in ids)
+        {
+            var item = await _inventoryService.GetItem<Book>(id: id, category: "Book");
+            if (item != null)
+            {
+                items.Add(item);
+            }
+        }
+
+        return Results.Ok(items);
+    }
+
+    public async Task<IResult> GetAudiobook(Guid id)
+    {
+        var item = await _inventoryService.GetItem<Audiobook>(id: id, category: "Audiobook");
+
+        if (item != null)
+        {
+            return Results.Ok(item);
+        }
+        else
+        {
+            return Results.NotFound("Id not found in seasons");
+        }
+    }
+
+    public async Task<IResult> GetAudiobooks([FromQuery] Guid[] ids)
+    {
+        if (ids == null || !ids.Any())
+        {
+            return Results.BadRequest("Invalid or missing season IDs.");
+        }
+
+        var items = new List<Audiobook>();
+
+        foreach (var id in ids)
+        {
+            var item = await _inventoryService.GetItem<Audiobook>(id: id, category: "Audiobook");
+            if (item != null)
+            {
+                items.Add(item);
+            }
+        }
+
+        return Results.Ok(items);
+    }
 
     /// <summary>
     /// List all categories available

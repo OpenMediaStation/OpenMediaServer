@@ -3,7 +3,7 @@ using System;
 namespace OpenMediaServer.Models;
 
 /// <summary>
-/// Represents both: Book and audiobook
+/// Book
 /// </summary>
 public class Book : InventoryItem
 {
