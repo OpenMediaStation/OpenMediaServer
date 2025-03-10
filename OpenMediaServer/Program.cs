@@ -13,9 +13,11 @@ using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Repositories;
 using OpenMediaServer.Services;
 using OpenMediaServer.Services.Discovery;
+using OpenMediaServer.Services.Metadata;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -159,6 +161,10 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IProgressService, ProgressService>();
     services.AddSingleton<IBinService, BinService>();
     services.AddSingleton<IDiscoveryAudiobookService, DiscoveryAudiobookService>();
+    services.AddSingleton<IAudioBookMetadataService, AudiobookMetadataService>();
+    services.AddSingleton<IMovieMetadataService, MovieMetadataService>();
+    services.AddSingleton<IShowMetadataService, ShowMetadataService>();
+    services.AddSingleton<IBookMetadataService, BookMetadataService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }
