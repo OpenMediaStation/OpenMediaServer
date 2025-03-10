@@ -9,13 +9,13 @@ namespace OpenMediaServer.Services.Discovery;
 
 public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 {
-    private readonly ILogger<DiscoveryBookService> _logger;
+    private readonly ILogger<DiscoveryAudiobookService> _logger;
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
     private readonly IMetadataService _metadataService;
     private readonly string _regex = @"(?<category>(Audiobooks)|\w+?)/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?/?(?<title>([ \w\.-]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?((-|\.)(?<fileInfo>[\w\.-]*?))?\.(?<extension>\S{3,4})$";
 
-    public DiscoveryAudiobookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
+    public DiscoveryAudiobookService(ILogger<DiscoveryAudiobookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
     {
         _logger = logger;
         _fileInfoService = fileInfoService;
