@@ -137,6 +137,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IInventoryService, InventoryService>();
     services.AddSingleton<IStreamingService, StreamingService>();
     services.AddSingleton<IOmdbAPI, OMDbAPI>();
+    services.AddSingleton<IOpenLibraryApi, OpenLibraryApi>();
     services.AddSingleton<IGeneralApiEndpoints, GeneralApiEndpoints>();
     services.AddSingleton<IMetadataEndpoints, MetadataEndpoints>();
     services.AddSingleton<IProgressEndpoints, ProgressEndpoints>();

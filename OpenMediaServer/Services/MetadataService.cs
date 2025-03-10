@@ -17,8 +17,9 @@ public class MetadataService : IMetadataService
     private readonly IGoogleBooksApi _googleBooksApi;
     private readonly ITMDbAPI _tMDbAPI;
     private readonly IImageService _imageService;
+    private readonly IOpenLibraryApi _openLibraryApi;
 
-    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi, ITMDbAPI tMDbAPI, IImageService imageService)
+    public MetadataService(ILogger<MetadataService> logger, IOmdbAPI omdbAPI, IConfiguration configuration, IFileSystemRepository storageRepository, IGoogleBooksApi googleBooksApi, ITMDbAPI tMDbAPI, IImageService imageService, IOpenLibraryApi openLibraryApi)
     {
         _logger = logger;
         _omdbAPI = omdbAPI;
@@ -27,6 +28,7 @@ public class MetadataService : IMetadataService
         _googleBooksApi = googleBooksApi;
         _tMDbAPI = tMDbAPI;
         _imageService = imageService;
+        _openLibraryApi = openLibraryApi;
     }
 
     public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null)
@@ -306,24 +308,35 @@ public class MetadataService : IMetadataService
 
             case "Audiobook":
                 {
-                    var result = await _googleBooksApi.GetBookMetadata
+                    var googleBooksResult = await _googleBooksApi.GetBookMetadata
                     (
                         title: title
                     );
 
-                    var data = result?.Items?.FirstOrDefault()?.VolumeInfo;
+                    var searchResult = await _openLibraryApi.SearchBook(title, true, language ??= "en");
+
+                    var openLibraryData = searchResult?.Docs[0]; // Take the first result as the best match
+
+                    var openLibraryBookDetails = await _openLibraryApi.GetBookDetails(openLibraryData?.Key);
+                    var description = openLibraryBookDetails?.Description ?? openLibraryBookDetails?.Description?.ToString();
+
+                    var works = await _openLibraryApi.GetWorks(openLibraryData?.Key);
+
+                    string? coverUrl = _openLibraryApi.GetCover(true, openLibraryData, works?.Entries);
+
+                    var googleBooksData = googleBooksResult?.Items?.FirstOrDefault()?.VolumeInfo;
 
                     metadata = new MetadataModel()
                     {
-                        Title = data?.Title,
+                        Title = openLibraryData?.Title ?? googleBooksData?.Title,
                         Audiobook = new()
                         {
-                            Authors = data?.Authors,
-                            Publisher = data?.Publisher,
-                            PublishedDate = data?.PublishedDate,
-                            Description = data?.Description,
-                            Language = data?.Language,
-                            Thumbnail = data?.ImageLinks?.Thumbnail
+                            Authors = openLibraryData?.AuthorName ?? googleBooksData?.Authors,
+                            Publisher = googleBooksData?.Publisher,
+                            PublishedDate = googleBooksData?.PublishedDate,
+                            Description = description ?? googleBooksData?.Description,
+                            Language = googleBooksData?.Language,
+                            Thumbnail = coverUrl ?? googleBooksData?.ImageLinks?.Thumbnail
                         }
                     };
 
