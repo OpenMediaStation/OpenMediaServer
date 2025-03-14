@@ -29,7 +29,7 @@ public class StreamingEndpoints : IStreamingEndpoints
         return await _streamingService.GetTranscodingSegment(id, category, context, segmentStart, segmentEnd, versionId);
     }
 
-    public async Task<IResult> StreamContent(Guid id, string category, HttpRequest request, HttpResponse response, bool transcode = false, Guid? versionId = null)
+    public async Task<IResult> StreamContent(Guid id, string category, HttpRequest request, HttpResponse response, bool transcode = false, Guid? versionId = null, Guid? partId = null)
     {
         if (transcode)
         {
@@ -37,14 +37,14 @@ public class StreamingEndpoints : IStreamingEndpoints
         }
         else
         {
-            var stream = await _streamingService.GetMediaStream(id, category, versionId);
+            var stream = await _streamingService.GetMediaStream(id, category, versionId, partId);
 
             if (stream == null)
             {
                 return Results.NotFound("Id not found in category");
             }
 
-            var mimeType = await _streamingService.GetMimeType(id, category, versionId);
+            var mimeType = await _streamingService.GetMimeType(id, category, versionId, partId);
 
             return Results.Stream(stream, enableRangeProcessing: true, contentType: mimeType);
         }

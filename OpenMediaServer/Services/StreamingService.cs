@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
+using OpenMediaServer.Models.FileInfo;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
@@ -14,7 +15,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
     private readonly IInventoryService _inventoryService = inventoryService;
     private readonly IFileInfoService _fileInfoService = fileInfoService;
 
-    public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null)
+    public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         _logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
@@ -38,7 +39,16 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                 return null;
             }
 
-            stream = new FileStream(playVersion.Path, FileMode.Open);
+            if (playVersion.Parts != null)
+            {
+                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+
+                stream = new FileStream(part.Path, FileMode.Open);
+            }
+            else
+            {
+                stream = new FileStream(playVersion.Path, FileMode.Open);
+            }
         }
         else
         {
@@ -49,13 +59,23 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                 return null;
             }
 
-            stream = new FileStream(playVersion.Path, FileMode.Open);
+            if (playVersion.Parts != null)
+            {
+                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+
+                stream = new FileStream(part.Path, FileMode.Open);
+            }
+            else
+            {
+                stream = new FileStream(playVersion.Path, FileMode.Open);
+            }
+
         }
 
         return stream;
     }
 
-    public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null)
+    public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         // Get file info
         var item = await _inventoryService.GetItem<InventoryItem>(id, category);
@@ -83,7 +103,23 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
             return null;
         }
 
-        var fileInfo = await _fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+        FileInfoModel? fileInfo;
+
+        if (version.Parts == null)
+        {
+            fileInfo = await _fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+        }
+        else
+        {
+            var part = version.Parts.FirstOrDefault(i => i.Id == partId);
+
+            if (part?.FileInfoId == null)
+            {
+                return null;
+            }
+
+            fileInfo = await _fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
+        }
 
         // Determine mime type
         var formatName = fileInfo?.MediaData?.Format.FormatName;
