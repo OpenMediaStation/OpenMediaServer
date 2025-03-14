@@ -54,6 +54,25 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/Whiskey on the rocks/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
     [InlineData("/media/Shows/Whiskey on the rocks/Season 1/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
     [InlineData("/media/Shows/Whiskey on the rocks/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/test/Mr Robot/Season 1/Mr Robot S01E01.mp4", "Mr Robot S1E1", null)]
+    [InlineData("/media/Shows/test/Mr Robot/Season 10/Mr Robot S01E01.mp4", "Mr Robot S1E1", null)]
+    // [InlineData("/media/Shows/test/Mr Robot/Season 1/S01E02.mp4", "Mr Robot S1E2", null)]
+    // [InlineData("/media/Shows/test/Mr Robot/Season 3/S01E14.mp4", "Mr Robot S1E14", null)]
+    [InlineData("/media/Shows/test/Mr Robot/Season 4/Mr Robot Episode name S4E3.mp4", "Mr Robot S4E3", null)]
+    [InlineData("/media/Shows/test/Mr Robot/Season 4/Episode name S04E03.mp4", "Mr Robot S4E3", null)]
+    [InlineData("/media/Shows/test/Babylon Berlin/Season 1/Folge 1 Staffel 1 S01E01.mp4", "Babylon Berlin S1E1", null)]
+    [InlineData("/media/Shows/test/Cyberpunk Edgerunners/Season 1/Cyberpunk Edgerunners S01E02.mp4", "Cyberpunk Edgerunners S1E2", null)]
+    [InlineData("/media/Shows/test/The Expanse/Season 1/The EXPANSE - S01E02.mp4", "The Expanse S1E2", null)]
+    [InlineData("/media/Shows/test/The Expanse/Season 1/The EXPANSE - S01 E02.mp4", "The Expanse S1E2", null)]
+    [InlineData("/media/Shows/test/The 100/Season 1/S01E02.mp4", "The 100 S1E2", null)]
+    [InlineData("/media/Shows/test/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "Cyberpunk Edegrunners S1E2", null)]
+    [InlineData("/media/Shows/test/Die Saat/Season 1/Folge 1： Die Saat – Tödliche Macht (S01⧸E01) [12953643].mp4", "Die Saat S1E1", null)]
+    [InlineData("/media/Shows/test/Babylon Berlin/Season 3/Folge 7 ｜ Staffel 3 (S03⧸E07) [12185541].mp4", "Babylon Berlin S3E7", null)]
+    [InlineData("/media/Shows/test/Motherland Fort Salem/Season 1/Motherland Fort Salem (2020) - S01E04 .mkv", "Motherland Fort Salem S1E4", null)]
+    [InlineData("/media/Shows/test/Whiskey on the rocks/Season 1/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/test/Whiskey on the rocks/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/test/Whiskey on the rocks/Season 1/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/test/Whiskey on the rocks/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
     public async Task CreateFromPaths_FirstItemEpisode(string path, string title, string? folderPath)
     {
         // Arrange
@@ -84,6 +103,13 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/The Expanse/Season 5/The Expanse - S05E02.mp4", "/media/Shows/The Expanse/Season 5", 5)]
     [InlineData("/media/Shows/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/Cyberpunk Edegrunners/Season 1", 1)]
     [InlineData("/media/Shows/Cyberpunk Edegrunners/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/Cyberpunk Edegrunners", 1, "Season 1")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 1/Mr Robot S01E01.mp4", "/media/Shows/test/Mr Robot/Season 1", 1)]
+    [InlineData("/media/Shows/test/The Expanse/Season 5/S05E02.mp4", "/media/Shows/test/The Expanse/Season 5", 5)]
+    [InlineData("/media/Shows/test/The Expanse/Season 5/S05 E02.mp4", "/media/Shows/test/The Expanse/Season 5", 5)]
+    [InlineData("/media/Shows/test/The Expanse/Season 5/The Expanse S05E02.mp4", "/media/Shows/test/The Expanse/Season 5", 5)]
+    [InlineData("/media/Shows/test/The Expanse/Season 5/The Expanse - S05E02.mp4", "/media/Shows/test/The Expanse/Season 5", 5)]
+    [InlineData("/media/Shows/test/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/test/Cyberpunk Edegrunners/Season 1", 1)]
+    [InlineData("/media/Shows/test/Cyberpunk Edegrunners/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "/media/Shows/test/Cyberpunk Edegrunners", 1, "Season 1")]
     public async Task CreateFromPaths_FirstItemSeason(string path, string? folderPath, int seasonNr, string? title = null)
     {
         // Arrange
@@ -119,6 +145,19 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/The Expanse/Season 1/The EXPANSE - S01 E02.mp4", "The Expanse", "/media/Shows/The Expanse")]
     [InlineData("/media/Shows/The 100/Season 1/S01E02.mp4", "The 100", "/media/Shows/The 100")]
     [InlineData("/media/Shows/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "Cyberpunk Edegrunners", "/media/Shows/Cyberpunk Edegrunners")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 1/Mr Robot S01E01.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 10/Mr Robot S01E01.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 1/S01E02.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 3/S01E14.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 4/Mr Robot Episode name S04E03.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Mr Robot/Season 4/Episode name S04E03.mp4", "Mr Robot", "/media/Shows/test/Mr Robot")]
+    [InlineData("/media/Shows/test/Babylon Berlin/Season 1/Folge 1 Staffel 1 S01E01.mp4", "Babylon Berlin", "/media/Shows/test/Babylon Berlin")]
+    [InlineData("/media/Shows/test/Cyberpunk Edgerunners/Season 1/Cyberpunk Edgerunners S01E02.mp4", "Cyberpunk Edgerunners", "/media/Shows/test/Cyberpunk Edgerunners")]
+    [InlineData("/media/Shows/test/Cyberpunk Edgerunners/Season 1/S01E02.mp4", "Cyberpunk Edgerunners", "/media/Shows/test/Cyberpunk Edgerunners")]
+    [InlineData("/media/Shows/test/The Expanse/Season 1/The EXPANSE - S01E02.mp4", "The Expanse", "/media/Shows/test/The Expanse")]
+    [InlineData("/media/Shows/test/The Expanse/Season 1/The EXPANSE - S01 E02.mp4", "The Expanse", "/media/Shows/test/The Expanse")]
+    [InlineData("/media/Shows/test/The 100/Season 1/S01E02.mp4", "The 100", "/media/Shows/test/The 100")]
+    [InlineData("/media/Shows/test/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "Cyberpunk Edegrunners", "/media/Shows/test/Cyberpunk Edegrunners")]
     public async Task CreateFromPaths_FirstItemShow(string path, string title, string? folderPath)
     {
         // Arrange
