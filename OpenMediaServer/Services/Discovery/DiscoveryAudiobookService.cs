@@ -34,6 +34,14 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
         if (IsPart(splittedPath))
         {
             var title = splittedPath[^2];
+            bool disc = false;
+
+            if (title.ToLower().StartsWith("disc"))
+            {
+                title = splittedPath[^3];
+                disc = true;
+                folderTitle = (splittedPath.Length - 3) >= 0 ? splittedPath[^3] : null;
+            }
 
             var books = await _inventoryService.ListItems<Audiobook>("Audiobook");
             var existingBook = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
@@ -43,6 +51,12 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             if (!string.IsNullOrEmpty(folderTitle))
             {
                 folderPath = path.Replace(splittedPath.LastOrDefault() ?? "", "");
+
+                if (disc)
+                {
+                    folderPath = folderPath.Replace($"{splittedPath[^2]}/", "");
+                }
+
                 existingBook = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
             }
 
