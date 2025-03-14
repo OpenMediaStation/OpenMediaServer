@@ -34,10 +34,25 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
         if (IsPart(splittedPath))
         {
             var title = splittedPath[^2];
+            string partTitle = splittedPath[^1].Replace($".{extension}", "");
             bool disc = false;
+            int? discNr = null;
+            int? trackNr = null;
+
+            var lastPartTotal = partTitle.Split(" ").LastOrDefault();
+            if (int.TryParse(lastPartTotal, out int resultLastPartTotal))
+            {
+                trackNr = resultLastPartTotal;
+            }
 
             if (title.ToLower().StartsWith("disc"))
             {
+                var lastPart = title.Split(" ").LastOrDefault();
+                if (int.TryParse(lastPart, out int result))
+                {
+                    discNr = result;
+                }
+
                 title = splittedPath[^3];
                 disc = true;
                 folderTitle = (splittedPath.Length - 3) >= 0 ? splittedPath[^3] : null;
@@ -76,9 +91,11 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                         existingVersion.Parts = existingVersion.Parts?.Append(new()
                         {
                             Id = newPartId,
-                            Name = splittedPath[^1].Replace($".{extension}", ""),
+                            Name = partTitle,
                             Path = path,
-                            FileInfoId = (await _fileInfoService.CreateFileInfo(path, newPartId, "Audiobook"))?.Id
+                            FileInfoId = (await _fileInfoService.CreateFileInfo(path, newPartId, "Audiobook"))?.Id,
+                            PrimaryIdentifier = discNr,
+                            SecondaryIdentifier = trackNr
                         });
 
                         var temp = existingBook.Versions?.ToList();
@@ -125,9 +142,11 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                             new()
                             {
                                 Id = partId,
-                                Name = splittedPath[^1].Replace($".{extension}", ""),
+                                Name = partTitle,
                                 Path = path,
-                                FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id
+                                FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id,
+                                PrimaryIdentifier = discNr,
+                                SecondaryIdentifier = trackNr
                             }
                         ]
                     }

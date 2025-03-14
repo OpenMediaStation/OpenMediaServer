@@ -1,10 +1,12 @@
 namespace OpenMediaServer.Models.Inventory;
 
-public class InventoryItemVersion
+public class InventoryItemPart
 {
     public Guid Id { get; set; }
     public string? Path { get; set; }
     public Guid? FileInfoId { get; set; }
     public string? Name { get; set; }
-    public IEnumerable<InventoryItemPart>? Parts { get; set; }
+
+    public int? PrimaryIdentifier { get; set; }
+    public int? SecondaryIdentifier { get; set; }
 }
