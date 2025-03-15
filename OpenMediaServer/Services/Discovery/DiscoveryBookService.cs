@@ -1,5 +1,3 @@
-using System;
-using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
@@ -12,7 +10,6 @@ public class DiscoveryBookService : IDiscoveryBookService
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
     private readonly IMetadataService _metadataService;
-    private readonly string _regex = @"(?<category>(Books)|\w+?)/.*?(?<folderTitle>[ \w.-]*?)?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?/?(?<title>([ \w\.-]+?))((\(|\.)(?<year>\d{4})(\)|\.?))?((-|\.)(?<fileInfo>[\w\.-]*?))?\.(?<extension>\S{3,4})$";
 
     public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
     {
@@ -26,22 +23,32 @@ public class DiscoveryBookService : IDiscoveryBookService
     {
         _logger.LogTrace("Creating book for path: {Path}", path);
 
-        var pathRegex = new Regex
-        (
-            pattern: _regex,
-            options: RegexOptions.Compiled
-        );
+        var splittedPath = path.Split("/");
 
-        var match = pathRegex.Match(path.Replace(Globals.MediaFolder, string.Empty));
-        if (!match.Success)
+        var folderTitle = (splittedPath.Length - 2) >= 0 ? splittedPath[^2] : null;
+
+        if (folderTitle == "Books")
+        {
+            folderTitle = null;
+        }
+
+        var extension = splittedPath.LastOrDefault()?.Split(".").LastOrDefault();
+
+        var splittedTitle = splittedPath.LastOrDefault()?.Split(".").SkipLast(1);
+
+        if (splittedTitle == null)
+        {
+            _logger.LogWarning("SplittedTitle null.... Invalid path: {Path}", path);
+            return;
+        }
+
+        var title = string.Join(".", splittedTitle);
+
+        if (extension == null || title == null)
         {
             _logger.LogWarning("Invalid path: {Path}", path);
             return;
         }
-        var groups = match.Groups;
-        var folderTitle = groups["folderTitle"].Value;
-        var title = groups["title"].Value; 
-        var extension = groups["extension"].Value; 
 
         var books = await _inventoryService.ListItems<Book>("Book");
         var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
@@ -69,9 +76,6 @@ public class DiscoveryBookService : IDiscoveryBookService
                     return;
                 }
 
-                // Do this after the path check because a file info will be created
-                version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Book"))?.Id;
-
                 existingBooks.Versions = existingBooks.Versions?.Append(version);
 
                 await _inventoryService.UpdateByTitle(existingBooks);
@@ -90,7 +94,6 @@ public class DiscoveryBookService : IDiscoveryBookService
                 {
                     Id = versionId,
                     Path = path,
-                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Book"))?.Id
                 }
             ],
             Title = title,
@@ -101,10 +104,7 @@ public class DiscoveryBookService : IDiscoveryBookService
         (
             parentId: book.Id,
             title: book.Title,
-            category: book.Category,
-            year: groups.TryGetValue("year", out var movieTitleYear) ?
-                    movieTitleYear.Value : groups.TryGetValue("folderYear", out var movieFolderYear) ?
-                    movieFolderYear.Value : null
+            category: book.Category
         );
 
         book.MetadataId = metadata?.Id;

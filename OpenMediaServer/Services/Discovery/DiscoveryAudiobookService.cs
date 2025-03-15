@@ -29,6 +29,12 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
         var splittedPath = path.Split("/");
 
         var folderTitle = (splittedPath.Length - 2) >= 0 ? splittedPath[^2] : null;
+
+        if (folderTitle == "Audiobooks")
+        {
+            folderTitle = null;
+        }
+
         var extension = splittedPath.LastOrDefault()?.Split(".").LastOrDefault();
 
         if (IsPart(splittedPath))
