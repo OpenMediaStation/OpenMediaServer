@@ -9,4 +9,5 @@ public interface IOpenLibraryApi
     string? GetCover(bool isAudiobook, BookDoc? bookData, IEnumerable<BookEdition>? editions);
     Task<OpenLibraryWorkDetails?> GetBookDetails(string? workKey);
     Task<BookEditionsResponse?> GetWorks(string? workKey);
+    Task<(byte[]?, string?)> GetBytesFromUrlAsync(string url);
 }

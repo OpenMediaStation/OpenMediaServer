@@ -1,4 +1,6 @@
+using System.Threading.Tasks;
 using OpenMediaServer.Interfaces.APIs;
+using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
 
@@ -8,11 +10,13 @@ public class AudiobookMetadataService : IAudioBookMetadataService
 {
     private readonly IGoogleBooksApi _googleBooksApi;
     private readonly IOpenLibraryApi _openLibraryApi;
+    private readonly IImageService _imageService;
 
-    public AudiobookMetadataService(IGoogleBooksApi googleBooksApi, IOpenLibraryApi openLibraryApi)
+    public AudiobookMetadataService(IGoogleBooksApi googleBooksApi, IOpenLibraryApi openLibraryApi, IImageService imageService)
     {
         _googleBooksApi = googleBooksApi;
         _openLibraryApi = openLibraryApi;
+        _imageService = imageService;
     }
 
     public async Task<MetadataModel> GetMetadata(string? year, string title, string? language, Guid metadataId)
@@ -31,9 +35,11 @@ public class AudiobookMetadataService : IAudioBookMetadataService
 
         var works = await _openLibraryApi.GetWorks(openLibraryData?.Key);
 
-        string? coverUrl = _openLibraryApi.GetCover(true, openLibraryData, works?.Entries);
-
         var googleBooksData = googleBooksResult?.Items?.FirstOrDefault()?.VolumeInfo;
+
+        string? coverUrl = _openLibraryApi.GetCover(true, openLibraryData, works?.Entries) ?? googleBooksData?.ImageLinks?.Thumbnail;
+
+        coverUrl = await SaveImage(coverUrl, metadataId.ToString());
 
         var metadata = new MetadataModel()
         {
@@ -45,10 +51,22 @@ public class AudiobookMetadataService : IAudioBookMetadataService
                 PublishedDate = googleBooksData?.PublishedDate,
                 Description = description ?? googleBooksData?.Description,
                 Language = googleBooksData?.Language,
-                Thumbnail = coverUrl ?? googleBooksData?.ImageLinks?.Thumbnail
+                Thumbnail = coverUrl
             }
         };
 
         return metadata;
+    }
+
+    private async Task<string?> SaveImage(string? coverUrl, string metadataId)
+    {
+        if (coverUrl == null)
+            return null;
+
+        var (bytes, imageType) = await _openLibraryApi.GetBytesFromUrlAsync(coverUrl);
+
+        imageType = imageType?.Split("/").LastOrDefault();
+
+        return await _imageService.WriteImage(bytes, coverUrl, "cover", "Audiobook", metadataId, imageType: imageType);
     }
 }

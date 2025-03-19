@@ -65,7 +65,7 @@ public class OpenLibraryApi : IOpenLibraryApi
         var filteredEditions = editions?.Where(edition => edition.PhysicalFormat?.ToLower().Contains("audio") ?? false);
         var coverId = filteredEditions?.FirstOrDefault()?.Covers?.FirstOrDefault();
 
-        cover = bookData?.CoverID != null ? $"https://covers.openlibrary.org/b/id/{coverId}-L.jpg" : null;
+        cover = coverId != null ? $"https://covers.openlibrary.org/b/id/{coverId}-L.jpg" : null;
 
         return cover;
     }
@@ -110,5 +110,18 @@ public class OpenLibraryApi : IOpenLibraryApi
             _logger.LogError(ex, "Failed to retrieve book description.");
             return null;
         }
+    }
+
+    public async Task<(byte[]?, string?)> GetBytesFromUrlAsync(string url)
+    {
+        var response = await _httpClient.GetAsync(url);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var contentType = response.Content.Headers.ContentType?.ToString();
+            return (await response.Content.ReadAsByteArrayAsync(), contentType);
+        }
+
+        return (null, null);  
     }
 }

@@ -62,15 +62,20 @@ public class ImageService : IImageService
         return stream;
     }
 
-    public async Task WriteImage(byte[]? bytes, string url, string fileName, string category, string id)
+    public async Task<string?> WriteImage(byte[]? bytes, string url, string fileName, string category, string id, string? imageType = null)
     {
         if (url == null)
-            return;
+            return null;
 
         if (bytes == null)
-            return;
+            return null;
 
         var extension = url.Split(".").LastOrDefault();
+
+        if (imageType != null)
+        {
+            extension = imageType;
+        }
 
         await _fileSystemRepository.WriteBytes(GetPath(fileName, category, id, extension), bytes);
 
@@ -82,6 +87,8 @@ public class ImageService : IImageService
                 await ResizeImage(bytes, null, size, GetPath(fileName, category, id, extension, "h"+size));
             }
         }
+
+        return $"{Globals.Domain}/images/{category}/{id}/{fileName}";
     }
 
     private static string GetPath(string fileName, string category, string id, string? extension, string? addon = null)
