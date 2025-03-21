@@ -25,7 +25,7 @@ public class MetadataService : IMetadataService
         _audioBookMetadataService = audioBookMetadataService;
     }
 
-    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null)
+    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null, string? path = null)
     {
         var metadatas = await ListMetadata(category);
 
@@ -72,7 +72,7 @@ public class MetadataService : IMetadataService
 
             case "Audiobook":
                 {
-                    metadata = await _audioBookMetadataService.GetMetadata(year, title, language, metadataId);
+                    metadata = await _audioBookMetadataService.GetMetadata(year, title, language, metadataId, path);
 
                     break;
                 }

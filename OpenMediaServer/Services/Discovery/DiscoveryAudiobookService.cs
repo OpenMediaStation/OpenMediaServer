@@ -165,7 +165,8 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             (
                 parentId: audiobook.Id,
                 title: audiobook.Title,
-                category: audiobook.Category
+                category: audiobook.Category,
+                path: path
             );
 
             audiobook.MetadataId = metadata?.Id;
@@ -248,7 +249,8 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             (
                 parentId: audiobook.Id,
                 title: audiobook.Title,
-                category: audiobook.Category
+                category: audiobook.Category,
+                path: path
             );
 
             audiobook.MetadataId = metadata?.Id;

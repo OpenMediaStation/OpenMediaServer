@@ -10,4 +10,12 @@ public class MetadataAudiobookModel
     public string? Description { get; set; }
     public string? Language { get; set; }
     public string? Thumbnail { get; set; }
+    public IEnumerable<MetadataAudiobookChapter>? Chapters { get; set; }
+}
+
+public class MetadataAudiobookChapter
+{
+    public string? Title { get; set; }
+    public uint? StartTimeInSeconds { get; set; }
+    public uint? EndTimeInSeconds { get; set; }
 }
