@@ -165,6 +165,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IMovieMetadataService, MovieMetadataService>();
     services.AddSingleton<IShowMetadataService, ShowMetadataService>();
     services.AddSingleton<IBookMetadataService, BookMetadataService>();
+    services.AddSingleton<IBookmarkEndpoints, BookmarkEndpoints>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }
@@ -181,4 +182,5 @@ void MapEndpoints(WebApplication app)
     app.Services.GetRequiredService<IAddonEndpoints>().Map(app);
     app.Services.GetRequiredService<IFavoriteEndpoints>().Map(app);
     app.Services.GetRequiredService<IProgressEndpoints>().Map(app);
+    app.Services.GetRequiredService<IBookmarkEndpoints>().Map(app);
 }
