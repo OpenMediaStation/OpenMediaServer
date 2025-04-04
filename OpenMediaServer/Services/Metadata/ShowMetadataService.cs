@@ -145,7 +145,7 @@ public class ShowMetadataService : IShowMetadataService
         }
 
         var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
-        var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+        var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath ?? omdbData?.Poster;
 
         var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
         var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Show", metadataId.ToString());
@@ -168,7 +168,7 @@ public class ShowMetadataService : IShowMetadataService
                 Language = omdbData?.Language,
                 Country = omdbData?.Country,
                 Awards = omdbData?.Awards,
-                Poster = posterPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/poster" : omdbData?.Poster,
+                Poster = posterPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/poster" : null,
                 PosterBlurHash = posterBlurHash,
                 Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/backdrop" : null,
                 BackdropBlurHash = backdropBlurHash,
