@@ -20,12 +20,21 @@ public class ImageEndpoints(ILogger<ImageEndpoints> logger, IImageService imageS
     public IResult GetImage(string category, Guid metadataId, string type, int? width, int? height)
     {
         var path = _imageService.GetPath(category, metadataId, type, width, height);
+        FileInfo? fileInfo = null;
+        try
+        {
+            fileInfo = path != null? new FileInfo(path) : null;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
         var extension = path?.Split('.').LastOrDefault();
         var stream = _imageService.GetImageStream(path);
 
         if (stream != null && extension != null)
         {
-            return Results.Stream(stream, contentType: MimeTypeHelper.GetMimeType(extension));
+            return Results.Stream(stream, contentType: MimeTypeHelper.GetMimeType(extension), lastModified: fileInfo?.LastWriteTimeUtc);
         }
         else
         {
