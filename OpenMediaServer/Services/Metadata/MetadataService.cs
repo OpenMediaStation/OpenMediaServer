@@ -14,8 +14,9 @@ public class MetadataService : IMetadataService
     private readonly IShowMetadataService _showMetadataService;
     private readonly IBookMetadataService _bookMetadataService;
     private readonly IAudioBookMetadataService _audioBookMetadataService;
+    private readonly IImageService _imageService;
 
-    public MetadataService(ILogger<MetadataService> logger, IFileSystemRepository storageRepository, IMovieMetadataService movieMetadataService, IShowMetadataService showMetadataService, IBookMetadataService bookMetadataService, IAudioBookMetadataService audioBookMetadataService)
+    public MetadataService(ILogger<MetadataService> logger, IFileSystemRepository storageRepository, IMovieMetadataService movieMetadataService, IShowMetadataService showMetadataService, IBookMetadataService bookMetadataService, IAudioBookMetadataService audioBookMetadataService, IImageService imageService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
@@ -23,6 +24,7 @@ public class MetadataService : IMetadataService
         _showMetadataService = showMetadataService;
         _bookMetadataService = bookMetadataService;
         _audioBookMetadataService = audioBookMetadataService;
+        _imageService = imageService;
     }
 
     public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null, string? path = null)
@@ -107,9 +109,57 @@ public class MetadataService : IMetadataService
     public async Task<MetadataModel?> GetMetadata(string category, Guid id)
     {
         var metadatas = await _storageRepository.ReadObject<IEnumerable<MetadataModel>>(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json");
+        var fixedMetadatas = metadatas?.Select(CreateBlurHashIfMissing);
+        
+        var metadata = fixedMetadatas?.FirstOrDefault(x => x.Id == id);
 
-        var metadata = metadatas?.FirstOrDefault(x => x.Id == id);
+        return metadata;
+    }
 
+    private MetadataModel CreateBlurHashIfMissing(MetadataModel metadata)
+    {
+        if(metadata.Category == null)
+            return metadata;
+        
+        var props = typeof(MetadataModel).GetProperties();
+        var matchingProp = props.FirstOrDefault(p => p.Name.Equals(metadata.Category, StringComparison.InvariantCultureIgnoreCase));
+        if(matchingProp == null)
+            return metadata;
+
+        var subObj = matchingProp.GetValue(metadata);
+        
+        var subObjProps = matchingProp.PropertyType.GetProperties();
+        
+        var blurHashProps = subObjProps.Where(p => p.Name.EndsWith("BlurHash", StringComparison.InvariantCultureIgnoreCase));
+        foreach (var blurHashProp in blurHashProps)
+        {
+            if(blurHashProp.GetValue(subObj) != null)
+                continue;
+            
+            var imgProp = subObjProps.FirstOrDefault(p => p.Name.Equals(blurHashProp.Name.Replace("BlurHash", ""), StringComparison.InvariantCultureIgnoreCase));
+            if(imgProp == null)
+                continue;
+
+            try
+            {
+                var path = _imageService.GetPath(metadata.Category, metadata.Id, imgProp.Name.ToLower(), null, null);
+                using (var stream = _imageService.GetImageStream(path))
+                {
+                    if(stream == null)
+                        continue;
+                    using (var ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        blurHashProp.SetValue(subObj,_imageService.CreateBlurHash(ms.ToArray()));
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+        _ = UpdateOrAddMetadata(metadata);
         return metadata;
     }
 
