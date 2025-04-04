@@ -2,7 +2,6 @@ using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 
 namespace OpenMediaServer.Services;
@@ -20,26 +19,12 @@ public class ImageService : IImageService
         _fileSystemRepository = fileSystemRepository;
     }
 
-    public string? GetPath(string category, Guid metadataId, string type, int? width, int? height, bool getLqip = false)
+    public string? GetPath(string category, Guid metadataId, string type, int? width, int? height)
     {
         var directoryPath = Path.Combine(Globals.ConfigFolder, "images", category, metadataId.ToString());
 
         string? file;
 
-        if (getLqip) //Get LQIP and exit!
-        {
-            file = _fileSystemRepository.GetFiles(directoryPath, $"{type}.LQIP.*").FirstOrDefault();
-            if (file != null && file?.Split('.').LastOrDefault() != null)
-                return file;
-            
-            //Doesn't exist.. creating LQIP async for the next time..
-            Task.Run(async () =>
-            {
-                var originalFile = _fileSystemRepository.GetFiles(directoryPath, type + ".*").Where(file => Regex.IsMatch(Path.GetFileName(file), @"^[^.]+\.[^.]+$")).FirstOrDefault();
-                await this.GenerateLQIP(File.ReadAllBytes(originalFile), GetPath(Path.GetFileNameWithoutExtension(originalFile), category, metadataId.ToString(), Path.GetExtension(originalFile).TrimStart('.'), "LQIP"));
-            });
-        }
-        
         if (width != null)
         {
             width = _imageSizes.Order().LastOrDefault(size => size > width || width > _imageSizes.Max());
@@ -101,23 +86,9 @@ public class ImageService : IImageService
                 await ResizeImage(bytes, size, null, GetPath(fileName, category, id, extension, "w"+size));
                 await ResizeImage(bytes, null, size, GetPath(fileName, category, id, extension, "h"+size));
             }
-            await GenerateLQIP(bytes, GetPath(fileName, category, id, extension, "LQIP"));
         }
 
         return $"{Globals.Domain}/images/{category}/{id}/{fileName}";
-    }
-
-    private async Task GenerateLQIP(byte[] bytes, string path)
-    {
-        using (Image image = Image.Load(bytes))
-        {
-            int originalWidth = image.Width;
-            int originalHeight = image.Height;
-            float aspectRatio = (float)originalWidth / originalHeight;
-            
-            image.Mutate(x => x.Resize(150, (int)(150 / aspectRatio)).GaussianBlur(25.0f));
-            await image.SaveAsJpegAsync(path: path, new JpegEncoder() { Quality = 75, Interleaved = true });
-        }
     }
 
     private static string GetPath(string fileName, string category, string id, string? extension, string? addon = null)
