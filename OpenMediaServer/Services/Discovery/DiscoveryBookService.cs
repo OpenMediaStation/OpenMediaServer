@@ -108,6 +108,7 @@ public class DiscoveryBookService : IDiscoveryBookService
         );
 
         book.MetadataId = metadata?.Id;
+        book.DisplayImageBlurHash = metadata?.Book?.ThumbnailBlurHash;
 
         await _inventoryService.AddItem(book);
     }

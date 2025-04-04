@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -30,7 +31,7 @@ public class DiscoveryMovieServiceShould
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
         _binService = Substitute.For<IBinService>();
-        _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
+        _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
         _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService);
     }
 

@@ -46,10 +46,10 @@ public class MovieMetadataService : IMovieMetadataService
         var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
         var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
 
-        await WriteImage(tmdbData?.BackdropPath, "backdrop", "Movie", metadataId.ToString());
-        await WriteImage(logoPath, "logo", "Movie", metadataId.ToString());
-        await WriteImage(posterPath, "poster", "Movie", metadataId.ToString());
-
+        var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Movie", metadataId.ToString());
+        var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Movie", metadataId.ToString());
+        var posterBlurHash = await WriteImageAndReturnBlurHash(posterPath, "poster", "Movie", metadataId.ToString());
+        
         var metadata = new MetadataModel()
         {
             Title = omdbData?.Title ?? tmdbData?.Title,
@@ -68,8 +68,11 @@ public class MovieMetadataService : IMovieMetadataService
                 Country = omdbData?.Country,
                 Awards = omdbData?.Awards,
                 Poster = posterPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/poster" : omdbData?.Poster,
+                PosterBlurHash = posterBlurHash,
                 Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/backdrop" : null,
+                BackdropBlurHash = backdropBlurHash,
                 Logo = logoPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/logo" : null,
+                LogoBlurHash = logoBlurHash,
                 Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                 {
                     Source = rating.Source,
@@ -90,13 +93,15 @@ public class MovieMetadataService : IMovieMetadataService
         return metadata;
     }
 
-    private async Task WriteImage(string? url, string fileName, string category, string id)
+    private async Task<string?> WriteImageAndReturnBlurHash(string? url, string fileName, string category, string id)
     {
         if (url == null)
-            return;
+            return null;
 
         var bytes = await _tMDbAPI.GetImageFromId(url, Globals.TmdbApiKey);
 
         await _imageService.WriteImage(bytes, url, fileName, category, id);
+
+        return _imageService.CreateBlurHash(bytes);
     }
 }

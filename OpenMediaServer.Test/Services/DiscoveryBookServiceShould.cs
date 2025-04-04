@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -24,7 +25,7 @@ public class DiscoveryBookServiceShould
         _logger = Substitute.For<ILogger<DiscoveryBookService>>();
         _storageRepository = new FileSystemRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
-        _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository);
+        _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
         _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
     }
 

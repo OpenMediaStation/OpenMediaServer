@@ -170,6 +170,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             );
 
             audiobook.MetadataId = metadata?.Id;
+            audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
 
             await _inventoryService.AddItem(audiobook);
         }
@@ -254,6 +255,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             );
 
             audiobook.MetadataId = metadata?.Id;
+            audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
 
             await _inventoryService.AddItem(audiobook);
         }

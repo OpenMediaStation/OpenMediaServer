@@ -47,6 +47,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
                 );
 
                 show.MetadataId = metadata?.Id;
+                show.DisplayImageBlurHash = metadata?.Show?.PosterBlurHash;
             }
             else
             {
@@ -91,6 +92,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
                 );
 
                 season.MetadataId = metadata?.Id;
+                season.DisplayImageBlurHash = metadata?.Season?.PosterBlurHash;
             }
             else
             {
@@ -140,6 +142,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
                 );
 
                 episode.MetadataId = metadata?.Id;
+                episode.DisplayImageBlurHash = metadata?.Episode?.BackdropBlurHash;
             }
             else
             {

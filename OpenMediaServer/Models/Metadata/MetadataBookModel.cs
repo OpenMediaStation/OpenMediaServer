@@ -11,4 +11,5 @@ public class MetadataBookModel
     public int? PageCount { get; set; }
     public string? Language { get; set; }
     public string? Thumbnail { get; set; }
+    public string? ThumbnailBlurHash { get; set; }
 }

@@ -17,6 +17,7 @@ public class MetadataEpisodeModel
     public string? Country { get; set; }
     public string? Awards { get; set; }
     public string? Backdrop { get; set; }
+    public string? BackdropBlurHash { get; set; }
     public List<Rating>? Ratings { get; set; }
     public string? Metascore { get; set; }
     public string? ImdbRating { get; set; }

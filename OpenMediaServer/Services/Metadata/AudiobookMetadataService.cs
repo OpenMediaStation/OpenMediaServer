@@ -46,16 +46,18 @@ public class AudiobookMetadataService : IAudioBookMetadataService
                 PublishedDate = metadata.Audiobook?.PublishedDate ?? googleBooksData?.PublishedDate,
                 Description = metadata.Audiobook?.Description ?? description ?? googleBooksData?.Description,
                 Language = metadata.Audiobook?.Language ?? googleBooksData?.Language,
-                Thumbnail = metadata.Audiobook?.Thumbnail
+                Thumbnail = metadata.Audiobook?.Thumbnail,
+                ThumbnailBlurHash = metadata.Audiobook?.ThumbnailBlurHash,
             }
         };
 
         if (metadata.Audiobook.Thumbnail == null)
         {
             string? coverUrl = _openLibraryApi.GetCover(true, openLibraryData, works?.Entries) ?? googleBooksData?.ImageLinks?.Thumbnail;
-            coverUrl = await SaveImage(coverUrl, metadataId.ToString());
+            (coverUrl, var blurHash) = await WriteImageAndReturnPathAndBlurHash(coverUrl, metadataId.ToString());
 
             metadata.Audiobook.Thumbnail = coverUrl;
+            metadata.Audiobook.ThumbnailBlurHash = blurHash;
         }
 
         metadata.Audiobook.Chapters = ExtractChapters(filePath);
@@ -90,6 +92,7 @@ public class AudiobookMetadataService : IAudioBookMetadataService
     public async Task<MetadataModel> ExtractMetadataFromAudioFile(string filePath)
     {
         var file = TagLib.File.Create(filePath);
+        var (thumbnailPath, thumbnailBlurHash) = await ExtractCoverArt(file);
         return new MetadataModel()
         {
             Title = file.Tag.Title,
@@ -100,12 +103,13 @@ public class AudiobookMetadataService : IAudioBookMetadataService
                 PublishedDate = file.Tag.Year.ToString(),
                 Description = file.Tag.Comment,
                 // Language = file.Tag.Languages?.FirstOrDefault(),
-                Thumbnail = await ExtractCoverArt(file)
+                Thumbnail = thumbnailPath,
+                ThumbnailBlurHash = thumbnailBlurHash
             }
         };
     }
 
-    private async Task<string?> ExtractCoverArt(TagLib.File file)
+    private async Task<(string? Path, string? BlurHash)> ExtractCoverArt(TagLib.File file)
     {
         if (file.Tag.Pictures.Length > 0)
         {
@@ -113,20 +117,25 @@ public class AudiobookMetadataService : IAudioBookMetadataService
             var coverData = picture.Data.Data;
             var imageType = picture.MimeType.Split('/').LastOrDefault();
             var metadataId = Guid.NewGuid().ToString();
-            return await _imageService.WriteImage(coverData, "", "cover", "Audiobook", metadataId, imageType);
+            
+            var coverPath =  await _imageService.WriteImage(coverData, "", "cover", "Audiobook", metadataId, imageType);
+            var blurHash = _imageService.CreateBlurHash(coverData);
+            return (coverPath, blurHash);
         }
-        return null;
+        return (null,null);
     }
 
-    private async Task<string?> SaveImage(string? coverUrl, string metadataId)
+    private async Task<(string? Path, string? BlurHash)> WriteImageAndReturnPathAndBlurHash(string? coverUrl, string metadataId)
     {
         if (coverUrl == null)
-            return null;
+            return (null,null);
 
         var (bytes, imageType) = await _openLibraryApi.GetBytesFromUrlAsync(coverUrl);
 
         imageType = imageType?.Split("/").LastOrDefault();
 
-        return await _imageService.WriteImage(bytes, coverUrl, "cover", "Audiobook", metadataId, imageType: imageType);
+        var imagePath = await _imageService.WriteImage(bytes, coverUrl, "cover", "Audiobook", metadataId, imageType: imageType);
+        var blurHash = _imageService.CreateBlurHash(bytes);
+        return (imagePath, blurHash);
     }
 }

@@ -1,4 +1,5 @@
 using OpenMediaServer.Interfaces.APIs;
+using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
 
@@ -8,11 +9,13 @@ public class BookMetadataService : IBookMetadataService
 {
     private readonly IGoogleBooksApi _googleBooksApi;
     private readonly IOpenLibraryApi _openLibraryApi;
+    private readonly IImageService _imageService;
 
-    public BookMetadataService(IGoogleBooksApi googleBooksApi, IOpenLibraryApi openLibraryApi)
+    public BookMetadataService(IGoogleBooksApi googleBooksApi, IOpenLibraryApi openLibraryApi, IImageService imageService)
     {
         _googleBooksApi = googleBooksApi;
         _openLibraryApi = openLibraryApi;
+        _imageService = imageService;
     }
 
     public async Task<MetadataModel> GetMetadata(string? year, string title, string? language, Guid metadataId)
@@ -33,8 +36,8 @@ public class BookMetadataService : IBookMetadataService
 
         var works = await _openLibraryApi.GetWorks(openLibraryData?.Key);
 
-        string? coverUrl = _openLibraryApi.GetCover(false, openLibraryData, works?.Entries);
-
+        string? coverUrl = _openLibraryApi.GetCover(false, openLibraryData, works?.Entries) ?? googleBooksData?.ImageLinks?.Thumbnail;
+        var thumbnailBlurHash = await WriteImageAndReturnBlurHash(coverUrl, "cover", category: "Book", metadataId.ToString());
 
         var metadata = new MetadataModel()
         {
@@ -47,10 +50,25 @@ public class BookMetadataService : IBookMetadataService
                 Description = description ?? googleBooksData?.Description,
                 PageCount = googleBooksData?.PageCount,
                 Language = googleBooksData?.Language,
-                Thumbnail = coverUrl ?? googleBooksData?.ImageLinks?.Thumbnail
+                Thumbnail = coverUrl != null ? $"{Globals.Domain}/images/Book/{metadataId}/cover" : null,
+                ThumbnailBlurHash = thumbnailBlurHash
             }
         };
 
         return metadata;
+    }
+    
+    private async Task<string?> WriteImageAndReturnBlurHash(string? url, string fileName, string category, string id)
+    {
+        if (url == null)
+            return null;
+
+        var (bytes, imageType) = await _openLibraryApi.GetBytesFromUrlAsync(url);
+
+        imageType = imageType?.Split("/").LastOrDefault();
+        
+        await _imageService.WriteImage(bytes, url, fileName, category, id, imageType);
+
+        return _imageService.CreateBlurHash(bytes);
     }
 }

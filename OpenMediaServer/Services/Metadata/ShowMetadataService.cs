@@ -46,7 +46,7 @@ public class ShowMetadataService : IShowMetadataService
             episodeInfo = await _tMDbAPI.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
         }
 
-        await WriteImage(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
+        var backdropBlurHash = await WriteImageAndReturnBlurHash(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
 
         var metadata = new MetadataModel()
         {
@@ -66,6 +66,7 @@ public class ShowMetadataService : IShowMetadataService
                 Country = omdbData?.Country,
                 Awards = omdbData?.Awards,
                 Backdrop = episodeInfo?.StillPath != null ? $"{Globals.Domain}/images/Episode/{metadataId}/backdrop" : omdbData?.Poster,
+                BackdropBlurHash = backdropBlurHash,
                 Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                 {
                     Source = rating.Source,
@@ -102,7 +103,7 @@ public class ShowMetadataService : IShowMetadataService
             seasonInfo = await _tMDbAPI.GetSeason(tmdbData.Id, (int)season, Globals.TmdbApiKey);
         }
 
-        await WriteImage(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
+        var posterBlurHash = await WriteImageAndReturnBlurHash(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
 
         var metadata = new MetadataModel()
         {
@@ -110,6 +111,7 @@ public class ShowMetadataService : IShowMetadataService
             Season = new()
             {
                 Poster = seasonInfo?.PosterPath != null ? $"{Globals.Domain}/images/Season/{metadataId}/poster" : null,
+                PosterBlurHash = posterBlurHash,
                 AirDate = seasonInfo?.AirDate,
                 EpisodeCount = seasonInfo?.Episodes.Count,
                 Overview = seasonInfo?.Overview,
@@ -145,9 +147,9 @@ public class ShowMetadataService : IShowMetadataService
         var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
         var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
 
-        await WriteImage(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
-        await WriteImage(logoPath, "logo", "Show", metadataId.ToString());
-        await WriteImage(posterPath, "poster", "Show", metadataId.ToString());
+        var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
+        var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Show", metadataId.ToString());
+        var posterBlurHash = await WriteImageAndReturnBlurHash(posterPath, "poster", "Show", metadataId.ToString());
 
         var metadata = new MetadataModel()
         {
@@ -167,8 +169,11 @@ public class ShowMetadataService : IShowMetadataService
                 Country = omdbData?.Country,
                 Awards = omdbData?.Awards,
                 Poster = posterPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/poster" : omdbData?.Poster,
+                PosterBlurHash = posterBlurHash,
                 Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/backdrop" : null,
+                BackdropBlurHash = backdropBlurHash,
                 Logo = logoPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/logo" : null,
+                LogoBlurHash = logoBlurHash,
                 Ratings = omdbData?.Ratings?.ConvertAll(rating => new Rating
                 {
                     Source = rating.Source,
@@ -189,13 +194,15 @@ public class ShowMetadataService : IShowMetadataService
         return metadata;
     }
 
-    private async Task WriteImage(string? url, string fileName, string category, string id)
+    private async Task<string?> WriteImageAndReturnBlurHash(string? url, string fileName, string category, string id)
     {
         if (url == null)
-            return;
+            return null;
 
         var bytes = await _tMDbAPI.GetImageFromId(url, Globals.TmdbApiKey);
 
         await _imageService.WriteImage(bytes, url, fileName, category, id);
+
+        return _imageService.CreateBlurHash(bytes);
     }
 }

@@ -162,6 +162,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
             );
 
             movie.MetadataId = metadata?.Id;
+            movie.DisplayImageBlurHash = metadata?.Movie?.PosterBlurHash;
         }
 
         movie.Versions =

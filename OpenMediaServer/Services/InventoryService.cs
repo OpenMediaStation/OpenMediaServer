@@ -8,13 +8,17 @@ public class InventoryService : IInventoryService
 {
     private readonly ILogger<InventoryService> _logger;
     private readonly IFileSystemRepository _storageRepository;
+    private readonly IImageService _imageService;
 
-    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository)
+    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IImageService imageService)
     {
         _logger = logger;
         _storageRepository = storageRepository;
+        _imageService = imageService;
     }
 
+    #region Get Functions
+    
     public IEnumerable<string> ListCategories()
     {
         var files = _storageRepository.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
@@ -29,7 +33,8 @@ public class InventoryService : IInventoryService
 
         if (items != null)
         {
-            return items;
+            var fixedItems = items.Select(CreateMissingBlurHash<T>);
+            return fixedItems;
         }
         else
         {
@@ -53,7 +58,7 @@ public class InventoryService : IInventoryService
             return null;
         }
 
-        return possibleItems.FirstOrDefault();
+        return CreateMissingBlurHash<T>(possibleItems.FirstOrDefault());
     }
 
     public async Task<T?> GetItem<T>(string category, Func<T, bool> predicate) where T : InventoryItem
@@ -74,7 +79,10 @@ public class InventoryService : IInventoryService
 
         return possibleItems.FirstOrDefault();
     }
-
+    #endregion
+    
+    #region Set Functions
+    
     public async Task AddItems(IEnumerable<InventoryItem> items)
     {
         foreach (var item in items)
@@ -154,6 +162,8 @@ public class InventoryService : IInventoryService
         await _storageRepository.WriteObject(GetPath(item), items);
     }
 
+    #endregion
+    
     public async Task RemoveById<T>(T item) where T : InventoryItem
     {
         var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
@@ -173,5 +183,62 @@ public class InventoryService : IInventoryService
     private string GetPath(InventoryItem item)
     {
         return Path.Join(Globals.ConfigFolder, "inventory", item.Category + ".json");
+    }
+
+    private T CreateMissingBlurHash<T>(InventoryItem inventoryItem) where T : InventoryItem
+    {
+        if (inventoryItem.DisplayImageBlurHash != null || inventoryItem.MetadataId == null)
+            return (T)inventoryItem;
+
+        try
+        {
+            var displayImageType = string.Empty;
+            switch (inventoryItem.Category)
+            {
+                case "Movie":
+                    displayImageType = "poster";
+                    break;
+                case "Show":
+                    displayImageType = "poster";
+                    break;
+                case "Episode":
+                    displayImageType = "backdrop";
+                    break;
+                case "Season":
+                    displayImageType = "poster";
+                    break;
+                case "Audiobook":
+                    displayImageType = "cover";
+                    break;
+                case "Book":
+                    displayImageType = "cover";
+                    break;
+                default:
+                    return (T)inventoryItem;
+            }
+            
+            var path = _imageService.GetPath(inventoryItem.Category, (Guid)inventoryItem.MetadataId, displayImageType, null, null);
+            using (var stream = _imageService.GetImageStream(path))
+            {
+                if(stream == null)
+                    return (T)inventoryItem;
+                using (var memStr = new MemoryStream())
+                {
+                    stream.CopyTo(memStr);
+                    var bytes = memStr.ToArray();
+
+                    var blurHash = _imageService.CreateBlurHash(bytes);
+                    inventoryItem.DisplayImageBlurHash = blurHash;
+                    
+                    _ = UpdateById((T)inventoryItem);
+                }
+            }
+            return (T)inventoryItem;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            return (T)inventoryItem;
+        }
     }
 }

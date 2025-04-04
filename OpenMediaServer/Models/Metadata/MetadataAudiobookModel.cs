@@ -10,6 +10,7 @@ public class MetadataAudiobookModel
     public string? Description { get; set; }
     public string? Language { get; set; }
     public string? Thumbnail { get; set; }
+    public string? ThumbnailBlurHash { get; set; }
     public IEnumerable<MetadataAudiobookChapter>? Chapters { get; set; }
 }
 

@@ -1,7 +1,9 @@
 using System.Text.RegularExpressions;
+using Blurhash.ImageSharp;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
 namespace OpenMediaServer.Services;
@@ -37,7 +39,7 @@ public class ImageService : IImageService
         }
         else
         {
-            file = _fileSystemRepository.GetFiles(directoryPath, type + ".*").Where(file => Regex.IsMatch(Path.GetFileName(file), @"^[^.]+\.[^.]+$")).FirstOrDefault();
+            file = _fileSystemRepository.GetFiles(directoryPath, type + ".*").FirstOrDefault(f => Regex.IsMatch(Path.GetFileName(f), @"^[^.]+\.[^.]+$"));
         }
 
         var extension = file?.Split('.').LastOrDefault();
@@ -48,6 +50,23 @@ public class ImageService : IImageService
         }
 
         return file;
+    }
+
+    public string? CreateBlurHash(byte[]? bytes)
+    {
+        if(bytes == null || bytes.Length == 0)
+            return null;
+
+        try
+        {
+            var img = Image.Load<Rgba32>(bytes);
+            return Blurhasher.Encode(img,5,5);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Failed to encode blurhash: {e.Message}", e);
+            return null;
+        }
     }
 
     public Stream? GetImageStream(string? path)
