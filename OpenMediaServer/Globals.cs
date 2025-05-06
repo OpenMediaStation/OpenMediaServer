@@ -16,7 +16,7 @@ public static class Globals
     public static string DeviceCodeUrl { get; set; } = Environment.GetEnvironmentVariable("AUTH_DEVICECODE") ?? (AuthConfigurationUrl != null ? string.Empty: throw new ArgumentException("DeviceCodeUrl must be set"));
     public static string TokenUrl { get; set; } = Environment.GetEnvironmentVariable("AUTH_TOKEN") ?? (AuthConfigurationUrl != null ? string.Empty: throw new ArgumentException("TokenUrl must be set"));
     public static string ClientId { get; set; } = Environment.GetEnvironmentVariable("AUTH_CLIENTID") ?? throw new ArgumentException("ClientId must be set");
-    
+    public static string DBConnectionString { get; set; } = Environment.GetEnvironmentVariable("PG_CONNECTION_STRING") ?? throw new ArgumentException("PostgresConnectionString must be set");
     public static string OmdbApiKey { get; set; }
     public static string TmdbApiKey { get; set; }
 
