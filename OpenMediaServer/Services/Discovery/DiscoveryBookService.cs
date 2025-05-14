@@ -78,7 +78,7 @@ public class DiscoveryBookService : IDiscoveryBookService
 
                 existingBooks.Versions = existingBooks.Versions?.Append(version);
 
-                await _inventoryService.UpdateByTitle(existingBooks);
+                await _inventoryService.Update(existingBooks);
             }
 
             return;

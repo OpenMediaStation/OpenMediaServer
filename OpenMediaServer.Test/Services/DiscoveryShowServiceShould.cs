@@ -13,7 +13,7 @@ namespace OpenMediaServer.Test.Services;
 public class DiscoveryShowServiceShould
 {
     private readonly ILogger<DiscoveryShowService> _logger;
-    private readonly FileSystemRepoMock _storageRepository;
+    private readonly DataRepoMock _storageRepository;
     private readonly IMetadataService _metadataService;
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryShowService _inventoryShowService;
@@ -26,7 +26,7 @@ public class DiscoveryShowServiceShould
         Setup.Configure();
 
         _logger = Substitute.For<ILogger<DiscoveryShowService>>();
-        _storageRepository = new FileSystemRepoMock();
+        _storageRepository = new DataRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
@@ -81,10 +81,9 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Episode\""));
-        var result = JsonSerializer.Deserialize<IEnumerable<Episode>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Episode>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Episode");
@@ -118,10 +117,9 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Season\""));
-        var result = JsonSerializer.Deserialize<IEnumerable<Season>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Season>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.FolderPath.ShouldBe(folderPath);
         resultItem.SeasonNr.ShouldBe(seasonNr);
@@ -166,10 +164,9 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Show>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Show>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Show");

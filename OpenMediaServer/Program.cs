@@ -46,6 +46,11 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
+    c.AddSecurityDefinition("openid", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.OpenIdConnect,
+        OpenIdConnectUrl = new Uri(Globals.AuthConfigurationUrl ?? "")
+    });
 });
 
 // Register application services and endpoints
@@ -109,7 +114,12 @@ Globals.TmdbApiKey = Environment.GetEnvironmentVariable("TMDB_KEY") ?? configura
 // Configure middleware
 app.UseCors("AllowAll");
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.OAuthClientId(Globals.ClientId);
+    c.OAuthAppName("Swagger");
+    c.OAuthUsePkce();
+});
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -136,6 +146,7 @@ void RegisterServices(IServiceCollection services)
 {
     services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
     services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
+    services.AddSingleton<IDataRepository, PostgresRepository>();
     services.AddSingleton<IInventoryService, InventoryService>();
     services.AddSingleton<IStreamingService, StreamingService>();
     services.AddSingleton<IOmdbAPI, OMDbAPI>();

@@ -1,0 +1,49 @@
+﻿services:
+  openmediaserver:
+    pull_policy: build
+    image: ghcr.io/openmediastation/openmediaserver:latest
+    build:
+      context: .
+      dockerfile: OpenMediaServer/Dockerfile
+    depends_on:
+      - db
+    restart: always
+    environment:
+      AUTH_CLIENTID: ${AUTH_CLIENTID} #THIS MUST BE SET!!!
+      AUTH_CONFIGURATION_URL: ${AUTH_CONFIGURATION_URL} #THIS MUST BE SET!!!
+      PG_HOST: ${PG_HOST:-db}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD} #THIS MUST BE SET!!!
+      TMDB_KEY: ${TMDB_KEY} #THIS MUST BE SET!!!
+      #optional_Values
+      PREFFERED_LANGUAGE: ${PREFFERED_LANGUAGE} #default is "en"
+      HW_TRANSCODING_GPU_TYPE: ${HW_TRANSCODING_GPU_TYPE:-none}
+      LOGLEVEL: ${LOGLEVEL:-information}
+    volumes:
+      #Use hardcoded values for Debugging
+      - ${CONFIG_DIR}:/config
+      - ${MEDIA_DIR}:/media
+    networks:
+      - oms_network
+
+  db:
+    image: postgres:latest
+    restart: always
+    # set shared memory limit when using docker compose
+    shm_size: 128mb
+    # or set shared memory limit when deploy via swarm stack
+    #volumes:
+    #  - type: tmpfs
+    #    target: /dev/shm
+    #    tmpfs:
+    #      size: 134217728 # 128*2^20 bytes = 128Mb
+    environment:
+      POSTGRES_PASSWORD: ${PG_PASSWORD} #THIS MUST BE SET!!!
+    networks:
+      - oms_network
+    ports:
+      - 5432:5432
+        
+networks:
+  oms_network:
+    driver: bridge

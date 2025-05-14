@@ -109,7 +109,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                         temp?.Add(existingVersion);
                         existingBook.Versions = temp;
 
-                        await _inventoryService.UpdateByTitle(existingBook);
+                        await _inventoryService.Update(existingBook);
 
                         return;
                     }
@@ -125,7 +125,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
                     existingBook.Versions = existingBook.Versions?.Append(version);
 
-                    await _inventoryService.UpdateByTitle(existingBook);
+                    await _inventoryService.Update(existingBook);
                 }
 
                 return;
@@ -223,7 +223,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
                     existingBooks.Versions = existingBooks.Versions?.Append(version);
 
-                    await _inventoryService.UpdateByTitle(existingBooks);
+                    await _inventoryService.Update(existingBooks);
                 }
 
                 return;

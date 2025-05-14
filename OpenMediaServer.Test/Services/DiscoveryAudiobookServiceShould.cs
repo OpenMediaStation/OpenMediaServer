@@ -15,7 +15,7 @@ namespace OpenMediaServer.Test.Services;
 public class DiscoveryAudiobookServiceShould
 {
   private readonly ILogger<DiscoveryAudiobookService> _logger;
-    private readonly FileSystemRepoMock _storageRepository;
+    private readonly DataRepoMock _storageRepository;
     private readonly IFileInfoService _fileInfoService;
     private readonly DiscoveryAudiobookService _inventoryBookService;
     private readonly IInventoryService _inventoryService;
@@ -25,7 +25,7 @@ public class DiscoveryAudiobookServiceShould
         Setup.Configure();
 
         _logger = Substitute.For<ILogger<DiscoveryAudiobookService>>();
-        _storageRepository = new FileSystemRepoMock();
+        _storageRepository = new DataRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
         _inventoryBookService = new DiscoveryAudiobookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
@@ -45,10 +45,9 @@ public class DiscoveryAudiobookServiceShould
         // Act
         await _inventoryBookService.CreateAudiobook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Audiobook>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Audiobook>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Audiobook");

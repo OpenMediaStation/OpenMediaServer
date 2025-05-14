@@ -6,85 +6,79 @@ using OpenMediaServer.Models.Progress;
 
 namespace OpenMediaServer.Services;
 
-public class ProgressService : IProgressService
+public class ProgressService(
+    ILogger<ProgressService> logger,
+    IDataRepository dataRepository,
+    IInventoryService inventoryService)
+    : IProgressService
 {
-    private readonly ILogger<ProgressService> _logger;
-    private readonly IFileSystemRepository _fileSystemRepository;
-    private readonly IInventoryService _inventoryService;
-
-    public ProgressService(ILogger<ProgressService> logger, IFileSystemRepository fileSystemRepository, IInventoryService inventoryService)
-    {
-        _logger = logger;
-        _fileSystemRepository = fileSystemRepository;
-        _inventoryService = inventoryService;
-    }
+    private readonly ILogger<ProgressService> _logger = logger;
 
     public async Task CreateProgress(string userId, Progress newProgress)
     {
         if (newProgress.ParentId == null)
         {
-            throw new ArgumentNullException("parentId");
+            throw new ArgumentNullException($"{nameof(newProgress)}.ParentId");
         }
 
         if (newProgress.Category == null)
         {
-            throw new ArgumentNullException("category");
+            throw new ArgumentNullException($"{nameof(newProgress)}.Category");
         }
-
-        var path = GetProgressFilePath(userId, newProgress.Category);
-        List<Progress> progresses = await _fileSystemRepository.ReadObject<List<Progress>>(path) ?? [];
-
+        
+        if(string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentNullException(nameof(userId));
+        
         var progress = new Progress()
         {
             Id = Guid.NewGuid(),
+            UserId = userId,
             ParentId = newProgress.ParentId,
             Category = newProgress.Category,
             ProgressPercentage = newProgress.ProgressPercentage ?? 0,
             ProgressSeconds = newProgress.ProgressSeconds ?? 0,
             Completions = newProgress.Completions,
         };
-
-        progresses.Add(progress);
-
-        await _fileSystemRepository.WriteObject(path, progresses);
+        
+        await dataRepository.WriteObjectAsync(progress);
     }
 
     public async Task UpdateProgress(Progress progress, string userId)
     {
         if (progress.Category == null)
         {
-            throw new ArgumentNullException("progress.Category");
+            throw new ArgumentNullException($"{nameof(progress)}.Category");
         }
 
         if (progress.ParentId == null)
         {
-            throw new ArgumentNullException("progress.ParentId");
+            throw new ArgumentNullException($"{nameof(progress)}.ParentId");
         }
 
-        var path = GetProgressFilePath(userId, progress.Category);
-        List<Progress> progresses = await _fileSystemRepository.ReadObject<List<Progress>>(path) ?? [];
-        var existingProgress = progresses.FirstOrDefault(i => i.Id == progress.Id);
+        if(string.IsNullOrWhiteSpace(userId))
+            throw new ArgumentNullException(nameof(userId));
+        
+        if(progress.Id == null)
+            throw new ArgumentNullException($"{nameof(progress)}.Id");
+        
+        var existingProgress  = await dataRepository.GetObjectByIdAsync<Progress>((Guid)progress.Id!);
 
         if (existingProgress != null)
         {
-            progresses.RemoveAll(i => i.Id == progress.Id);
-
             existingProgress.ProgressPercentage = progress.ProgressPercentage;
             existingProgress.ProgressSeconds = progress.ProgressSeconds;
             existingProgress.Completions = progress.Completions;
-
-            progresses.Add(existingProgress);
-
-            await _fileSystemRepository.WriteObject(path, progresses);
+            
+            await dataRepository.WriteObjectAsync(existingProgress);
         }
         else
         {
             await CreateProgress(newProgress: progress, userId: userId);
         }
 
-        if (progress.Category == "Episode")
+        if (progress.Category == "Episode") //TODO CHECK AND maybe REFACTOR
         {
-            var episodes = await _inventoryService.ListItems<Episode>("Episode");
+            var episodes = await inventoryService.ListItems<Episode>("Episode");
             var filteredEpisodes = episodes?.Where(i => i.Id == progress.ParentId);
             var seasonId = filteredEpisodes?.FirstOrDefault()?.SeasonId;
             var episodeIds = episodes?.Where(i => i.SeasonId == seasonId).Select(i => i.Id);
@@ -120,7 +114,7 @@ public class ProgressService : IProgressService
         }
         else if (progress.Category == "Season")
         {
-            var seasons = await _inventoryService.ListItems<Season>("Season");
+            var seasons = await inventoryService.ListItems<Season>("Season");
             var filteredSeasons = seasons?.Where(i => i.Id == progress.ParentId);
             var showId = filteredSeasons?.FirstOrDefault()?.ShowId;
             var seasonIds = seasons?.Where(i => i.ShowId == showId).Select(i => i.Id);
@@ -162,27 +156,22 @@ public class ProgressService : IProgressService
         {
             throw new ArgumentException("ProgressId or ParentId must be set", "id");
         }
-
-        var path = GetProgressFilePath(userId, category);
-        var progresses = await _fileSystemRepository.ReadObject<List<Progress>>(path);
-
+        
         if (progressId != null)
         {
-            var progress = progresses?.FirstOrDefault(i => i.Id == progressId);
+            var progress = await dataRepository.GetObjectByIdAsync<Progress>((Guid)progressId, p => p.Category == category);
 
             return progress;
         }
 
-        var progressParentFiltered = progresses?.FirstOrDefault(i => i.ParentId == parentId);
+        var progressParentFiltered = (await dataRepository.ListObjectsAsync<Progress>(p => p.ParentId == parentId)).FirstOrDefault();
 
         return progressParentFiltered;
-
     }
 
     public async Task<IEnumerable<Progress>?> ListProgresses(string userId, string category)
     {
-        var path = GetProgressFilePath(userId, category);
-        var progresses = await _fileSystemRepository.ReadObject<IEnumerable<Progress>>(path);
+        var progresses = await dataRepository.ListObjectsAsync<Progress>();
 
         return progresses;
     }

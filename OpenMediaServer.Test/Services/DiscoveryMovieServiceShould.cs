@@ -13,7 +13,7 @@ namespace OpenMediaServer.Test.Services;
 public class DiscoveryMovieServiceShould
 {
     private readonly ILogger<DiscoveryMovieService> _logger;
-    private readonly FileSystemRepoMock _storageRepository;
+    private readonly DataRepoMock _storageRepository;
     private readonly IMetadataService _metadataService;
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryMovieService _inventoryMovieShowService;
@@ -26,7 +26,7 @@ public class DiscoveryMovieServiceShould
         Setup.Configure();
 
         _logger = Substitute.For<ILogger<DiscoveryMovieService>>();
-        _storageRepository = new FileSystemRepoMock();
+        _storageRepository = new DataRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
@@ -83,10 +83,9 @@ public class DiscoveryMovieServiceShould
         // Act
         await _inventoryMovieShowService.CreateMovie(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Movie>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Movie>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Movie");

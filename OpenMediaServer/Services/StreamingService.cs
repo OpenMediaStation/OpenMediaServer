@@ -11,19 +11,15 @@ namespace OpenMediaServer.Services;
 
 public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService) : IStreamingService
 {
-    private readonly ILogger<StreamingService> _logger = logger;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IFileInfoService _fileInfoService = fileInfoService;
-
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
-        _logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
+        logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+        var item = await inventoryService.GetItem<InventoryItem>(id);
 
         if (item == null)
         {
-            _logger.LogWarning("Item not found in category while streaming");
+            logger.LogWarning("Item not found in category while streaming");
 
             return null;
         }
@@ -78,11 +74,11 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
     public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         // Get file info
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+        var item = await inventoryService.GetItem<InventoryItem>(id);
 
         if (item == null)
         {
-            _logger.LogWarning("Item not found in category while getting file type");
+            logger.LogWarning("Item not found in category while getting file type");
 
             return null;
         }
@@ -107,7 +103,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (version.Parts == null)
         {
-            fileInfo = await _fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
         }
         else
         {
@@ -118,7 +114,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                 return null;
             }
 
-            fileInfo = await _fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
         }
 
         // Determine mime type
@@ -134,7 +130,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
     public async Task<IResult> GetTranscodingPlaylist(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category) ?? throw new Exception("Requested Item not found in category while prepare transcoding");
+        var item = await inventoryService.GetItem<InventoryItem>(id) ?? throw new Exception("Requested Item not found while prepare transcoding");
         var path = "";
 
         if (versionId == null)
@@ -248,7 +244,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         try
         {
             var path = "";
-            var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+            var item = await inventoryService.GetItem<InventoryItem>(id);
 
             if (item == null)
                 throw new ApplicationException($"Item with id {id} was not found");

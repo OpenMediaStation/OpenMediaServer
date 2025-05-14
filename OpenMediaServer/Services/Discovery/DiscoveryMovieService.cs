@@ -134,7 +134,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 var addons = addonDiscoveryService.DiscoverAddons(path);
                 existingMovie.Addons = existingMovie.Addons?.Concat(addons);
 
-                await inventoryService.UpdateByTitle(existingMovie);
+                await inventoryService.Update(existingMovie);
             }
 
             return;

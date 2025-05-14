@@ -31,7 +31,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId, category);
+        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
@@ -45,7 +45,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             Description = bookmark.Description,
             PageNumber = bookmark.PageNumber
         };
-        await _dataRepository.WriteObject(entry);
+        await _dataRepository.WriteObjectAsync(entry);
 
         return Results.Ok(entry);
     }
@@ -62,7 +62,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         // var bookmarks = await _dataRepository.ReadObject<List<Bookmark>>(path) ?? [];
 
         // var removed = bookmarks.RemoveAll(b => b.Id == id) > 0;
-        // await _dataRepository.WriteObject(bookmarks);
+        // await _dataRepository.WriteObjectAsync(bookmarks);
         throw new NotImplementedException();
         // return removed ? Results.Ok() : Results.NotFound();
     }
@@ -76,7 +76,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         }
 
         // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        var entry = await _dataRepository.GetObjectByID<Bookmark>(id);
+        var entry = await _dataRepository.GetObjectByIdAsync<Bookmark>(id);
 
         if (entry == null)
         {
@@ -88,7 +88,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         entry.Description = bookmark.Description;
         entry.PageNumber = bookmark.PageNumber;
 
-        await _dataRepository.WriteObject(entry);
+        await _dataRepository.WriteObjectAsync(entry);
 
         return Results.Ok(entry);
     }
@@ -102,7 +102,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         }
 
         // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        var bookmarks = await _dataRepository.ListObjects<Bookmark>() ?? [];
+        var bookmarks = await _dataRepository.ListObjectsAsync<Bookmark>() ?? [];
 
         return Results.Ok(bookmarks);
     }
@@ -116,7 +116,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         }
 
         // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        var bookmark = await _dataRepository.GetObjectByID<Bookmark>(id);
+        var bookmark = await _dataRepository.GetObjectByIdAsync<Bookmark>(id);
         // var bookmarks = await _dataRepository.ReadObject<List<Bookmark>>(path) ?? [];
 
         // var bookmark = bookmarks.FirstOrDefault(b => b.Id == id);

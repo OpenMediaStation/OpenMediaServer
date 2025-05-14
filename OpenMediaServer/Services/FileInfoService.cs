@@ -6,21 +6,11 @@ using OpenMediaServer.Models.FileInfo;
 
 namespace OpenMediaServer.Services;
 
-public class FileInfoService : IFileInfoService
+public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository dataRepository)
+    : IFileInfoService
 {
-    private readonly ILogger<FileInfoService> _logger;
-    private readonly IFileSystemRepository _fileSystemRepository;
-
-    public FileInfoService(ILogger<FileInfoService> logger, IFileSystemRepository fileSystemRepository)
-    {
-        _logger = logger;
-        _fileSystemRepository = fileSystemRepository;
-    }
-
     public async Task<FileInfoModel?> CreateFileInfo(string path, Guid parentId, string parentCategory)
     {
-        var fileInfos = await ListFileInfo(parentCategory);
-
         IMediaAnalysis? mappingInput;
 
         try
@@ -29,75 +19,59 @@ public class FileInfoService : IFileInfoService
         }
         catch (FFMpegException ffmEx)
         {
-            _logger.LogWarning(ffmEx, "FileInfo could not be generated");
+            logger.LogWarning(ffmEx, "FileInfo could not be generated");
             return null;
         }
 
         FileInfoModel fileInfo = MapFileInfo(parentId, parentCategory, mappingInput);
-
-        fileInfos = fileInfos.Append(fileInfo);
-
-        await _fileSystemRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "fileInfo", parentCategory) + ".json", fileInfos);
+        
+        await dataRepository.WriteObjectAsync(fileInfo);
 
         return fileInfo;
     }
 
     public async Task<IEnumerable<FileInfoModel>> ListFileInfo(string category)
     {
-        var metadatas = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
-
-        metadatas ??= [];
+        var metadatas = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => fi.ParentCategory == category);;
 
         return metadatas;
     }
 
     public async Task<FileInfoModel?> GetFileInfo(string category, Guid id)
     {
-        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
-
-        var metadata = fileInfos?.FirstOrDefault(x => x.Id == id);
-
-        return metadata;
+        var fileInfo = await dataRepository.GetObjectByIdAsync<FileInfoModel>(id, fi => fi.ParentCategory == category);
+        
+        return fileInfo;
     }
 
     public async Task<IEnumerable<FileInfoModel>?> GetFileInfos(string category, List<Guid> ids)
     {
-        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
+        var fileInfos = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => ids.Contains(fi.Id)); //TODO Maybe filter in C# instead of in SQL? (maybe not working)
 
-        var fileInfoModels = new List<FileInfoModel>();
+        // var fileInfoModels = new List<FileInfoModel>();
 
-        if (fileInfos == null)
-        {
-            return [];
-        }
+        // foreach (var fileInfo in fileInfos)
+        // {
+        //     if ( fileInfo != null && ids.Contains(fileInfo.Id))
+        //     {
+        //         fileInfoModels.Add(fileInfo);
+        //     }
+        // }
 
-        foreach (var fileInfo in fileInfos)
-        {
-            if ( fileInfo != null && ids.Contains(fileInfo.Id))
-            {
-                fileInfoModels.Add(fileInfo);
-            }
-        }
-
-        return fileInfoModels;
+        // return fileInfoModels;
+        return fileInfos;
     }
 
     public async Task DeleteFileInfo(string category, Guid id)
     {
-        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
-
-        fileInfos = fileInfos?.Where(i => i.Id != id);
-
-        await _fileSystemRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json", fileInfos);
+        await dataRepository.DeleteObjectAsync<FileInfoModel>(id, (fi => fi.ParentCategory == category));
     }
 
     public async Task DeleteFileInfoByParentId(string category, Guid parentId)
     {
-        var fileInfos = await _fileSystemRepository.ReadObject<IEnumerable<FileInfoModel>>(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json");
-
-        fileInfos = fileInfos?.Where(i => i.ParentId != parentId);
-
-        await _fileSystemRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "fileInfo", category) + ".json", fileInfos);
+        var matchingFileInfos = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => fi.ParentCategory == category && fi.ParentId == parentId);
+        
+        await dataRepository.DeleteObjectsAsync(matchingFileInfos);
     }
 
     private FileInfoModel MapFileInfo(Guid parentId, string parentCategory, IMediaAnalysis mappingInput)

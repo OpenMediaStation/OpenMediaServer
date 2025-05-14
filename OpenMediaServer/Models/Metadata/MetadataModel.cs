@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace OpenMediaServer.Models.Metadata;
 
 /// <summary>
@@ -5,10 +8,13 @@ namespace OpenMediaServer.Models.Metadata;
 /// </summary>
 public class MetadataModel
 {
+    [Key]
+    [Column(Order = 0, TypeName = "UUID")]
     public Guid Id { get; set; }
     public Guid ParentId { get; set; }
 
     public string? Title { get; set; }
+    [Column(Order=1, TypeName = "TEXT")]
     public string? Category { get; set; }
 
     // Specific information

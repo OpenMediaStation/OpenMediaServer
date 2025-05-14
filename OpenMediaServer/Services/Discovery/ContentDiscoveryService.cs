@@ -123,7 +123,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         {
             foreach (var season in seasons)
             {
-                var show = await _inventoryService.GetItem<Show>(season.ShowId, "Show");
+                var show = await _inventoryService.GetItem<Show>(season.ShowId);
 
                 if (show != null)
                 {
@@ -132,13 +132,13 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
                     show.SeasonIds = seasonIds;
 
-                    await _inventoryService.UpdateById(show);
+                    await _inventoryService.Update(show);
                 }
 
                 if (show != null && (!show?.SeasonIds?.Any() ?? true))
                 {
                     await _binService.AddItem(show!);
-                    await _inventoryService.RemoveById(show!);
+                    // await _inventoryService.RemoveById(show!);
                 }
             }
         }
@@ -152,7 +152,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
             foreach (var episode in items)
             {
-                var season = await _inventoryService.GetItem<Season>(episode.SeasonId, "Season");
+                var season = await _inventoryService.GetItem<Season>(episode.SeasonId);
 
                 if (season != null)
                 {
@@ -171,7 +171,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
                     season.EpisodeIds = episodeIds;
 
-                    await _inventoryService.UpdateById(season);
+                    await _inventoryService.Update(season);
                 }
 
                 if (season != null && (!season?.EpisodeIds?.Any() ?? true))
@@ -179,7 +179,6 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     await UpdateShow(seasons);
 
                     await _binService.AddItem(season!);
-                    await _inventoryService.RemoveById(season!);
                 }
             }
         }
@@ -202,7 +201,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                             var temp = item.Addons.ToList();
                             temp.Remove(addon);
                             item.Addons = temp;
-                            await _inventoryService.UpdateById(item);
+                            await _inventoryService.Update(item);
                         }
                     }
                 }
@@ -216,7 +215,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                             var temp = item.Versions.ToList();
                             temp.Remove(version);
                             item.Versions = temp;
-                            await _inventoryService.UpdateById(item);
+                            await _inventoryService.Update(item);
 
                             await _fileInfo.DeleteFileInfoByParentId(item.Category, version.Id);
                         }
@@ -228,9 +227,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                         {
                             await UpdateSeason(items as IEnumerable<Episode>);
                         }
-
                         await _binService.AddItem(item);
-                        await _inventoryService.RemoveById(item);
                     }
                 }
             }

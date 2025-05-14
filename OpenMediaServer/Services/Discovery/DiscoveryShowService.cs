@@ -106,7 +106,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
             show.SeasonIds ??= [];
             show.SeasonIds = show.SeasonIds.Append(season.Id);
 
-            await _inventoryService.UpdateById(show);
+            await _inventoryService.Update(show);
         }
 
         // Episode
@@ -165,7 +165,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
             season.EpisodeIds ??= [];
             season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
 
-            await _inventoryService.UpdateById(season);
+            await _inventoryService.Update(season);
         }
     }
 

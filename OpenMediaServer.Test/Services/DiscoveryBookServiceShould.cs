@@ -13,7 +13,7 @@ namespace OpenMediaServer.Test.Services;
 public class DiscoveryBookServiceShould
 {
     private readonly ILogger<DiscoveryBookService> _logger;
-    private readonly FileSystemRepoMock _storageRepository;
+    private readonly DataRepoMock _storageRepository;
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryBookService _inventoryBookService;
     private readonly IInventoryService _inventoryService;
@@ -23,7 +23,7 @@ public class DiscoveryBookServiceShould
         Setup.Configure();
 
         _logger = Substitute.For<ILogger<DiscoveryBookService>>();
-        _storageRepository = new FileSystemRepoMock();
+        _storageRepository = new DataRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
         _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
@@ -47,10 +47,9 @@ public class DiscoveryBookServiceShould
         // Act
         await _inventoryBookService.CreateBook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Book>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Book>(resultJson);
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Book");
