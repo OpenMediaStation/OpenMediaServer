@@ -83,7 +83,7 @@ public class DiscoveryMovieServiceShould
         // Act
         await _inventoryMovieShowService.CreateMovie(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Movie>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Movie>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

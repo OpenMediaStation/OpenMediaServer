@@ -22,7 +22,7 @@ public class InventoryService(
 
     public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
     {
-        var items = await dataRepository.ListObjectsAsync<T>(n => n.Category == category);
+        var items = await dataRepository.ListObjectsAsync<T>(n => n.Category == category && n.IsOrphan == false);
         return items.Select(i =>
         {
             _ = Task.Run(() => CreateMissingBlurHash<T>(i));

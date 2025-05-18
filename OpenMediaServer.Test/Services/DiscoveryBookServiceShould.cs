@@ -47,7 +47,7 @@ public class DiscoveryBookServiceShould
         // Act
         await _inventoryBookService.CreateBook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Book>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<Book>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

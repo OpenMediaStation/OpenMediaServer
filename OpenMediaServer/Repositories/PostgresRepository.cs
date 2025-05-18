@@ -173,7 +173,7 @@ public class PostgresRepository : IDataRepository
                 resultSet[column!.Order] = (column.TypeName ,propValue!)!;
             }
         }
-        resultSet[^1] = ("jsonb",JsonSerializer.Serialize(obj));
+        resultSet[^1] = ("jsonb",JsonSerializer.Serialize(obj, Globals.JsonOptions));
         return resultSet;
     }
     
@@ -657,7 +657,7 @@ public static class PgSqlExtensions
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            yield return JsonSerializer.Deserialize<T>(reader["json_data"].ToString() ?? string.Empty);
+            yield return JsonSerializer.Deserialize<T>(reader["json_data"].ToString() ?? string.Empty, Globals.JsonOptions);
         }
     }
 }

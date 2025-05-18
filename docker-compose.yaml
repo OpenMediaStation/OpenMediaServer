@@ -34,11 +34,8 @@
     # set shared memory limit when using docker compose
     shm_size: 128mb
     # or set shared memory limit when deploy via swarm stack
-    #volumes:
-    #  - type: tmpfs
-    #    target: /dev/shm
-    #    tmpfs:
-    #      size: 134217728 # 128*2^20 bytes = 128Mb
+    volumes:
+      - ${PG_DATA_DIR:-pgdata}:/var/lib/postgresql/data #uses a docker volume if PG_DATA_DIR is not set..
     environment:
       POSTGRES_PASSWORD: ${PG_PASSWORD} #THIS MUST BE SET!!!
     networks:
