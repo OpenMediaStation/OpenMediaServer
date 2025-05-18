@@ -46,19 +46,9 @@ public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository da
 
     public async Task<IEnumerable<FileInfoModel>?> GetFileInfos(string category, List<Guid> ids)
     {
-        var fileInfos = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => ids.Contains(fi.Id)); //TODO Maybe filter in C# instead of in SQL? (maybe not working)
-
-        // var fileInfoModels = new List<FileInfoModel>();
-
-        // foreach (var fileInfo in fileInfos)
-        // {
-        //     if ( fileInfo != null && ids.Contains(fileInfo.Id))
-        //     {
-        //         fileInfoModels.Add(fileInfo);
-        //     }
-        // }
-
-        // return fileInfoModels;
+        //filtering in C# instead of SQL (not working, expression with contains is to complex right now.. maybe working in the future)
+        var fileInfos = (await dataRepository.ListObjectsAsync<FileInfoModel>()).Where(fi => ids.Contains(fi.Id)); 
+        
         return fileInfos;
     }
 

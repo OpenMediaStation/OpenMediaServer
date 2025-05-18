@@ -43,7 +43,10 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             PositionInSeconds = bookmark.PositionInSeconds,
             Title = bookmark.Title,
             Description = bookmark.Description,
-            PageNumber = bookmark.PageNumber
+            PageNumber = bookmark.PageNumber,
+            UserId = userId,
+            Category = category,
+            InventoryItemId = inventoryItemId,
         };
         await _dataRepository.WriteObjectAsync(entry);
 
@@ -57,14 +60,9 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-//TODO Complete
-        // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        // var bookmarks = await _dataRepository.ReadObject<List<Bookmark>>(path) ?? [];
-
-        // var removed = bookmarks.RemoveAll(b => b.Id == id) > 0;
-        // await _dataRepository.WriteObjectAsync(bookmarks);
-        throw new NotImplementedException();
-        // return removed ? Results.Ok() : Results.NotFound();
+        await _dataRepository.DeleteObjectAsync<Bookmark>(id);
+       
+        return Results.Ok();
     }
 
     public async Task<IResult> UpdateBookmark(HttpContext httpContext, Guid id, [FromBody] Bookmark bookmark, Guid inventoryItemId, string category)
@@ -75,22 +73,19 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        var entry = await _dataRepository.GetObjectByIdAsync<Bookmark>(id);
-
-        if (entry == null)
+        bookmark.Id = id;
+        if (bookmark.UserId == null)
         {
-            return Results.NotFound();
+            bookmark.UserId = userId;
+        }
+        else if (bookmark.UserId != userId)
+        {
+            return Results.Forbid();
         }
 
-        entry.PositionInSeconds = bookmark.PositionInSeconds;
-        entry.Title = bookmark.Title;
-        entry.Description = bookmark.Description;
-        entry.PageNumber = bookmark.PageNumber;
+        await _dataRepository.WriteObjectAsync(bookmark);
 
-        await _dataRepository.WriteObjectAsync(entry);
-
-        return Results.Ok(entry);
+        return Results.Ok(bookmark);
     }
 
     public async Task<IResult> ListAllInCategory(HttpContext httpContext, string category, Guid inventoryItemId)
@@ -100,9 +95,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-
-        // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
-        var bookmarks = await _dataRepository.ListObjectsAsync<Bookmark>() ?? [];
+        var bookmarks = await _dataRepository.ListObjectsAsync<Bookmark>(bm => bm.UserId == userId && bm.Category == category && bm.InventoryItemId == inventoryItemId);
 
         return Results.Ok(bookmarks);
     }
@@ -115,16 +108,11 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        // var path = GetBookmarksFilePath(userId, category, inventoryItemId);
         var bookmark = await _dataRepository.GetObjectByIdAsync<Bookmark>(id);
-        // var bookmarks = await _dataRepository.ReadObject<List<Bookmark>>(path) ?? [];
-
-        // var bookmark = bookmarks.FirstOrDefault(b => b.Id == id);
+        
+        if(bookmark != null && bookmark?.UserId != userId)
+            return Results.Forbid();
+        
         return bookmark != null ? Results.Ok(bookmark) : Results.NotFound();
     }
-
-    // private string GetBookmarksFilePath(string userId, string category, Guid inventoryItemId)
-    // {
-    //     // return Path.Combine(Globals.GetUserStorage(userId), "bookmarks", category, inventoryItemId.ToString()) + ".json";
-    // }
 }

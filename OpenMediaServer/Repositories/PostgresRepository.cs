@@ -47,7 +47,6 @@ public class PostgresRepository : IDataRepository
 
     private async Task MigrateFilesToDatabase()
     {
-        //TODO maybe fix missing blur hashes in here as well..
         await ImportDataFromFileSystem<MetadataModel>(Path.Combine(Globals.ConfigFolder, "metadata"));
         await ImportDataFromFileSystem<InventoryItem>(Path.Combine(Globals.ConfigFolder, "inventory"),
             (fs, category) => {return category switch
@@ -58,7 +57,7 @@ public class PostgresRepository : IDataRepository
                 "Season" => JsonSerializer.Deserialize<IEnumerable<Season>>(fs, Globals.JsonOptions),
                 "Audiobook" => JsonSerializer.Deserialize<IEnumerable<Audiobook>>(fs, Globals.JsonOptions),
                 "Book" => JsonSerializer.Deserialize<IEnumerable<Book>>(fs, Globals.JsonOptions),
-                _ => throw new NotImplementedException()
+                _ => throw new NotSupportedException()
             };});
         await ImportDataFromFileSystem<FileInfoModel>(Path.Combine(Globals.ConfigFolder, "fileInfo"));
         var usersDir = Path.Combine(Globals.ConfigFolder, "users");
@@ -77,6 +76,21 @@ public class PostgresRepository : IDataRepository
             await ImportDataFromFileSystem<FavoriteInfo>(Path.Combine(dir, "favorites"),
                 (fs, category) => JsonSerializer.Deserialize<IEnumerable<Guid>>(fs, Globals.JsonOptions)?.Select(inventoryId =>
                     new FavoriteInfo() { InventoryId = inventoryId, UserId = userId ?? throw new InvalidOperationException(), Id = Guid.NewGuid(), Category = category}));
+            if (Directory.Exists(Path.Combine(dir, "bookmarks")))
+            {
+                foreach (var bmcatDir in Directory.EnumerateDirectories(Path.Combine(dir, "bookmarks")))
+                {
+                    await ImportDataFromFileSystem<Bookmark>(bmcatDir, (fs, invItemId) =>
+                    {
+                        return JsonSerializer.Deserialize<IEnumerable<Bookmark>>(fs, Globals.JsonOptions)?.Select(bm =>
+                        {
+                            bm.UserId = userId;
+                            bm.InventoryItemId = Guid.TryParse(invItemId, out var invId) ? invId : null;
+                            return bm;
+                        });
+                    });
+                }
+            }
         }
     }
 
@@ -180,6 +194,7 @@ public class PostgresRepository : IDataRepository
         CreateTable<FileInfoModel>();
         CreateTable<Progress>();
         CreateTable<FavoriteInfo>();
+        CreateTable<Bookmark>();
     }
 
     private void CreateTable<T>()
@@ -282,13 +297,37 @@ public class PostgresRepository : IDataRepository
     public async Task WriteObjectsAsync<T>(IEnumerable<T> items)
     {
         await MigrationTask;
+        if (items == null)
+            return;
+        
         var tableName = GetTableName<T>();
-        await using (var connection = new NpgsqlConnection(ConnectionString))
+        var keyProp = typeof(T).GetProperties().FirstOrDefault(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(KeyAttribute)));
+
+        if(keyProp is null)
+            throw new ArgumentException("ItemType does not have a valid KeyAttribute");
+
+        var sb = new StringBuilder();
+        foreach (var item in items)
         {
-            await connection.OpenAsync();
-            
+            if (item == null)
+                continue;
+            sb.Append('(');
+            var values = GetObjectPropertiesForInsert(item).Select(val => val.value);
+            var itemValuesString = CreateValuesString(values);
+            sb.Append(itemValuesString);
+            sb.Append("),");
         }
-        throw new NotImplementedException();
+        var valuesString = sb.ToString().TrimEnd(',');
+        var columnNames = GetColumnNamesFromType(typeof(T));
+        
+        var columnNameListWithoutKey = columnNames.Split(',').Select(n => n.Trim()).Where(n => !n.Equals(keyProp.Name, StringComparison.InvariantCultureIgnoreCase)).ToList();
+        var updateDef = string.Join(", ", columnNameListWithoutKey.Select(n => $" {n} = EXCLUDED.{n}"));
+        var whereClause = string.Join(" OR ", columnNameListWithoutKey.Select(n => $"{tableName}.{n} IS DISTINCT FROM EXCLUDED.{n}"));
+
+        await using var connection = new NpgsqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        await connection.ExecuteAsync(
+            $"INSERT INTO {tableName} ({columnNames}) VALUES {valuesString} ON CONFLICT ({keyProp.Name}) DO UPDATE SET {updateDef} WHERE {whereClause}");
     }
 
     public void WriteObjects<T>(IEnumerable<T> items)
@@ -327,7 +366,7 @@ public class PostgresRepository : IDataRepository
         var tableName = GetTableName<T>();
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
-        await connection.ExecuteAsync($"delete from {tableName} where {keyProp.Name} in ({string.Join(",", ids.Select(id => id?.ToString() ?? "null"))})");
+        await connection.ExecuteAsync($"delete from {tableName} where {keyProp.Name} in ({string.Join(",", ids.Where(id => id != null).Select(id => $"'{id?.ToString()}'"))})");
     }
 
     public void DeleteObjects<T>(IEnumerable<T> items)
@@ -349,7 +388,7 @@ public class PostgresRepository : IDataRepository
         if(keyProp is null)
             throw new ArgumentException("Item does not have a valid KeyAttribute");
         
-        var values = GetObjectPropertiesForInsert(item).Select(val => val.value); //TODO FIX
+        var values = GetObjectPropertiesForInsert(item).Select(val => val.value);
         var valuesString = CreateValuesString(values);
         var columnNames = GetColumnNamesFromType(typeof(T));
         
@@ -417,7 +456,7 @@ public class PostgresRepository : IDataRepository
         await using var connection = new NpgsqlConnection(ConnectionString);
         await connection.OpenAsync();
         var results = new List<T?>();
-        await foreach (var item in connection.QueryAsync<T>($"select * from {tableName} where id = {id}"))
+        await foreach (var item in connection.QueryAsync<T>($"select * from {tableName} where id = '{id}'"))
         {
             results.Add(item);
         }
@@ -436,12 +475,12 @@ public class PostgresRepository : IDataRepository
     public async Task DeleteObjectAsync<T>(Guid id, Expression<Func<T, bool>>? filter = null)
     {
         await MigrationTask;
-        //TODO Implement filter!
+        var sqlFilter = filter != null ? ExpressionToSql(filter).Replace("WHERE", "AND") : string.Empty;
         var tableName = GetTableName<T>();
         using (NpgsqlConnection connection = new NpgsqlConnection(ConnectionString))
         {
             await connection.OpenAsync();
-            var res = await connection.ExecuteAsync($"delete from {tableName} where id = {id}");
+            var res = await connection.ExecuteAsync($"delete from {tableName} where id = {id} {sqlFilter}");
             if (res != 1)
             {
                 //TODO Maybe throw exception!
@@ -471,10 +510,6 @@ public class PostgresRepository : IDataRepository
         VisitExpression(body);
 
         return sb.ToString();
-        
-        // $" WHERE {property} = {body.Right.Member.Value}";
-        //TODO complete/fix this
-        throw new NotImplementedException();
 
         void VisitExpression(Expression expr)
         {
@@ -600,7 +635,6 @@ public class PostgresRepository : IDataRepository
 
 public static class PgSqlExtensions
 {
-//TODO CHECK and maybe replace with using Dapper!!!
     public static int Execute(this NpgsqlConnection connection, string sql, params object[] parameters)
     {
         using var command = new NpgsqlCommand(sql, connection);
