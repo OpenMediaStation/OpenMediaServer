@@ -59,8 +59,9 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
             await _inventoryService.AddItem(show);
         }
 
+        var folderPath = Directory.GetParent(path)?.FullName ?? Path.GetDirectoryName(path);
         // Season
-        var season = await _inventoryService.GetItem<Season>("Season", i => i.FolderPath == Directory.GetParent(path)?.FullName);
+        var season = await _inventoryService.GetItem<Season>("Season", i => i.FolderPath == folderPath);
 
         if (season == null)
         {
@@ -110,7 +111,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
         }
 
         // Episode
-        var episode = await _inventoryService.GetItem<Episode>("Episode", predicate: i => i.Versions?.Any(i => i.Path == path) ?? false);
+        var episode = (await _inventoryService.ListItems<Episode>("Episode"))?.Where(e => e.Versions?.Any(v => v.Path == path) ?? false).FirstOrDefault();
 
         if (episode == null)
         {

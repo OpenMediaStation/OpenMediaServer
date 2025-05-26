@@ -8,22 +8,17 @@ using TMDbLib.Objects.TvShows;
 
 namespace OpenMediaServer.Services.Metadata;
 
-public class ShowMetadataService : IShowMetadataService
+public class ShowMetadataService(
+    IOmdbAPI omdbApi,
+    ITMDbAPI tMDbApi,
+    IImageService imageService,
+    ILogger<ShowMetadataService> logger)
+    : IShowMetadataService
 {
-    private readonly IOmdbAPI _omdbAPI;
-    private readonly ITMDbAPI _tMDbAPI;
-    private readonly IImageService _imageService;
-
-    public ShowMetadataService(IOmdbAPI omdbAPI, ITMDbAPI tMDbAPI, IImageService imageService)
-    {
-        _omdbAPI = omdbAPI;
-        _tMDbAPI = tMDbAPI;
-        _imageService = imageService;
-    }
 
     public async Task<MetadataModel> GetEpisodeMetadata(string? year, string title, string? language, Guid metadataId, int? season, int? episode)
     {
-        var omdbData = await _omdbAPI.GetMetadata
+        var omdbData = await omdbApi.GetMetadata
         (
             name: title,
             apiKey: Globals.OmdbApiKey,
@@ -32,7 +27,7 @@ public class ShowMetadataService : IShowMetadataService
             episode: episode
         );
 
-        var showData = await _tMDbAPI.GetShow
+        var showData = await tMDbApi.GetShow
         (
             name: title,
             apiKey: Globals.TmdbApiKey,
@@ -43,7 +38,7 @@ public class ShowMetadataService : IShowMetadataService
 
         if (showData != null && season != null && episode != null)
         {
-            episodeInfo = await _tMDbAPI.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
+            episodeInfo = await tMDbApi.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
         }
 
         var backdropBlurHash = await WriteImageAndReturnBlurHash(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
@@ -89,7 +84,7 @@ public class ShowMetadataService : IShowMetadataService
 
     public async Task<MetadataModel> GetSeasonMetadata(string? year, string title, string? language, Guid metadataId, int? season)
     {
-        var tmdbData = await _tMDbAPI.GetShow
+        var tmdbData = await tMDbApi.GetShow
                    (
                        name: title,
                        apiKey: Globals.TmdbApiKey,
@@ -100,7 +95,7 @@ public class ShowMetadataService : IShowMetadataService
 
         if (tmdbData != null && season != null)
         {
-            seasonInfo = await _tMDbAPI.GetSeason(tmdbData.Id, (int)season, Globals.TmdbApiKey);
+            seasonInfo = await tMDbApi.GetSeason(tmdbData.Id, (int)season, Globals.TmdbApiKey);
         }
 
         var posterBlurHash = await WriteImageAndReturnBlurHash(seasonInfo?.PosterPath, "poster", "Season", metadataId.ToString());
@@ -123,14 +118,14 @@ public class ShowMetadataService : IShowMetadataService
 
     public async Task<MetadataModel> GetShowMetadata(string? year, string title, string? language, Guid metadataId)
     {
-        var omdbData = await _omdbAPI.GetMetadata
+        var omdbData = await omdbApi.GetMetadata
         (
             name: title,
             apiKey: Globals.OmdbApiKey,
             year: year
         );
 
-        var tmdbData = await _tMDbAPI.GetShow
+        var tmdbData = await tMDbApi.GetShow
         (
             name: title,
             apiKey: Globals.TmdbApiKey,
@@ -141,11 +136,16 @@ public class ShowMetadataService : IShowMetadataService
 
         if (tmdbData?.Id != null)
         {
-            tmdbImages = await _tMDbAPI.GetShowImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
+            tmdbImages = await tMDbApi.GetShowImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
         }
 
-        var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
-        var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath ?? omdbData?.Poster;
+        var tmdbLogosSorted = tmdbImages?.Logos?.OrderBy(i => i.VoteAverage)?.ToList();
+        var tmdbPostersSorted = tmdbImages?.Posters?.OrderBy(i => i.VoteAverage)?.ToList();
+        
+        var logoPath = tmdbLogosSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ??
+                       tmdbLogosSorted?.FirstOrDefault()?.FilePath;
+        var posterPath = tmdbPostersSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ?? 
+                         tmdbPostersSorted?.FirstOrDefault()?.FilePath ?? omdbData?.Poster;
 
         var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
         var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Show", metadataId.ToString());
@@ -199,10 +199,31 @@ public class ShowMetadataService : IShowMetadataService
         if (url == null)
             return null;
 
-        var bytes = await _tMDbAPI.GetImageFromId(url, Globals.TmdbApiKey);
+        byte[]? bytes = null;
+        
+        if (url.StartsWith("http"))
+        {
+            try
+            {
+                bytes = await new HttpClient().GetByteArrayAsync(url);
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogError($"Unable to get image from url: {url}, message: {ex.Message}");
+            }
+        }
+        else
+        {
+            bytes = await tMDbApi.GetImageFromId(url, Globals.TmdbApiKey);
+        }
 
-        await _imageService.WriteImage(bytes, url, fileName, category, id);
+        if (bytes == null)
+        {
+            return null;
+        }
 
-        return _imageService.CreateBlurHash(bytes);
+        await imageService.WriteImage(bytes, url, fileName, category, id);
+
+        return imageService.CreateBlurHash(bytes);
     }
 }

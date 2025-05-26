@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -42,11 +44,12 @@ public class InventoryService(
         return possibleItem;
     }
 
-    public async Task<T?> GetItem<T>(string category, Func<T, bool> predicate) where T : InventoryItem
+    public async Task<T?> GetItem<T>(string category, Expression<Func<T, bool>> predicate) where T : InventoryItem
     {
         logger.LogTrace("Getting item by name");
-
-        var items = (await dataRepository.ListObjectsAsync<T>(n => predicate(n) && n.Category == category)).ToArray();
+        
+        
+        var items = (await dataRepository.ListObjectsAsync<T>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
         
         if (items.Length != 1)
         {

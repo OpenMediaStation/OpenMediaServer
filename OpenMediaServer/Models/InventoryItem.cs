@@ -25,6 +25,9 @@ public class InventoryItem
     
     [Column(Order = 4, TypeName = "BOOLEAN")]
     public bool IsOrphan { get; set; }
+    
+    public DateOnly? Year { get; set; }
+    
     public IEnumerable<InventoryItemVersion>? Versions { get; set; }
     public IEnumerable<InventoryItemAddon>? Addons { get; set; }
     public string? DisplayImageBlurHash { get; set; }
@@ -32,5 +35,6 @@ public class InventoryItem
     /// <summary>
     /// Folder path. Only set if item is in a folder other than the category folder
     /// </summary>
+    [Column(Order = 5, TypeName = "TEXT")]
     public string? FolderPath { get; set; }
 }

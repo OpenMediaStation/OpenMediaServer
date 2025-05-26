@@ -55,7 +55,7 @@ public class MovieMetadataService : IMovieMetadataService
             Title = omdbData?.Title ?? tmdbData?.Title,
             Movie = new()
             {
-                Year = omdbData?.Year ?? tmdbData?.ReleaseDate.ToString(),
+                Year =  omdbData?.Year ?? tmdbData?.ReleaseDate.ToString(),
                 Rated = omdbData?.Rated,
                 Released = omdbData?.Released,
                 Runtime = omdbData?.Runtime,

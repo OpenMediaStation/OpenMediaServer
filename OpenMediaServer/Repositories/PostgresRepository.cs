@@ -213,7 +213,14 @@ public class PostgresRepository : IDataRepository
         else
         {
             //TODO Implement table update!
-            var existingColumns = GetExistingTableColumns(tableName, connection);
+            var existingColumns = GetExistingTableColumns(tableName, connection).ToList();
+            var expectedColumns = GetColumnDefinition<T>().Split(',').Select(cd => cd.Trim());
+            foreach (var columnDef in expectedColumns.Where(c => !existingColumns.Any(col => c.StartsWith(col.ColumnName, StringComparison.InvariantCultureIgnoreCase))))
+            {
+                connection.Execute($"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {columnDef.Trim()}");
+                var columnName = columnDef.Split(' ').First();
+                connection.Execute($"update {tableName} set {columnName} = COALESCE({columnName}, json_data->>'{columnName}') where {columnName} is null and json_data ? '{columnName}'");
+            }
         }
 
         return;
@@ -232,7 +239,7 @@ public class PostgresRepository : IDataRepository
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                yield return (reader["column_name"].ToString()!, reader["type"].ToString()!);
+                yield return (reader["column_name"].ToString()!, reader["data_type"].ToString()!);
             }
         }
     }
