@@ -58,10 +58,7 @@ public class ProgressService(
         if(string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
         
-        if(progress.Id == null)
-            throw new ArgumentNullException($"{nameof(progress)}.Id");
-        
-        var existingProgress  = await dataRepository.GetObjectByIdAsync<Progress>((Guid)progress.Id!);
+        var existingProgress  = progress.Id == null ? null : await dataRepository.GetObjectByIdAsync<Progress>((Guid)progress.Id!);
 
         if (existingProgress != null)
         {
