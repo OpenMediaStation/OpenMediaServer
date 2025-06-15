@@ -48,6 +48,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 show.MetadataId = metadata?.Id;
                 show.DisplayImageBlurHash = metadata?.Show?.PosterBlurHash;
+                show.ReleaseDate = DateOnly.TryParse(metadata?.Show?.Released, out var dateOnly) ? dateOnly : null;
             }
             else
             {
@@ -135,7 +136,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
                 var metadata = await _metadataService.CreateNewMetadata
                 (
                     parentId: episode.Id,
-                    title: show.Title,
+                    title: show.Title ?? string.Empty,
                     year: discoveryInfo?.Year,
                     category: episode.Category,
                     episode: episode.EpisodeNr,
@@ -144,6 +145,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 episode.MetadataId = metadata?.Id;
                 episode.DisplayImageBlurHash = metadata?.Episode?.BackdropBlurHash;
+                episode.ReleaseDate = DateOnly.TryParse(metadata?.Episode?.Year, out var dateOnly) ? dateOnly : null;
             }
             else
             {

@@ -26,7 +26,7 @@ public class InventoryItem
     [Column(Order = 4, TypeName = "BOOLEAN")]
     public bool IsOrphan { get; set; }
     
-    public DateOnly? Year { get; set; }
+    public DateOnly? ReleaseDate { get; set; }
     
     public IEnumerable<InventoryItemVersion>? Versions { get; set; }
     public IEnumerable<InventoryItemAddon>? Addons { get; set; }

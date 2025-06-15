@@ -163,6 +163,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
             movie.MetadataId = metadata?.Id;
             movie.DisplayImageBlurHash = metadata?.Movie?.PosterBlurHash;
+            movie.ReleaseDate = DateOnly.TryParse(metadata?.Movie?.Released, out var dateOnly) ? dateOnly : null;
         }
 
         movie.Versions =

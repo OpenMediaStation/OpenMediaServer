@@ -171,6 +171,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
             audiobook.MetadataId = metadata?.Id;
             audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
+            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly) ? dateOnly : null;
 
             await _inventoryService.AddItem(audiobook);
         }
@@ -256,6 +257,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
             audiobook.MetadataId = metadata?.Id;
             audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
+            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly) ? dateOnly : null;
 
             await _inventoryService.AddItem(audiobook);
         }
