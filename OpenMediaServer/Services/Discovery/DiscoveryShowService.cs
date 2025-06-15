@@ -95,6 +95,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 season.MetadataId = metadata?.Id;
                 season.DisplayImageBlurHash = metadata?.Season?.PosterBlurHash;
+                season.ReleaseDate = metadata?.Season?.AirDate != null ? DateOnly.FromDateTime((DateTime)metadata?.Season?.AirDate!) : null;
             }
             else
             {
@@ -145,7 +146,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 episode.MetadataId = metadata?.Id;
                 episode.DisplayImageBlurHash = metadata?.Episode?.BackdropBlurHash;
-                episode.ReleaseDate = DateOnly.TryParse(metadata?.Episode?.Year, out var dateOnly) ? dateOnly : null;
+                episode.ReleaseDate = DateOnly.TryParse(metadata?.Episode?.Released, out var dateOnly) ? dateOnly : null;
             }
             else
             {
