@@ -10,22 +10,20 @@ public class DataRepoMock : IDataRepository
 {
     public List<string?> WrittenObjects { get; set; } = new();
 
-    public async Task WriteObjectAsync<T>(T item)
+    public async Task WriteObject<T>(T item)
     {
         WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
     }
 
-    public void WriteObject<T>(T item)
+    public async Task WriteObjects<T>(IEnumerable<T> items)
     {
-        WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
-    }
-    
-    public async Task<IEnumerable<T>> ListObjectsAsync<T>(Expression<Func<T, bool>>? filter = null)
-    {
-        return [];
+        foreach (var item in items)
+        {
+            WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
+        }
     }
 
-    public IEnumerable<T> ListObjects<T>(Expression<Func<T, bool>>? filter = null)
+    public async Task<IEnumerable<T>> ListObjects<T>(Expression<Func<T, bool>>? filter = null)
     {
         return [];
     }
@@ -40,33 +38,20 @@ public class DataRepoMock : IDataRepository
         return [];
     }
 
-    public async Task<T?> GetObjectByIdAsync<T>(Guid id, Expression<Func<T, bool>>? additionalFilter = null)
-    {
-        return default;
-    }
-
-    public T? GetObjectById<T>(Guid id, Expression<Func<T, bool>>? filter = null)
+    public async Task<T?> GetObjectById<T>(Guid id, Expression<Func<T, bool>>? additionalFilter = null)
     {
         return default;
     }
 
     public async Task WriteObjectsAsync<T>(IEnumerable<T> items)
     {
-        foreach(var item in items)
+        foreach (var item in items)
         {
             WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
         }
     }
 
-    public void WriteObjects<T>(IEnumerable<T> items)
-    {
-        foreach(var item in items)
-        {
-            WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
-        }
-    }
-
-    public async Task DeleteObjectAsync<T>(T item)
+    public async Task DeleteObjectWithFilter<T>(T item)
     {
         WrittenObjects.Remove(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
     }
@@ -76,7 +61,7 @@ public class DataRepoMock : IDataRepository
         WrittenObjects.Remove(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
     }
 
-    public async Task DeleteObjectAsync<T>(Guid id, Expression<Func<T, bool>>? filter = null)
+    public async Task DeleteObjectWithFilter<T>(Guid id, Expression<Func<T, bool>>? filter = null)
     {
         throw new NotImplementedException();
     }
@@ -86,12 +71,7 @@ public class DataRepoMock : IDataRepository
         throw new NotImplementedException();
     }
 
-    public async Task DeleteObjectsAsync<T>(IEnumerable<T> items)
-    {
-        throw new NotImplementedException();
-    }
-
-    public void DeleteObjects<T>(IEnumerable<T> items)
+    public async Task DeleteObjects<T>(IEnumerable<T> items)
     {
         throw new NotImplementedException();
     }

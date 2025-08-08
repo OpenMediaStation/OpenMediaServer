@@ -8,7 +8,7 @@ public interface IInventoryService
 {
     Task AddItem<T>(T item) where T : InventoryItem;
     Task AddItems(IEnumerable<InventoryItem> items);
-    IEnumerable<string> ListCategories();
+    Task<IEnumerable<string>> ListCategories();
     Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem;
     Task<T?> GetItem<T>(Guid id) where T : InventoryItem;
     Task<T?> GetItem<T>(string category, Expression<Func<T, bool>> filter) where T : InventoryItem;

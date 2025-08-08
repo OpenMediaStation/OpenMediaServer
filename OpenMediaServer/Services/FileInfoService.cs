@@ -25,21 +25,21 @@ public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository da
 
         FileInfoModel fileInfo = MapFileInfo(parentId, parentCategory, mappingInput);
         
-        await dataRepository.WriteObjectAsync(fileInfo);
+        await dataRepository.WriteObject(fileInfo);
 
         return fileInfo;
     }
 
     public async Task<IEnumerable<FileInfoModel>> ListFileInfo(string category)
     {
-        var metadatas = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => fi.ParentCategory == category);;
+        var metadatas = await dataRepository.ListObjects<FileInfoModel>(fi => fi.ParentCategory == category);;
 
         return metadatas;
     }
 
     public async Task<FileInfoModel?> GetFileInfo(string category, Guid id)
     {
-        var fileInfo = await dataRepository.GetObjectByIdAsync<FileInfoModel>(id, fi => fi.ParentCategory == category);
+        var fileInfo = await dataRepository.GetObjectById<FileInfoModel>(id, fi => fi.ParentCategory == category);
         
         return fileInfo;
     }
@@ -47,21 +47,21 @@ public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository da
     public async Task<IEnumerable<FileInfoModel>?> GetFileInfos(string category, List<Guid> ids)
     {
         //filtering in C# instead of SQL (not working, expression with contains is to complex right now.. maybe working in the future)
-        var fileInfos = (await dataRepository.ListObjectsAsync<FileInfoModel>()).Where(fi => ids.Contains(fi.Id)); 
+        var fileInfos = (await dataRepository.ListObjects<FileInfoModel>()).Where(fi => ids.Contains(fi.Id)); 
         
         return fileInfos;
     }
 
     public async Task DeleteFileInfo(string category, Guid id)
     {
-        await dataRepository.DeleteObjectAsync<FileInfoModel>(id, (fi => fi.ParentCategory == category));
+        await dataRepository.DeleteObjectWithFilter<FileInfoModel>(id, (fi => fi.ParentCategory == category));
     }
 
     public async Task DeleteFileInfoByParentId(string category, Guid parentId)
     {
-        var matchingFileInfos = await dataRepository.ListObjectsAsync<FileInfoModel>(fi => fi.ParentCategory == category && fi.ParentId == parentId);
+        var matchingFileInfos = await dataRepository.ListObjects<FileInfoModel>(fi => fi.ParentCategory == category && fi.ParentId == parentId);
         
-        await dataRepository.DeleteObjectsAsync(matchingFileInfos);
+        await dataRepository.DeleteObjects(matchingFileInfos);
     }
 
     private FileInfoModel MapFileInfo(Guid parentId, string parentCategory, IMediaAnalysis mappingInput)

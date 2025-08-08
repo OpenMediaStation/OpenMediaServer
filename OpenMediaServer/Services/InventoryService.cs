@@ -12,19 +12,17 @@ public class InventoryService(
     IImageService imageService)
     : IInventoryService
 {
-    private readonly IDataRepository _dataRepository = dataRepository;
-
-    #region Get Functions
     
-    public IEnumerable<string> ListCategories()
+    public async Task<IEnumerable<string>> ListCategories()
     {
-        var categories = dataRepository.ListObjects<InventoryItem,string>(select: n => n.Category);
-        return categories;
+        var categories = await dataRepository.ListObjects<InventoryItem>();
+        
+        return categories.Select(i => i.Category);
     }
 
     public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
     {
-        var items = await dataRepository.ListObjectsAsync<T>(n => n.Category == category && n.IsOrphan == false);
+        var items = await dataRepository.ListObjects<T>(n => n.Category == category && n.IsOrphan == false);
         return items.Select(i =>
         {
             _ = Task.Run(() => CreateMissingBlurHash<T>(i));
@@ -34,7 +32,7 @@ public class InventoryService(
 
     public async Task<T?> GetItem<T>(Guid id) where T : InventoryItem
     {
-        var possibleItem = await dataRepository.GetObjectByIdAsync<T>(id);
+        var possibleItem = await dataRepository.GetObjectById<T>(id);
         
         if (possibleItem == null)
         {
@@ -49,7 +47,7 @@ public class InventoryService(
         logger.LogTrace("Getting item by name");
         
         
-        var items = (await dataRepository.ListObjectsAsync<T>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
+        var items = (await dataRepository.ListObjects<T>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
         
         if (items.Length != 1)
         {
@@ -61,9 +59,6 @@ public class InventoryService(
 
         return items.FirstOrDefault();
     }
-    #endregion
-    
-    #region Set Functions
     
     public async Task AddItems(IEnumerable<InventoryItem> items)
     {
@@ -75,20 +70,19 @@ public class InventoryService(
 
     public async Task AddItem<T>(T item) where T : InventoryItem
     {
-        await dataRepository.WriteObjectAsync(item);
+        await dataRepository.WriteObject(item);
     }
 
     public async Task Update<T>(T item) where T : InventoryItem
     {
-        var existingItem = await dataRepository.GetObjectByIdAsync<T>(item.Id);
+        var existingItem = await dataRepository.GetObjectById<T>(item.Id);
         
-        await dataRepository.WriteObjectAsync(item);
+        await dataRepository.WriteObject(item);
     }
-    #endregion
     
     public async Task Remove<T>(T item) where T : InventoryItem
     {
-        await dataRepository.DeleteObjectAsync<T>(item.Id);
+        await dataRepository.DeleteObjectWithFilter<T>(item.Id);
     }
 
     private async Task CreateMissingBlurHash<T>(InventoryItem inventoryItem) where T : InventoryItem

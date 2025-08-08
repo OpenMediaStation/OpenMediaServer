@@ -48,7 +48,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             Category = category,
             InventoryItemId = inventoryItemId,
         };
-        await _dataRepository.WriteObjectAsync(entry);
+        await _dataRepository.WriteObject(entry);
 
         return Results.Ok(entry);
     }
@@ -60,7 +60,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-        await _dataRepository.DeleteObjectAsync<Bookmark>(id);
+        await _dataRepository.DeleteObjectWithFilter<Bookmark>(id);
        
         return Results.Ok();
     }
@@ -83,7 +83,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        await _dataRepository.WriteObjectAsync(bookmark);
+        await _dataRepository.WriteObject(bookmark);
 
         return Results.Ok(bookmark);
     }
@@ -95,7 +95,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-        var bookmarks = await _dataRepository.ListObjectsAsync<Bookmark>(bm => bm.UserId == userId && bm.Category == category && bm.InventoryItemId == inventoryItemId);
+        var bookmarks = await _dataRepository.ListObjects<Bookmark>(bm => bm.UserId == userId && bm.Category == category && bm.InventoryItemId == inventoryItemId);
 
         return Results.Ok(bookmarks);
     }
@@ -108,7 +108,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var bookmark = await _dataRepository.GetObjectByIdAsync<Bookmark>(id);
+        var bookmark = await _dataRepository.GetObjectById<Bookmark>(id);
         
         if(bookmark != null && bookmark?.UserId != userId)
             return Results.Forbid();

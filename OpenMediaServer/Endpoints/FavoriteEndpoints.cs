@@ -35,11 +35,11 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.NotFound();
         }
 
-        var favorites = await dataRepository.ListObjectsAsync<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId);
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId);
 
         if (favorites.All(fi => fi.InventoryId != inventoryItemId))
         {
-            await dataRepository.WriteObjectAsync(new FavoriteInfo(){Id = Guid.NewGuid(), InventoryId = inventoryItemId, UserId = userId, Category = category});
+            await dataRepository.WriteObject(new FavoriteInfo(){Id = Guid.NewGuid(), InventoryId = inventoryItemId, UserId = userId, Category = category});
         }
 
         return Results.Ok();
@@ -59,11 +59,11 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.NotFound();
         }
 
-        var favorite = (await dataRepository.ListObjectsAsync<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId)).FirstOrDefault();
+        var favorite = (await dataRepository.ListObjects<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId)).FirstOrDefault();
 
         if (favorite != null)
         {
-            await dataRepository.DeleteObjectAsync(favorite);
+            await dataRepository.DeleteObjects([favorite]);
         }
 
         return Results.Ok();
@@ -77,7 +77,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var favorites = await dataRepository.ListObjectsAsync<FavoriteInfo>(f => f.Category == category && f.UserId == userId);;
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(f => f.Category == category && f.UserId == userId);;
 
         return Results.Ok(favorites.Select(f => f.InventoryId));
     }
@@ -90,7 +90,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var favorites = (await dataRepository.ListObjectsAsync<FavoriteInfo>(f => f.UserId == userId && f.InventoryId == inventoryItemId)).FirstOrDefault();
+        var favorites = (await dataRepository.ListObjects<FavoriteInfo>(f => f.UserId == userId && f.InventoryId == inventoryItemId)).FirstOrDefault();
 
         return Results.Ok(favorites != null);
     }
@@ -103,7 +103,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var favorites = await dataRepository.ListObjectsAsync<FavoriteInfo>(f => f.UserId == userId && ids.Contains(f.InventoryId));
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(f => f.UserId == userId && ids.Contains(f.InventoryId));
 
         var result = ids.ToDictionary(id => id, id => favorites.Any(f => f.InventoryId == id));
 

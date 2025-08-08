@@ -10,7 +10,7 @@ public class BinService(ILogger<BinService> logger, IDataRepository dataReposito
 {
     public async Task<T?> GetItem<T>(string title, string category) where T : InventoryItem
     {
-        var possibleItems = (await dataRepository.ListObjectsAsync<T>(n => n.Category == category && n.Title == title && n.IsOrphan == true)).ToArray();
+        var possibleItems = (await dataRepository.ListObjects<T>(n => n.Category == category && n.Title == title && n.IsOrphan == true)).ToArray();
         
         if (possibleItems.Count() != 1)
         {
@@ -26,12 +26,12 @@ public class BinService(ILogger<BinService> logger, IDataRepository dataReposito
     public async Task AddItem<T>(T item) where T : InventoryItem
     {
         item.IsOrphan = true;
-        await dataRepository.WriteObjectAsync(item);
+        await dataRepository.WriteObject(item);
     }
 
     public async Task RemoveById<T>(T item) where T : InventoryItem
     {
             item.IsOrphan = false;
-            await dataRepository.WriteObjectAsync(item);
+            await dataRepository.WriteObject(item);
     }
 }

@@ -10,7 +10,6 @@ public class Bookmark
     [Column(Order = 0, TypeName = "UUID")]
     public Guid? Id { get; set; }
     
-    
     [Column(Order = 1, TypeName = "TEXT")]
     public string? UserId { get; set; }
 
@@ -18,11 +17,18 @@ public class Bookmark
     public string? Category { get; set; }
     
     [Column(Order = 3, TypeName = "UUID")] 
-    [ForeignKey(nameof(Metadata.MetadataModel)+"(Id)")]
+    [ForeignKey(nameof(InventoryItem)+"(Id)")]
     public Guid? InventoryItemId { get; set; }
     
+    [Column(TypeName = "INTEGER")] 
     public int? PositionInSeconds { get; set; }
+    
+    [Column(TypeName = "TEXT")] 
     public string? Title { get; set; }
+    
+    [Column(TypeName = "TEXT")] 
     public string? Description { get; set; }
+    
+    [Column(TypeName = "INTEGER")] 
     public int? PageNumber { get; set; }
 }

@@ -9,6 +9,7 @@ using OpenMediaServer;
 using OpenMediaServer.APIs;
 using OpenMediaServer.Endpoints;
 using OpenMediaServer.Interfaces.APIs;
+using OpenMediaServer.Interfaces.Database;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -16,6 +17,7 @@ using OpenMediaServer.Interfaces.Services.Discovery;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Repositories;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Database;
 using OpenMediaServer.Services.Discovery;
 using OpenMediaServer.Services.Metadata;
 using Serilog;
@@ -177,6 +179,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IShowMetadataService, ShowMetadataService>();
     services.AddSingleton<IBookMetadataService, BookMetadataService>();
     services.AddSingleton<IBookmarkEndpoints, BookmarkEndpoints>();
+    services.AddSingleton<IPostgresManager, PostgresManager>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

@@ -40,7 +40,7 @@ public class ProgressService(
             Completions = newProgress.Completions,
         };
         
-        await dataRepository.WriteObjectAsync(progress);
+        await dataRepository.WriteObject(progress);
     }
 
     public async Task UpdateProgress(Progress progress, string userId)
@@ -58,7 +58,7 @@ public class ProgressService(
         if(string.IsNullOrWhiteSpace(userId))
             throw new ArgumentNullException(nameof(userId));
         
-        var existingProgress  = progress.Id == null ? null : await dataRepository.GetObjectByIdAsync<Progress>((Guid)progress.Id!);
+        var existingProgress  = progress.Id == null ? null : await dataRepository.GetObjectById<Progress>((Guid)progress.Id!);
 
         if (existingProgress != null)
         {
@@ -66,7 +66,7 @@ public class ProgressService(
             existingProgress.ProgressSeconds = progress.ProgressSeconds;
             existingProgress.Completions = progress.Completions;
             
-            await dataRepository.WriteObjectAsync(existingProgress);
+            await dataRepository.WriteObject(existingProgress);
         }
         else
         {
@@ -156,19 +156,19 @@ public class ProgressService(
         
         if (progressId != null)
         {
-            var progress = await dataRepository.GetObjectByIdAsync<Progress>((Guid)progressId, p => p.Category == category);
+            var progress = await dataRepository.GetObjectById<Progress>((Guid)progressId, p => p.Category == category);
 
             return progress;
         }
 
-        var progressParentFiltered = (await dataRepository.ListObjectsAsync<Progress>(p => p.ParentId == parentId)).FirstOrDefault();
+        var progressParentFiltered = (await dataRepository.ListObjects<Progress>(p => p.ParentId == parentId)).FirstOrDefault();
 
         return progressParentFiltered;
     }
 
     public async Task<IEnumerable<Progress>?> ListProgresses(string userId, string category)
     {
-        var progresses = await dataRepository.ListObjectsAsync<Progress>();
+        var progresses = await dataRepository.ListObjects<Progress>();
 
         return progresses;
     }

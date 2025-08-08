@@ -80,21 +80,21 @@ public class MetadataService(
 
         // metadatas = metadatas.Append(metadata);
 
-        await storageRepository.WriteObjectAsync(metadata);
+        await storageRepository.WriteObject(metadata);
 
         return metadata;
     }
 
     public async Task<IEnumerable<MetadataModel>> ListMetadata(string category)
     {
-        var metadataObjects = await storageRepository.ListObjectsAsync<MetadataModel>(m => m.Category == category);
+        var metadataObjects = await storageRepository.ListObjects<MetadataModel>(m => m.Category == category);
 
         return metadataObjects;
     }
 
     public async Task<MetadataModel?> GetMetadata(string category, Guid id)
     {
-        var metadata = await storageRepository.GetObjectByIdAsync<MetadataModel>(id);
+        var metadata = await storageRepository.GetObjectById<MetadataModel>(id);
         _ = Task.Run(() => CreateBlurHashIfMissing(metadata));
         return metadata;
     }
@@ -148,7 +148,7 @@ public class MetadataService(
             return false;
         }
         
-        await storageRepository.WriteObjectAsync(metadataModel);
+        await storageRepository.WriteObject(metadataModel);
 
         return true;
     }

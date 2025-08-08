@@ -26,10 +26,13 @@ public class InventoryItem
     [Column(Order = 4, TypeName = "BOOLEAN")]
     public bool IsOrphan { get; set; }
     
+    [Column(TypeName = "DATE")]
     public DateOnly? ReleaseDate { get; set; }
     
     public IEnumerable<InventoryItemVersion>? Versions { get; set; }
     public IEnumerable<InventoryItemAddon>? Addons { get; set; }
+    
+    [Column(TypeName = "TEXT")]
     public string? DisplayImageBlurHash { get; set; }
 
     /// <summary>

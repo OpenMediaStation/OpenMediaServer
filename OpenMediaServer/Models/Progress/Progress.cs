@@ -19,8 +19,12 @@ public class Progress
     [Column(Order = 3, TypeName = "TEXT")]
     public string? UserId { get; set; }
 
+    [Column(TypeName = "REAL")]
     public float? ProgressPercentage { get; set; }
+    
+    [Column(TypeName = "INTEGER")] 
     public int? ProgressSeconds { get; set; }
 
+    [Column(TypeName = "INTEGER")] 
     public int? Completions { get; set; }
 }
