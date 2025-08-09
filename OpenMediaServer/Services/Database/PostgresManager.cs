@@ -17,9 +17,9 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
 {
     public void InitializeDatabase(string connectionString)
     {
+        CreateTable<InventoryItem>(connectionString);
         CreateDatabase(connectionString);
         CreateTable<MetadataModel>(connectionString);
-        CreateTable<InventoryItem>(connectionString);
         CreateTable<FileInfoModel>(connectionString);
         CreateTable<Progress>(connectionString);
         CreateTable<FavoriteInfo>(connectionString);

@@ -5,6 +5,7 @@ using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Discovery;
 using OpenMediaServer.Test.Mocks;
 using Shouldly;
 
@@ -81,7 +82,7 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Episode\""));
-        var resultItem = JsonSerializer.Deserialize<Episode>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
@@ -117,7 +118,7 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Season\""));
-        var resultItem = JsonSerializer.Deserialize<Season>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
@@ -164,7 +165,7 @@ public class DiscoveryShowServiceShould
         // Act
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Show>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

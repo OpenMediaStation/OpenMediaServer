@@ -3,7 +3,7 @@ using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Discovery;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
 public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileInfoService _fileInfoService, IMetadataService _metadataService, IInventoryService _inventoryService, IAddonService _addonService, IBinService _binService) : IDiscoveryShowService
 {
@@ -24,18 +24,19 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         // Show
         var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
-        var show = await _inventoryService.GetItem<Show>("Show", i => i.FolderPath == showPath);
+        var show = await _inventoryService.GetItem<InventoryItem>("Show", i => i.FolderPath == showPath);
 
         if (show == null)
         {
-            show = await _binService.GetItem<Show>(folderTitle, "Show");
+            show = await _binService.GetItem<InventoryItem>(folderTitle, "Show");
 
             if (show == null)
             {
-                show = new Show
+                show = new InventoryItem
                 {
                     Id = Guid.NewGuid(),
                     Title = folderTitle,
+                    Category = "Show",
                 };
 
                 var metadata = await _metadataService.CreateNewMetadata
@@ -62,7 +63,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         var folderPath = Directory.GetParent(path)?.FullName ?? Path.GetDirectoryName(path);
         // Season
-        var season = await _inventoryService.GetItem<Season>("Season", i => i.FolderPath == folderPath);
+        var season = await _inventoryService.GetItem<InventoryItem>("Season", i => i.FolderPath == folderPath);
 
         if (season == null)
         {
@@ -71,13 +72,14 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
                 discoveryInfo!.SeasonFolder = $"Season {discoveryInfo?.SeasonNr}";
             }
 
-            season = await _binService.GetItem<Season>(discoveryInfo!.SeasonFolder, "Season");
+            season = await _binService.GetItem<InventoryItem>(discoveryInfo!.SeasonFolder, "Season");
 
             if (season == null)
             {
-                season = new Season
+                season = new InventoryItem
                 {
                     Id = Guid.NewGuid(),
+                    Category = "Season",
 
                     ShowId = show.Id,
                     Title = discoveryInfo?.SeasonFolder,
@@ -106,28 +108,26 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
             await _inventoryService.AddItem(season);
 
-            show.SeasonIds ??= [];
-            show.SeasonIds = show.SeasonIds.Append(season.Id);
-
             await _inventoryService.Update(show);
         }
 
         // Episode
-        var episode = (await _inventoryService.ListItems<Episode>("Episode"))?.Where(e => e.Versions?.Any(v => v.Path == path) ?? false).FirstOrDefault();
+        var episode = (await _inventoryService.ListItems<InventoryItem>("Episode"))?.Where(e => e.Versions?.Any(v => v.Path == path) ?? false).FirstOrDefault();
 
         if (episode == null)
         {
             var title = $"{folderTitle} S{discoveryInfo?.SeasonNr}E{discoveryInfo?.EpisodeNr}";
 
-            episode = await _binService.GetItem<Episode>(title, "Episode");
+            episode = await _binService.GetItem<InventoryItem>(title, "Episode");
 
             var versionId = Guid.NewGuid();
 
             if (episode == null)
             {
-                episode = new Episode
+                episode = new InventoryItem
                 {
                     Id = Guid.NewGuid(),
+                    Category = "Episode",
                     SeasonId = season.Id,
                     Title = title,
                     EpisodeNr = discoveryInfo?.EpisodeNr,
@@ -165,9 +165,6 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
             ];
 
             await _inventoryService.AddItem(episode);
-
-            season.EpisodeIds ??= [];
-            season.EpisodeIds = season.EpisodeIds.Append(episode.Id);
 
             await _inventoryService.Update(season);
         }

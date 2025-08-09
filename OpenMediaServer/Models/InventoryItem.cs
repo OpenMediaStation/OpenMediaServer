@@ -7,23 +7,23 @@ namespace OpenMediaServer.Models;
 public class InventoryItem
 {
     [Key]
-    [Column(Order = 0, TypeName = "UUID")]
+    [Column(TypeName = "UUID")]
     public Guid Id { get; set; }
     
     
-    [Column(Order = 3 ,TypeName = "TEXT")]
+    [Column(TypeName = "TEXT")]
     public string? Title { get; set; }
     
     
-    [Column(Order = 1, TypeName = "TEXT")]
+    [Column(TypeName = "TEXT")]
     public virtual string Category { get; set; }
     
     
     [ForeignKey(nameof(Metadata.MetadataModel)+"(Id)")]
-    [Column(Order = 2, TypeName = "UUID")]
+    [Column(TypeName = "UUID")]
     public Guid? MetadataId { get; set; }
     
-    [Column(Order = 4, TypeName = "BOOLEAN")]
+    [Column(TypeName = "BOOLEAN")]
     public bool IsOrphan { get; set; }
     
     [Column(TypeName = "DATE")]
@@ -38,6 +38,20 @@ public class InventoryItem
     /// <summary>
     /// Folder path. Only set if item is in a folder other than the category folder
     /// </summary>
-    [Column(Order = 5, TypeName = "TEXT")]
+    [Column(TypeName = "TEXT")]
     public string? FolderPath { get; set; }
+    
+    [ForeignKey(nameof(InventoryItem)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid? SeasonId { get; set; }
+    
+    [Column(TypeName = "INTEGER")]
+    public int? EpisodeNr { get; set; }
+    
+    [Column(TypeName = "INTEGER")]
+    public int? SeasonNr { get; set; }
+    
+    [ForeignKey(nameof(InventoryItem)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid? ShowId { get; set; }
 }

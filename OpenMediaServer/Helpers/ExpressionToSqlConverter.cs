@@ -108,6 +108,13 @@ public static class ExpressionToSqlConverter
             case bool b:
                 sb.Append(b ? "TRUE" : "FALSE");
                 break;
+            case DateOnly:
+                var dateOnly = value is DateOnly only ? only : default;
+                
+                var isoString = dateOnly.ToString("yyyy-MM-dd");
+                
+                sb.Append($"\'{isoString}\'");
+                break;
             default:
                 sb.Append(value);
                 break;

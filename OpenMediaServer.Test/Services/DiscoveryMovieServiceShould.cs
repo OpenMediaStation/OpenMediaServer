@@ -5,6 +5,7 @@ using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Discovery;
 using OpenMediaServer.Test.Mocks;
 using Shouldly;
 
@@ -83,7 +84,7 @@ public class DiscoveryMovieServiceShould
         // Act
         await _inventoryMovieShowService.CreateMovie(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Movie>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

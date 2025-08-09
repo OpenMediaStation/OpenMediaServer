@@ -2,7 +2,7 @@ using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
 public class DiscoveryBookService : IDiscoveryBookService
 {
@@ -50,7 +50,7 @@ public class DiscoveryBookService : IDiscoveryBookService
             return;
         }
 
-        var books = await _inventoryService.ListItems<Book>("Book");
+        var books = await _inventoryService.ListItems<InventoryItem>("Book");
         var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
 
         string? folderPath = null;
@@ -85,9 +85,10 @@ public class DiscoveryBookService : IDiscoveryBookService
         }
 
         var versionId = Guid.NewGuid();
-        var book = new Book()
+        var book = new InventoryItem()
         {
             Id = Guid.NewGuid(),
+            Category = "Book",
             Versions =
             [
                 new()

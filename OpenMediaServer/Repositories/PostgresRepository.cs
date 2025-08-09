@@ -77,10 +77,11 @@ public class PostgresRepository : IDataRepository
         var whereClause = string.Join(" OR ",
             columnNameListWithoutKey.Select(n => $"{tableName}.{n} IS DISTINCT FROM EXCLUDED.{n}"));
 
+        var query = $"INSERT INTO {tableName} ({columnNames}) VALUES {valuesString} ON CONFLICT ({keyProp.Name}) DO UPDATE SET {updateDef} WHERE {whereClause}";
+
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
-        await connection.ExecuteAsync(
-            $"INSERT INTO {tableName} ({columnNames}) VALUES {valuesString} ON CONFLICT ({keyProp.Name}) DO UPDATE SET {updateDef} WHERE {whereClause}");
+        await connection.ExecuteAsync(query);
     }
 
     public async Task DeleteObjectWithFilter<T>(Guid id, Expression<Func<T, bool>>? filter = null)
@@ -153,31 +154,33 @@ public class PostgresRepository : IDataRepository
         var type = obj.GetType();
         if (type.BaseType != null && type.BaseType.Assembly == Assembly.GetExecutingAssembly())
             type = type.BaseType;
+
         var props = type.GetProperties()
-            .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute))).ToArray();
-        var resultSet = new (string typeName, object value)[props.Length + 1];
+            .Where(p => p.GetCustomAttribute<ColumnAttribute>() != null)
+            .ToArray();
+
+        var resultList = new List<(string typeName, object value)>();
+
         foreach (var prop in props)
         {
             var propValue = prop.GetValue(obj);
             var column = prop.GetCustomAttribute<ColumnAttribute>();
-            var isColumn = column != null;
-            if (isColumn)
-            {
-                resultSet[column!.Order] = (column.TypeName, propValue!)!;
-            }
+            resultList.Add((column!.TypeName, propValue!)!);
         }
 
-        resultSet[^1] = ("jsonb", JsonSerializer.Serialize(obj, Globals.JsonOptions));
-        return resultSet;
-    }
+        // Append the JSONB serialized object at the end
+        resultList.Add(("jsonb", JsonSerializer.Serialize(obj, Globals.JsonOptions)));
 
+        return resultList.ToArray();
+    }
+    
     private static string GetColumnNamesFromType(Type type)
     {
         if (type.BaseType != null && type.BaseType.Assembly == Assembly.GetExecutingAssembly())
             type = type.BaseType;
         var columnProps = type.GetProperties()
             .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute))).ToArray();
-        var columnNames = columnProps.OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order)
+        var columnNames = columnProps //.OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order)
             .Select(p => $"{p.Name}").Append("json_data");
         return string.Join(",", columnNames);
     }

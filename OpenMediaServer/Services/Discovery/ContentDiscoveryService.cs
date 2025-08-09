@@ -1,8 +1,9 @@
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
 using OpenMediaServer.Models;
+using TMDbLib.Objects.Movies;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
 public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IDiscoveryAudiobookService _audiobookDiscoveryService) : IContentDiscoveryService
 {
@@ -19,19 +20,19 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     {
         var paths = GetPaths(Globals.MediaFolder);
 
-        var movies = await _inventoryService.ListItems<Movie>("Movie");
+        var movies = await _inventoryService.ListItems<InventoryItem>("Movie");
 
         await HandleDelete(paths, movies);
 
-        var books = await _inventoryService.ListItems<Book>("Book");
+        var books = await _inventoryService.ListItems<InventoryItem>("Book");
 
         await HandleDelete(paths, books);
 
-        var audiobooks = await _inventoryService.ListItems<Audiobook>("Audiobook");
+        var audiobooks = await _inventoryService.ListItems<InventoryItem>("Audiobook");
 
         await HandleDelete(paths, books);
 
-        var episodes = await _inventoryService.ListItems<Episode>("Episode");
+        var episodes = await _inventoryService.ListItems<InventoryItem>("Episode");
 
         await HandleDelete(paths, episodes);
     }
@@ -117,69 +118,74 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
     }
 
-    private async Task UpdateShow(IEnumerable<Season>? seasons)
+    private async Task UpdateShow(IEnumerable<InventoryItem>? seasons)
     {
         if (seasons != null)
         {
             foreach (var season in seasons)
             {
-                var show = await _inventoryService.GetItem<Show>(season.ShowId);
+                // TODO
+                
+                // var show = await _inventoryService.GetItem<InventoryItem>(season.ShowId);
 
-                if (show != null)
-                {
-                    var seasonIds = show.SeasonIds?.ToList();
-                    seasonIds?.RemoveAll(i => i == season.Id);
-
-                    show.SeasonIds = seasonIds;
-
-                    await _inventoryService.Update(show);
-                }
-
-                if (show != null && (!show?.SeasonIds?.Any() ?? true))
-                {
-                    await _binService.AddItem(show!);
-                    // await _inventoryService.RemoveById(show!);
-                }
+                // if (show != null)
+                // {
+                //     var seasonIds = show.SeasonIds?.ToList();
+                //     seasonIds?.RemoveAll(i => i == season.Id);
+                //
+                //     show.SeasonIds = seasonIds;
+                //
+                //     await _inventoryService.Update(show);
+                // }
+                //
+                // if (show != null && (!show?.SeasonIds?.Any() ?? true))
+                // {
+                //     await _binService.AddItem(show!);
+                //     // await _inventoryService.RemoveById(show!);
+                // }
             }
         }
     }
 
-    private async Task UpdateSeason(IEnumerable<Episode>? items)
+    private async Task UpdateSeason(IEnumerable<InventoryItem>? items)
     {
         if (items != null)
         {
-            List<Season> seasons = [];
+            List<InventoryItem> seasons = [];
 
             foreach (var episode in items)
             {
-                var season = await _inventoryService.GetItem<Season>(episode.SeasonId);
-
-                if (season != null)
-                {
-                    seasons.Add(season);
-                }
+                // TODO
+                
+                // var season = await _inventoryService.GetItem<InventoryItem>(episode.SeasonId);
+                //
+                // if (season != null)
+                // {
+                //     seasons.Add(season);
+                // }
             }
 
             foreach (var episode in items)
             {
                 var season = seasons.FirstOrDefault(i => i.Id == episode.SeasonId);
 
-                if (season != null)
-                {
-                    var episodeIds = season.EpisodeIds?.ToList();
-                    episodeIds?.RemoveAll(i => i == episode.Id);
-
-                    season.EpisodeIds = episodeIds;
-
-                    await _inventoryService.Update(season);
-                }
-
-                if (season != null && (!season?.EpisodeIds?.Any() ?? true))
-                {
-                    await UpdateShow(seasons);
-
-                    await _binService.AddItem(season!);
-                }
+                // TODO
+                // if (season != null)
+                // {
+                //     var episodeIds = season.EpisodeIds?.ToList();
+                //     episodeIds?.RemoveAll(i => i == episode.Id);
+                //
+                //     season.EpisodeIds = episodeIds;
+                //
+                //     await _inventoryService.Update(season);
+                // }
+                //
+                // if (season != null && (!season?.EpisodeIds?.Any() ?? true))
+                // {
+                //     await UpdateShow(seasons);
+                //
+                //     await _binService.AddItem(season!);
+                // }
             }
         }
     }
@@ -223,10 +229,8 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
                     if (!item.Versions.Any())
                     {
-                        if (typeof(Episode).IsAssignableFrom(typeof(T)))
-                        {
-                            await UpdateSeason(items as IEnumerable<Episode>);
-                        }
+                        await UpdateSeason(items);
+                        
                         await _binService.AddItem(item);
                     }
                 }

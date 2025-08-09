@@ -13,11 +13,9 @@ public class InventoryService(
     : IInventoryService
 {
     
-    public async Task<IEnumerable<string>> ListCategories()
+    public IEnumerable<string> ListCategories()
     {
-        var categories = await dataRepository.ListObjects<InventoryItem>();
-        
-        return categories.Select(i => i.Category);
+        return ["Audiobook", "Book", "Episode", "Movie", "Season", "Show"];
     }
 
     public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem

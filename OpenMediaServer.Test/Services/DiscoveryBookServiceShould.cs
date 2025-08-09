@@ -5,6 +5,7 @@ using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Discovery;
 using OpenMediaServer.Test.Mocks;
 using Shouldly;
 
@@ -47,7 +48,7 @@ public class DiscoveryBookServiceShould
         // Act
         await _inventoryBookService.CreateBook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Book>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

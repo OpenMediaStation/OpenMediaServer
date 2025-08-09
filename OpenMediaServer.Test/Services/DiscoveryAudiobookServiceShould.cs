@@ -45,7 +45,7 @@ public class DiscoveryAudiobookServiceShould
         // Act
         await _inventoryBookService.CreateAudiobook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var resultItem = JsonSerializer.Deserialize<Audiobook>(resultJson, Globals.JsonOptions);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);

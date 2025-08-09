@@ -75,7 +75,7 @@ public class ProgressService(
 
         if (progress.Category == "Episode") //TODO CHECK AND maybe REFACTOR
         {
-            var episodes = await inventoryService.ListItems<Episode>("Episode");
+            var episodes = await inventoryService.ListItems<InventoryItem>("Episode");
             var filteredEpisodes = episodes?.Where(i => i.Id == progress.ParentId);
             var seasonId = filteredEpisodes?.FirstOrDefault()?.SeasonId;
             var episodeIds = episodes?.Where(i => i.SeasonId == seasonId).Select(i => i.Id);
@@ -111,7 +111,7 @@ public class ProgressService(
         }
         else if (progress.Category == "Season")
         {
-            var seasons = await inventoryService.ListItems<Season>("Season");
+            var seasons = await inventoryService.ListItems<InventoryItem>("Season");
             var filteredSeasons = seasons?.Where(i => i.Id == progress.ParentId);
             var showId = filteredSeasons?.FirstOrDefault()?.ShowId;
             var seasonIds = seasons?.Where(i => i.ShowId == showId).Select(i => i.Id);

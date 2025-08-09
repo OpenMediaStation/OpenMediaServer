@@ -64,7 +64,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 folderTitle = (splittedPath.Length - 3) >= 0 ? splittedPath[^3] : null;
             }
 
-            var books = await _inventoryService.ListItems<Audiobook>("Audiobook");
+            var books = await _inventoryService.ListItems<InventoryItem>("Audiobook");
             var existingBook = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
 
             string? folderPath = null;
@@ -134,9 +134,10 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             var versionId = Guid.NewGuid();
             var partId = Guid.NewGuid();
 
-            var audiobook = new Audiobook()
+            var audiobook = new InventoryItem()
             {
                 Id = Guid.NewGuid(),
+                Category = "Audiobook",
                 Versions =
                 [
                     new()
@@ -193,7 +194,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 return;
             }
 
-            var books = await _inventoryService.ListItems<Audiobook>("Audiobook");
+            var books = await _inventoryService.ListItems<InventoryItem>("Audiobook");
             var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
 
             string? folderPath = null;
@@ -231,9 +232,10 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             }
 
             var versionId = Guid.NewGuid();
-            var audiobook = new Audiobook()
+            var audiobook = new InventoryItem()
             {
                 Id = Guid.NewGuid(),
+                Category = "Audiobook",
                 Versions =
                 [
                     new()

@@ -4,7 +4,7 @@ using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
 public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService, IBinService binService) : IDiscoveryMovieService
 {
@@ -95,7 +95,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
     private async Task ReallyCreateMovie(string path, string[] parts, string title, int? year, GroupCollection fileGroups, string category, string folderTitle, string versionName)
     {
-        var movies = await inventoryService.ListItems<Movie>("Movie");
+        var movies = await inventoryService.ListItems<InventoryItem>("Movie");
         var existingMovie = movies?.Where(i => i.Versions?.Any(j => j.Path == path) ?? false).FirstOrDefault();
 
         string? folderPath = null;
@@ -142,13 +142,14 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
         var versionId = Guid.NewGuid();
 
-        var movie = await binService.GetItem<Movie>(title, "Movie");
+        var movie = await binService.GetItem<InventoryItem>(title, "Movie");
 
         if (movie == null)
         {
-            movie = new Movie()
+            movie = new InventoryItem()
             {
                 Id = Guid.NewGuid(),
+                Category = "Movie",
                 Title = title, //!string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" :          
             };
 

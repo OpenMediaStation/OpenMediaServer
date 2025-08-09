@@ -44,7 +44,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetMovie(Guid id)
     {
-        var item = await _inventoryService.GetItem<Movie>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -58,7 +58,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetShow(Guid id)
     {
-        var item = await _inventoryService.GetItem<Show>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -77,11 +77,11 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
             return Results.BadRequest("Invalid or missing episode IDs.");
         }
 
-        var items = new List<Show>();
+        var items = new List<InventoryItem>();
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<Show>(id: id);
+            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -93,7 +93,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetEpisode(Guid id)
     {
-        var item = await _inventoryService.GetItem<Episode>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -112,11 +112,11 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
             return Results.BadRequest("Invalid or missing episode IDs.");
         }
 
-        var items = new List<Episode>();
+        var items = new List<InventoryItem>();
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<Episode>(id: id);
+            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -128,7 +128,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetSeason(Guid id)
     {
-        var item = await _inventoryService.GetItem<Season>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -147,11 +147,11 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
             return Results.BadRequest("Invalid or missing season IDs.");
         }
 
-        var items = new List<Season>();
+        var items = new List<InventoryItem>();
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<Season>(id: id);
+            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -163,7 +163,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetBook(Guid id)
     {
-        var item = await _inventoryService.GetItem<Book>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -182,11 +182,11 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
             return Results.BadRequest("Invalid or missing season IDs.");
         }
 
-        var items = new List<Book>();
+        var items = new List<InventoryItem>();
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<Book>(id: id);
+            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -198,7 +198,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetAudiobook(Guid id)
     {
-        var item = await _inventoryService.GetItem<Audiobook>(id: id);
+        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
 
         if (item != null)
         {
@@ -217,11 +217,11 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
             return Results.BadRequest("Invalid or missing season IDs.");
         }
 
-        var items = new List<Audiobook>();
+        var items = new List<InventoryItem>();
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<Audiobook>(id: id);
+            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
             if (item != null)
             {
                 items.Add(item);
