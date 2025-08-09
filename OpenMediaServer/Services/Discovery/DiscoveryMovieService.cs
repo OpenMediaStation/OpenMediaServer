@@ -6,7 +6,7 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService, IBinService binService) : IDiscoveryMovieService
+public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService, IBinService binService, IVersionService versionService) : IDiscoveryMovieService
 {
     private readonly string[] _cleanDateTimeRegex =
     [
@@ -95,9 +95,12 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
     private async Task ReallyCreateMovie(string path, string[] parts, string title, int? year, GroupCollection fileGroups, string category, string folderTitle, string versionName)
     {
-        var movies = await inventoryService.ListItems<InventoryItem>("Movie");
-        var existingMovie = movies?.Where(i => i.Versions?.Any(j => j.Path == path) ?? false).FirstOrDefault();
-
+        var movies = await inventoryService.ListItems("Movie");
+        
+        // TODO fix those nullability issues in all discovery services
+        var existingVersion = (await versionService.ListItems(i => i.Path == path)).FirstOrDefault();
+        var existingMovie = await inventoryService.GetItem((Guid)existingVersion.InventoryItemId);
+        
         string? folderPath = null;
 
         if (!string.IsNullOrEmpty(folderTitle) && title.StartsWith(folderTitle))
@@ -121,20 +124,21 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                     Name = versionName
                 };
 
-                if (existingMovie.Versions?.Any(i => i.Path == path) ?? false)
-                {
+                var versions = await versionService.ListItems(i => i.Path == path);
+
+                if (versions?.Any(i => i.Path == path) ?? false)                {
                     return;
                 }
 
                 // Do this after the path check because a file info will be created
                 version.FileInfoId = (await fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
 
-                existingMovie.Versions = existingMovie.Versions?.Append(version);
+                await versionService.UpdateOrInsert(version);
 
                 var addons = addonDiscoveryService.DiscoverAddons(path);
                 existingMovie.Addons = existingMovie.Addons?.Concat(addons);
 
-                await inventoryService.Update(existingMovie);
+                await inventoryService.UpdateOrInsert(existingMovie);
             }
 
             return;
@@ -166,23 +170,23 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
             movie.DisplayImageBlurHash = metadata?.Movie?.PosterBlurHash;
             movie.ReleaseDate = DateOnly.TryParse(metadata?.Movie?.Released, out var dateOnly) ? dateOnly : null;
         }
-
-        movie.Versions =
-        [
-            new()
-            {
-                Id = versionId,
-                Path = path,
-                FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id,
-                Name = versionName,
-            }
-        ];
-
+        
         movie.FolderPath = folderPath;
         movie.Addons = addonDiscoveryService.DiscoverAddons(path);
 
         await inventoryService.AddItem(movie);
 
+        var newVersion = new InventoryItemVersion()
+        {
+            Id = versionId,
+            InventoryItemId = movie.Id,
+            Path = path,
+            FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id,
+            Name = versionName,
+        };
+        
+        await versionService.UpdateOrInsert(newVersion);
+        
         if (movie != null)
         {
             await binService.RemoveById(movie);

@@ -2,18 +2,26 @@ using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Discovery;
+using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileInfoService _fileInfoService, IMetadataService _metadataService, IInventoryService _inventoryService, IAddonService _addonService, IBinService _binService) : IDiscoveryShowService
+public class DiscoveryShowService(
+    ILogger<DiscoveryShowService> _logger,
+    IFileInfoService _fileInfoService,
+    IMetadataService _metadataService,
+    IInventoryService _inventoryService,
+    IAddonService _addonService,
+    IBinService _binService,
+    IVersionService versionService) : IDiscoveryShowService
 {
     public async Task CreateShow(string path)
     {
         var splitPath = path.Split('/');
         var folderTitle = splitPath
             .SkipWhile(i => i != "Shows") // Skip elements until "Shows" is found
-            .Skip(1)                      // Skip "Shows" itself
-            .FirstOrDefault();            // Get the next element, or null if none exists
+            .Skip(1) // Skip "Shows" itself
+            .FirstOrDefault(); // Get the next element, or null if none exists
 
         var discoveryInfo = GetInfo(path);
 
@@ -24,7 +32,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         // Show
         var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
-        var show = await _inventoryService.GetItem<InventoryItem>("Show", i => i.FolderPath == showPath);
+        var show = await _inventoryService.GetItem("Show", i => i.FolderPath == showPath);
 
         if (show == null)
         {
@@ -63,7 +71,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         var folderPath = Directory.GetParent(path)?.FullName ?? Path.GetDirectoryName(path);
         // Season
-        var season = await _inventoryService.GetItem<InventoryItem>("Season", i => i.FolderPath == folderPath);
+        var season = await _inventoryService.GetItem("Season", i => i.FolderPath == folderPath);
 
         if (season == null)
         {
@@ -97,7 +105,9 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 season.MetadataId = metadata?.Id;
                 season.DisplayImageBlurHash = metadata?.Season?.PosterBlurHash;
-                season.ReleaseDate = metadata?.Season?.AirDate != null ? DateOnly.FromDateTime((DateTime)metadata?.Season?.AirDate!) : null;
+                season.ReleaseDate = metadata?.Season?.AirDate != null
+                    ? DateOnly.FromDateTime((DateTime)metadata?.Season?.AirDate!)
+                    : null;
             }
             else
             {
@@ -108,11 +118,24 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
             await _inventoryService.AddItem(season);
 
-            await _inventoryService.Update(show);
+            await _inventoryService.UpdateOrInsert(show);
         }
 
         // Episode
-        var episode = (await _inventoryService.ListItems<InventoryItem>("Episode"))?.Where(e => e.Versions?.Any(v => v.Path == path) ?? false).FirstOrDefault();
+        var versions = await versionService.ListItems(i => i.Path == path);
+        var episodes = new List<InventoryItem>();
+
+        foreach (var version in versions)
+        {
+            var item = await _inventoryService.GetItem(version.InventoryItemId);
+
+            if (item == null)
+            {
+                episodes.Add(item);
+            }
+        }
+
+        var episode = episodes.FirstOrDefault();
 
         if (episode == null)
         {
@@ -146,7 +169,8 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
                 episode.MetadataId = metadata?.Id;
                 episode.DisplayImageBlurHash = metadata?.Episode?.BackdropBlurHash;
-                episode.ReleaseDate = DateOnly.TryParse(metadata?.Episode?.Released, out var dateOnly) ? dateOnly : null;
+                episode.ReleaseDate =
+                    DateOnly.TryParse(metadata?.Episode?.Released, out var dateOnly) ? dateOnly : null;
             }
             else
             {
@@ -154,19 +178,20 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
             }
 
             episode.Addons = _addonService.DiscoverAddons(path);
-            episode.Versions =
-            [
-                new()
-                {
-                    Id = versionId,
-                    Path = path,
-                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
-                }
-            ];
 
             await _inventoryService.AddItem(episode);
 
-            await _inventoryService.Update(season);
+            var newVersion = new InventoryItemVersion()
+            {
+                Id = versionId,
+                InventoryItemId = episode.Id,
+                Path = path,
+                FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
+            };
+
+            await versionService.UpdateOrInsert(newVersion);
+
+            await _inventoryService.UpdateOrInsert(season);
         }
     }
 
@@ -194,8 +219,8 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
         var splitPath = path.Split('/');
         var folderTitle = splitPath
             .SkipWhile(i => i != "Shows") // Skip elements until "Shows" is found
-            .Skip(2)                      // Skip "Shows" itself
-            .FirstOrDefault();            // Get the next element, or null if none exists
+            .Skip(2) // Skip "Shows" itself
+            .FirstOrDefault(); // Get the next element, or null if none exists
 
         if (folderTitle == splitPath.LastOrDefault())
         {
@@ -261,7 +286,8 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
 
         var match = MatchRegex
         (
-            regex: @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-':]+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)).*?\.(?<extension>\S{3,})",
+            regex:
+            @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-':]+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)).*?\.(?<extension>\S{3,})",
             path: path
         );
 
@@ -283,6 +309,7 @@ public class DiscoveryShowService(ILogger<DiscoveryShowService> _logger, IFileIn
         {
             info.EpisodeNr = episodeParensNrTemp;
         }
+
         if (int.TryParse(groups["season"].Value, out var seasonNrTemp))
         {
             info.SeasonNr = seasonNrTemp;

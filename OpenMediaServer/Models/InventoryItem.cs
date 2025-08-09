@@ -16,7 +16,7 @@ public class InventoryItem
     
     
     [Column(TypeName = "TEXT")]
-    public virtual string Category { get; set; }
+    public string? Category { get; set; }
     
     
     [ForeignKey(nameof(Metadata.MetadataModel)+"(Id)")]
@@ -29,7 +29,7 @@ public class InventoryItem
     [Column(TypeName = "DATE")]
     public DateOnly? ReleaseDate { get; set; }
     
-    public IEnumerable<InventoryItemVersion>? Versions { get; set; }
+    // public IEnumerable<InventoryItemVersion>? Versions { get; set; }
     public IEnumerable<InventoryItemAddon>? Addons { get; set; }
     
     [Column(TypeName = "TEXT")]

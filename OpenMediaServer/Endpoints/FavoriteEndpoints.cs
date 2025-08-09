@@ -29,7 +29,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
@@ -53,7 +53,7 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();

@@ -5,7 +5,7 @@ using TMDbLib.Objects.Movies;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IDiscoveryAudiobookService _audiobookDiscoveryService) : IContentDiscoveryService
+public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IDiscoveryAudiobookService _audiobookDiscoveryService, IVersionService versionService) : IContentDiscoveryService
 {
     private readonly ILogger<ContentDiscoveryService> _logger = logger;
     private readonly IDiscoveryShowService _showService = showService;
@@ -20,19 +20,19 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     {
         var paths = GetPaths(Globals.MediaFolder);
 
-        var movies = await _inventoryService.ListItems<InventoryItem>("Movie");
+        var movies = await _inventoryService.ListItems("Movie");
 
         await HandleDelete(paths, movies);
 
-        var books = await _inventoryService.ListItems<InventoryItem>("Book");
+        var books = await _inventoryService.ListItems("Book");
 
         await HandleDelete(paths, books);
 
-        var audiobooks = await _inventoryService.ListItems<InventoryItem>("Audiobook");
+        var audiobooks = await _inventoryService.ListItems("Audiobook");
 
         await HandleDelete(paths, books);
 
-        var episodes = await _inventoryService.ListItems<InventoryItem>("Episode");
+        var episodes = await _inventoryService.ListItems("Episode");
 
         await HandleDelete(paths, episodes);
     }
@@ -190,7 +190,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         }
     }
 
-    private async Task HandleDelete<T>(IEnumerable<string> paths, IEnumerable<T>? items) where T : InventoryItem
+    private async Task HandleDelete(IEnumerable<string> paths, IEnumerable<InventoryItem>? items)
     {
         if (items != null)
         {
@@ -207,27 +207,26 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                             var temp = item.Addons.ToList();
                             temp.Remove(addon);
                             item.Addons = temp;
-                            await _inventoryService.Update(item);
+                            await _inventoryService.UpdateOrInsert(item);
                         }
                     }
                 }
 
-                if (item.Versions != null)
+                var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+
+                if (versions != null)
                 {
-                    foreach (var version in item.Versions)
+                    foreach (var version in versions)
                     {
                         if (!paths.Contains(version.Path))
                         {
-                            var temp = item.Versions.ToList();
-                            temp.Remove(version);
-                            item.Versions = temp;
-                            await _inventoryService.Update(item);
+                            await versionService.DeleteVersion(version.Id);
 
                             await _fileInfo.DeleteFileInfoByParentId(item.Category, version.Id);
                         }
                     }
 
-                    if (!item.Versions.Any())
+                    if (!versions.Any())
                     {
                         await UpdateSeason(items);
                         

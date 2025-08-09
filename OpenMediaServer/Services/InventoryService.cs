@@ -18,19 +18,19 @@ public class InventoryService(
         return ["Audiobook", "Book", "Episode", "Movie", "Season", "Show"];
     }
 
-    public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
+    public async Task<IEnumerable<InventoryItem>?> ListItems(string category)
     {
-        var items = await dataRepository.ListObjects<T>(n => n.Category == category && n.IsOrphan == false);
+        var items = await dataRepository.ListObjects<InventoryItem>(n => n.Category == category && n.IsOrphan == false);
         return items.Select(i =>
         {
-            _ = Task.Run(() => CreateMissingBlurHash<T>(i));
+            _ = Task.Run(() => CreateMissingBlurHash(i));
             return i;
         });
     }
 
-    public async Task<T?> GetItem<T>(Guid id) where T : InventoryItem
+    public async Task<InventoryItem?> GetItem(Guid id)
     {
-        var possibleItem = await dataRepository.GetObjectById<T>(id);
+        var possibleItem = await dataRepository.GetObjectById<InventoryItem>(id);
         
         if (possibleItem == null)
         {
@@ -40,12 +40,12 @@ public class InventoryService(
         return possibleItem;
     }
 
-    public async Task<T?> GetItem<T>(string category, Expression<Func<T, bool>> predicate) where T : InventoryItem
+    public async Task<InventoryItem?> GetItem(string category, Expression<Func<InventoryItem, bool>> predicate)
     {
         logger.LogTrace("Getting item by name");
         
         
-        var items = (await dataRepository.ListObjects<T>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
+        var items = (await dataRepository.ListObjects<InventoryItem>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
         
         if (items.Length != 1)
         {
@@ -66,24 +66,22 @@ public class InventoryService(
         }
     }
 
-    public async Task AddItem<T>(T item) where T : InventoryItem
+    public async Task AddItem(InventoryItem item)
     {
         await dataRepository.WriteObject(item);
     }
 
-    public async Task Update<T>(T item) where T : InventoryItem
+    public async Task UpdateOrInsert(InventoryItem item)
     {
-        var existingItem = await dataRepository.GetObjectById<T>(item.Id);
-        
         await dataRepository.WriteObject(item);
     }
     
-    public async Task Remove<T>(T item) where T : InventoryItem
+    public async Task Remove(InventoryItem item)
     {
-        await dataRepository.DeleteObjectWithFilter<T>(item.Id);
+        await dataRepository.DeleteObjectWithFilter<InventoryItem>(item.Id);
     }
 
-    private async Task CreateMissingBlurHash<T>(InventoryItem inventoryItem) where T : InventoryItem
+    private async Task CreateMissingBlurHash(InventoryItem inventoryItem)
     {
         if (inventoryItem.DisplayImageBlurHash != null || inventoryItem.MetadataId == null)
             return;
@@ -128,7 +126,7 @@ public class InventoryService(
                     var blurHash = imageService.CreateBlurHash(bytes);
                     inventoryItem.DisplayImageBlurHash = blurHash;
                     
-                    await Update((T)inventoryItem);
+                    await UpdateOrInsert(inventoryItem);
                 }
             }
             return ;

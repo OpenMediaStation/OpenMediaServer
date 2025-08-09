@@ -9,13 +9,13 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService) : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService) : IStreamingService
 {
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
-        var item = await inventoryService.GetItem<InventoryItem>(id);
+        var item = await inventoryService.GetItem(id);
 
         if (item == null)
         {
@@ -28,7 +28,8 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            var playVersion = item.Versions?.FirstOrDefault();
+            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
@@ -48,7 +49,8 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
@@ -74,7 +76,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
     public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         // Get file info
-        var item = await inventoryService.GetItem<InventoryItem>(id);
+        var item = await inventoryService.GetItem(id);
 
         if (item == null)
         {
@@ -87,11 +89,13 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            version = item.Versions?.FirstOrDefault();
+            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            version = versions?.FirstOrDefault();
         }
         else
         {
-            version = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            version = versions?.FirstOrDefault();
         }
 
         if (version == null || version.FileInfoId == null)
@@ -130,12 +134,13 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
     public async Task<IResult> GetTranscodingPlaylist(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
     {
-        var item = await inventoryService.GetItem<InventoryItem>(id) ?? throw new Exception("Requested Item not found while prepare transcoding");
+        var item = await inventoryService.GetItem(id) ?? throw new Exception("Requested Item not found while prepare transcoding");
         var path = "";
 
         if (versionId == null)
         {
-            var playVersion = item.Versions?.FirstOrDefault();
+            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
@@ -145,8 +150,9 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
-
+            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            var playVersion = versions?.FirstOrDefault();
+            
             if (playVersion == null)
             {
                 return Results.BadRequest("PlayVersion not found");
@@ -244,18 +250,21 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         try
         {
             var path = "";
-            var item = await inventoryService.GetItem<InventoryItem>(id);
+            var item = await inventoryService.GetItem(id);
 
             if (item == null)
                 throw new ApplicationException($"Item with id {id} was not found");
 
             if (versionId != null)
             {
-                path = item.Versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
+                var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+                path = versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
             }
             else
             {
-                path = item.Versions?.FirstOrDefault()?.Path;
+                var versions = await versionService.ListItems(i => i.Id  == versionId);
+                var version = versions?.FirstOrDefault();
+                path = version?.Path;
             }
 
             if (string.IsNullOrWhiteSpace(path))

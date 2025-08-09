@@ -8,6 +8,7 @@ using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Database;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.FileInfo;
+using OpenMediaServer.Models.Inventory;
 using OpenMediaServer.Models.Metadata;
 using OpenMediaServer.Models.Progress;
 
@@ -17,10 +18,13 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
 {
     public void InitializeDatabase(string connectionString)
     {
-        CreateTable<InventoryItem>(connectionString);
         CreateDatabase(connectionString);
+
+
         CreateTable<MetadataModel>(connectionString);
+        CreateTable<InventoryItem>(connectionString);
         CreateTable<FileInfoModel>(connectionString);
+        CreateTable<InventoryItemVersion>(connectionString);
         CreateTable<Progress>(connectionString);
         CreateTable<FavoriteInfo>(connectionString);
         CreateTable<Bookmark>(connectionString);
@@ -78,7 +82,7 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
             logger.LogCritical(e, "Unable to create database");
         }
     }
-    
+
     private void CreateTable<T>(string connectionString)
     {
         var columns = GetColumnDefinition<T>();

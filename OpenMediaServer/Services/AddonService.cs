@@ -20,7 +20,7 @@ public class AddonService : IAddonService
 
     public async Task<Stream?> DownloadAddon(Guid inventoryItemId, string category, Guid addonId)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await _inventoryService.GetItem(inventoryItemId);
 
         var addon = item?.Addons?.Where(i => i.Id == addonId).FirstOrDefault();
 

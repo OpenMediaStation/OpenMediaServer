@@ -21,14 +21,14 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
 
     public async Task<IResult> ListAddons(Guid inventoryItemId, string category)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await _inventoryService.GetItem(inventoryItemId);
 
         return Results.Ok(item?.Addons);
     }   
 
     public async Task<IResult> GetAddon(Guid inventoryItemId, string category, Guid addonId)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await _inventoryService.GetItem(inventoryItemId);
 
         var addon = item?.Addons?.Where(i => i.Id == addonId).FirstOrDefault();
 

@@ -10,13 +10,16 @@ public class DiscoveryBookService : IDiscoveryBookService
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
     private readonly IMetadataService _metadataService;
+    private readonly IVersionService _versionService;
 
-    public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
+    public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService,
+        IInventoryService inventoryService, IMetadataService metadataService, IVersionService versionService)
     {
         _logger = logger;
         _fileInfoService = fileInfoService;
         _inventoryService = inventoryService;
         _metadataService = metadataService;
+        _versionService = versionService;
     }
 
     public async Task CreateBook(string path)
@@ -50,8 +53,10 @@ public class DiscoveryBookService : IDiscoveryBookService
             return;
         }
 
-        var books = await _inventoryService.ListItems<InventoryItem>("Book");
-        var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
+        var books = await _inventoryService.ListItems("Book");
+
+        var existingVersion = (await _versionService.ListItems(i => i.Path == path)).FirstOrDefault();
+        var existingBooks = await _inventoryService.GetItem((Guid)existingVersion.InventoryItemId);
 
         string? folderPath = null;
 
@@ -71,14 +76,14 @@ public class DiscoveryBookService : IDiscoveryBookService
                     Path = path,
                 };
 
-                if (existingBooks.Versions?.Any(i => i.Path == path) ?? false)
+                var versions = await _versionService.ListItems(i => i.Path == path);
+
+                if (versions?.Any(i => i.Path == path) ?? false)
                 {
                     return;
                 }
 
-                existingBooks.Versions = existingBooks.Versions?.Append(version);
-
-                await _inventoryService.Update(existingBooks);
+                await _versionService.UpdateOrInsert(version);
             }
 
             return;
@@ -89,14 +94,6 @@ public class DiscoveryBookService : IDiscoveryBookService
         {
             Id = Guid.NewGuid(),
             Category = "Book",
-            Versions =
-            [
-                new()
-                {
-                    Id = versionId,
-                    Path = path,
-                }
-            ],
             Title = title,
             FolderPath = folderPath
         };
@@ -110,8 +107,17 @@ public class DiscoveryBookService : IDiscoveryBookService
 
         book.MetadataId = metadata?.Id;
         book.DisplayImageBlurHash = metadata?.Book?.ThumbnailBlurHash;
-        book.ReleaseDate =  DateOnly.TryParse(metadata?.Book?.PublishedDate, out var dateOnly) ? dateOnly : null;
+        book.ReleaseDate = DateOnly.TryParse(metadata?.Book?.PublishedDate, out var dateOnly) ? dateOnly : null;
 
         await _inventoryService.AddItem(book);
+
+        var newVersion = new InventoryItemVersion()
+        {
+            Id = versionId,
+            Path = path,
+            InventoryItemId = book.Id
+        };
+
+        await _versionService.UpdateOrInsert(newVersion);
     }
 }

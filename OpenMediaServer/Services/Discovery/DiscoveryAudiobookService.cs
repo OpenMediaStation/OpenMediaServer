@@ -13,13 +13,16 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
     private readonly IFileInfoService _fileInfoService;
     private readonly IInventoryService _inventoryService;
     private readonly IMetadataService _metadataService;
+    private readonly IVersionService _versionService;
 
-    public DiscoveryAudiobookService(ILogger<DiscoveryAudiobookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
+    public DiscoveryAudiobookService(ILogger<DiscoveryAudiobookService> logger, IFileInfoService fileInfoService,
+        IInventoryService inventoryService, IMetadataService metadataService, IVersionService versionService)
     {
         _logger = logger;
         _fileInfoService = fileInfoService;
         _inventoryService = inventoryService;
         _metadataService = metadataService;
+        _versionService = versionService;
     }
 
     public async Task CreateAudiobook(string path)
@@ -64,8 +67,17 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 folderTitle = (splittedPath.Length - 3) >= 0 ? splittedPath[^3] : null;
             }
 
-            var books = await _inventoryService.ListItems<InventoryItem>("Audiobook");
-            var existingBook = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
+            var books = await _inventoryService.ListItems("Audiobook");
+            var existingVersion = (await _versionService.ListItems(i => i.Path == path)).FirstOrDefault();
+            var existingVersionId = existingVersion?.Id;
+
+            InventoryItem? existingBook = null;
+
+            if (existingVersionId != null)
+            {
+                existingBook = await _inventoryService.GetItem((Guid)existingVersionId);
+            }
+
 
             string? folderPath = null;
 
@@ -85,7 +97,6 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             {
                 if (!string.IsNullOrEmpty(folderTitle))
                 {
-                    var existingVersion = existingBook.Versions?.Where(i => i.Path == folderPath).FirstOrDefault();
                     if (existingVersion != null)
                     {
                         if (existingVersion.Parts?.Any(i => i.Path == path) ?? false)
@@ -103,14 +114,9 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                             PrimaryIdentifier = discNr,
                             SecondaryIdentifier = trackNr
                         });
-
-                        var temp = existingBook.Versions?.ToList();
-                        temp?.RemoveAll(i => i.Id == existingVersion.Id);
-                        temp?.Add(existingVersion);
-                        existingBook.Versions = temp;
-
-                        await _inventoryService.Update(existingBook);
-
+                        
+                        await _versionService.UpdateOrInsert(existingVersion);
+                        
                         return;
                     }
 
@@ -122,10 +128,8 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
                     // Do this after the path check because a file info will be created
                     version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Audiobook"))?.Id;
-
-                    existingBook.Versions = existingBook.Versions?.Append(version);
-
-                    await _inventoryService.Update(existingBook);
+                    
+                    await _versionService.UpdateOrInsert(version);
                 }
 
                 return;
@@ -138,26 +142,6 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             {
                 Id = Guid.NewGuid(),
                 Category = "Audiobook",
-                Versions =
-                [
-                    new()
-                    {
-                        Id = versionId,
-                        Path = folderPath,
-                        Parts =
-                        [
-                            new()
-                            {
-                                Id = partId,
-                                Name = partTitle,
-                                Path = path,
-                                FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id,
-                                PrimaryIdentifier = discNr,
-                                SecondaryIdentifier = trackNr
-                            }
-                        ]
-                    }
-                ],
                 Title = title,
                 FolderPath = folderPath
             };
@@ -172,9 +156,32 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
             audiobook.MetadataId = metadata?.Id;
             audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly) ? dateOnly : null;
+            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly)
+                ? dateOnly
+                : null;
 
             await _inventoryService.AddItem(audiobook);
+
+            var newVersion = new InventoryItemVersion()
+            {
+                Id = versionId,
+                InventoryItemId = audiobook.Id,
+                Path = folderPath,
+                Parts =
+                [
+                    new()
+                    {
+                        Id = partId,
+                        Name = partTitle,
+                        Path = path,
+                        FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id,
+                        PrimaryIdentifier = discNr,
+                        SecondaryIdentifier = trackNr
+                    }
+                ]
+            };
+            
+            await _versionService.UpdateOrInsert(newVersion);
         }
         else
         {
@@ -194,18 +201,20 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 return;
             }
 
-            var books = await _inventoryService.ListItems<InventoryItem>("Audiobook");
-            var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
+            var books = await _inventoryService.ListItems("Audiobook");
+            
+            var existingVersion = (await _versionService.ListItems(i => i.Path == path)).FirstOrDefault();
+            var existingBook = await _inventoryService.GetItem((Guid)existingVersion.InventoryItemId);
 
             string? folderPath = null;
 
             if (!string.IsNullOrEmpty(folderTitle))
             {
                 folderPath = path.Replace($"/{title}.{extension}", "");
-                existingBooks = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
+                existingBook = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
             }
 
-            if (existingBooks != null)
+            if (existingBook != null)
             {
                 if (!string.IsNullOrEmpty(folderTitle))
                 {
@@ -215,7 +224,9 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                         Path = path,
                     };
 
-                    if (existingBooks.Versions?.Any(i => i.Path == path) ?? false)
+                    var versions = await _versionService.ListItems(i => i.Path == path);
+
+                    if (versions?.Any(i => i.Path == path) ?? false)
                     {
                         return;
                     }
@@ -223,9 +234,7 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                     // Do this after the path check because a file info will be created
                     version.FileInfoId = (await _fileInfoService.CreateFileInfo(path, version.Id, "Audiobook"))?.Id;
 
-                    existingBooks.Versions = existingBooks.Versions?.Append(version);
-
-                    await _inventoryService.Update(existingBooks);
+                    await _versionService.UpdateOrInsert(version);
                 }
 
                 return;
@@ -236,15 +245,6 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
             {
                 Id = Guid.NewGuid(),
                 Category = "Audiobook",
-                Versions =
-                [
-                    new()
-                {
-                    Id = versionId,
-                    Path = path,
-                    FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Audiobook"))?.Id
-                }
-                ],
                 Title = title,
                 FolderPath = folderPath
             };
@@ -259,9 +259,21 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
 
             audiobook.MetadataId = metadata?.Id;
             audiobook.DisplayImageBlurHash = metadata?.Audiobook?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly) ? dateOnly : null;
+            audiobook.ReleaseDate = DateOnly.TryParse(metadata?.Audiobook?.PublishedDate, out var dateOnly)
+                ? dateOnly
+                : null;
 
             await _inventoryService.AddItem(audiobook);
+
+            var newVersion = new InventoryItemVersion()
+            {
+                Id = versionId,
+                InventoryItemId = audiobook.Id,
+                Path = path,
+                FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Audiobook"))?.Id
+            };
+            
+            await _versionService.UpdateOrInsert(newVersion);
         }
     }
 

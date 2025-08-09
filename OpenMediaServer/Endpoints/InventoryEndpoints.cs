@@ -44,7 +44,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetMovie(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -58,7 +58,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetShow(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -81,7 +81,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+            var item = await _inventoryService.GetItem(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -93,7 +93,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetEpisode(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -116,7 +116,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+            var item = await _inventoryService.GetItem(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -128,7 +128,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetSeason(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -151,7 +151,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+            var item = await _inventoryService.GetItem(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -163,7 +163,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetBook(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -186,7 +186,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+            var item = await _inventoryService.GetItem(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -198,7 +198,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetAudiobook(Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {
@@ -221,7 +221,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
         foreach (var id in ids)
         {
-            var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+            var item = await _inventoryService.GetItem(id: id);
             if (item != null)
             {
                 items.Add(item);
@@ -244,7 +244,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> ListItems(string category)
     {
-        var items = await _inventoryService.ListItems<InventoryItem>(category);
+        var items = await _inventoryService.ListItems(category);
 
         if (items != null && items.Any())
         {
@@ -258,7 +258,7 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
 
     public async Task<IResult> GetItem(string category, Guid id)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id: id);
+        var item = await _inventoryService.GetItem(id: id);
 
         if (item != null)
         {

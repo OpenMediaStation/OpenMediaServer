@@ -10,6 +10,10 @@ public class InventoryItemVersion
     [Column(TypeName = "UUID")]
     public Guid Id { get; set; }
     
+    [ForeignKey(nameof(InventoryItem)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid InventoryItemId { get; set; }
+    
     [Column(TypeName = "TEXT")]
     public string? Path { get; set; }
     

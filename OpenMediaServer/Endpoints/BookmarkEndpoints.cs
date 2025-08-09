@@ -31,7 +31,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId);
+        var item = await _inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
