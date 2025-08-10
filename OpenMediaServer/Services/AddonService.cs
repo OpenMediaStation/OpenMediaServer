@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -5,38 +6,50 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class AddonService : IAddonService
+public class AddonService(
+    ILogger<AddonService> logger,
+    IInventoryService inventoryService,
+    IFileSystemRepository fileSystemRepository,
+    IDataRepository dataRepository)
+    : IAddonService
 {
-    private readonly ILogger<AddonService> _logger;
-    private readonly IInventoryService _inventoryService;
-    private readonly IFileSystemRepository _fileSystemRepository;
-
-    public AddonService(ILogger<AddonService> logger, IInventoryService inventoryService, IFileSystemRepository fileSystemRepository)
+    public async Task UpdateOrInsert(InventoryItemAddon item)
     {
-        _logger = logger;
-        _inventoryService = inventoryService;
-        _fileSystemRepository = fileSystemRepository;
+        await dataRepository.WriteObject(item);
+    }
+
+    public async Task<IEnumerable<InventoryItemAddon>?> ListItems(
+        Expression<Func<InventoryItemAddon, bool>>? filter = null)
+    {
+        var items = await dataRepository.ListObjects<InventoryItemAddon>();
+
+        return items;
+    }
+
+    public async Task DeleteAddon(Guid addonId)
+    {
+        await dataRepository.DeleteObjectWithFilter<InventoryItemAddon>(addonId);
     }
 
     public async Task<Stream?> DownloadAddon(Guid inventoryItemId, string category, Guid addonId)
     {
-        var item = await _inventoryService.GetItem(inventoryItemId);
+        var addons = await ListItems(i => i.InventoryItemId == inventoryItemId && i.Id == addonId);
 
-        var addon = item?.Addons?.Where(i => i.Id == addonId).FirstOrDefault();
+        var addon = addons?.FirstOrDefault();
 
         if (addon == null)
         {
             return null;
         }
 
-        var stream = _fileSystemRepository.GetStream(addon.Path);
+        var stream = fileSystemRepository.GetStream(addon.Path);
 
         return stream;
     }
 
     public IEnumerable<InventoryItemAddon> DiscoverAddons(string path)
     {
-        _logger.LogDebug("Path: {Path}", path);
+        logger.LogDebug("Path: {Path}", path);
 
         var splitPath = path.Split('/');
         var fileName = splitPath.LastOrDefault();
@@ -73,7 +86,7 @@ public class AddonService : IAddonService
                 _ => "Unknown",
             };
 
-            InventoryItemAddonSubtitle? sub = null;
+            string? sub = null;
 
             if (category == "Subtitle")
             {
@@ -85,10 +98,7 @@ public class AddonService : IAddonService
                     lang = dotSplitted.SkipLast(1).LastOrDefault();
                 }
 
-                sub = new()
-                {
-                    Language = lang
-                };
+                sub = lang;
             }
 
             var addon = new InventoryItemAddon()
@@ -96,7 +106,7 @@ public class AddonService : IAddonService
                 Id = Guid.NewGuid(),
                 Path = item,
                 Category = category,
-                Subtitle = sub,
+                SubtitleLanguage = sub,
             };
 
             addons.Add(addon);

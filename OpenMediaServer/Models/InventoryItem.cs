@@ -29,9 +29,6 @@ public class InventoryItem
     [Column(TypeName = "DATE")]
     public DateOnly? ReleaseDate { get; set; }
     
-    // public IEnumerable<InventoryItemVersion>? Versions { get; set; }
-    public IEnumerable<InventoryItemAddon>? Addons { get; set; }
-    
     [Column(TypeName = "TEXT")]
     public string? DisplayImageBlurHash { get; set; }
 

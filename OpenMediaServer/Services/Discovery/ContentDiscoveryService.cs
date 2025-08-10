@@ -196,18 +196,17 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
         {
             foreach (var item in items)
             {
-                if (item.Addons != null)
+                var addons = await _addonService.ListItems(i => i.InventoryItemId == item.Id);
+                
+                if (addons != null)
                 {
                     var addonPaths = _addonService.GetPaths(item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"), SearchOption.TopDirectoryOnly);
-
-                    foreach (var addon in item.Addons)
+                    
+                    foreach (var addon in addons)
                     {
                         if (!addonPaths.Contains(addon.Path))
                         {
-                            var temp = item.Addons.ToList();
-                            temp.Remove(addon);
-                            item.Addons = temp;
-                            await _inventoryService.UpdateOrInsert(item);
+                            await _addonService.DeleteAddon(addon.Id);
                         }
                     }
                 }

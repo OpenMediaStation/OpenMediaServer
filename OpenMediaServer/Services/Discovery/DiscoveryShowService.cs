@@ -177,7 +177,14 @@ public class DiscoveryShowService(
                 await _binService.RemoveById(episode);
             }
 
-            episode.Addons = _addonService.DiscoverAddons(path);
+            var addons = _addonService.DiscoverAddons(path);
+
+            foreach (var addon in addons)
+            {
+                addon.InventoryItemId = episode.Id;
+
+                await _addonService.UpdateOrInsert(addon);
+            }
 
             await _inventoryService.AddItem(episode);
 

@@ -6,7 +6,7 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService, IBinService binService, IVersionService versionService) : IDiscoveryMovieService
+public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService, IBinService binService, IVersionService versionService) : IDiscoveryMovieService
 {
     private readonly string[] _cleanDateTimeRegex =
     [
@@ -135,10 +135,14 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
                 await versionService.UpdateOrInsert(version);
 
-                var addons = addonDiscoveryService.DiscoverAddons(path);
-                existingMovie.Addons = existingMovie.Addons?.Concat(addons);
+                var addons = addonService.DiscoverAddons(path);
 
-                await inventoryService.UpdateOrInsert(existingMovie);
+                foreach (var addon in addons)
+                {
+                    addon.InventoryItemId = existingMovie.Id;
+                    
+                    await addonService.UpdateOrInsert(addon);
+                }
             }
 
             return;
@@ -172,7 +176,15 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         }
         
         movie.FolderPath = folderPath;
-        movie.Addons = addonDiscoveryService.DiscoverAddons(path);
+        
+        var newAddons = addonService.DiscoverAddons(path);
+
+        foreach (var addon in newAddons)
+        {
+            addon.InventoryItemId = movie.Id;
+            
+            await addonService.UpdateOrInsert(addon);
+        }
 
         await inventoryService.AddItem(movie);
 

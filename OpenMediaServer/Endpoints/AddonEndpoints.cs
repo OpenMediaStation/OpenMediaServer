@@ -6,10 +6,6 @@ namespace OpenMediaServer.Endpoints;
 
 public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService inventoryService, IAddonService addonService) : IAddonEndpoints
 {
-    private readonly ILogger<AddonEndpoints> _logger = logger;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IAddonService _addonService = addonService;
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/addon");
@@ -21,16 +17,16 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
 
     public async Task<IResult> ListAddons(Guid inventoryItemId, string category)
     {
-        var item = await _inventoryService.GetItem(inventoryItemId);
-
-        return Results.Ok(item?.Addons);
+        var addons = await addonService.ListItems(i => i.InventoryItemId == inventoryItemId);
+        
+        return Results.Ok(addons);
     }   
 
     public async Task<IResult> GetAddon(Guid inventoryItemId, string category, Guid addonId)
     {
-        var item = await _inventoryService.GetItem(inventoryItemId);
-
-        var addon = item?.Addons?.Where(i => i.Id == addonId).FirstOrDefault();
+        var addons = await addonService.ListItems(i => i.Id == addonId);
+        
+        var addon = addons?.FirstOrDefault();
 
         if (addon == null)
         {
@@ -42,7 +38,7 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
 
     public async Task<IResult> GetAddonContent(Guid inventoryItemId, string category, Guid addonId)
     {
-        var stream = await _addonService.DownloadAddon(inventoryItemId, category, addonId);
+        var stream = await addonService.DownloadAddon(inventoryItemId, category, addonId);
 
         if (stream == null)
         {
