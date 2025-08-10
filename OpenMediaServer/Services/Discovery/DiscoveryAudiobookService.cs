@@ -14,15 +14,17 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
     private readonly IInventoryService _inventoryService;
     private readonly IMetadataService _metadataService;
     private readonly IVersionService _versionService;
+    private readonly IPartService _partService;
 
     public DiscoveryAudiobookService(ILogger<DiscoveryAudiobookService> logger, IFileInfoService fileInfoService,
-        IInventoryService inventoryService, IMetadataService metadataService, IVersionService versionService)
+        IInventoryService inventoryService, IMetadataService metadataService, IVersionService versionService, IPartService partService)
     {
         _logger = logger;
         _fileInfoService = fileInfoService;
         _inventoryService = inventoryService;
         _metadataService = metadataService;
         _versionService = versionService;
+        _partService = partService;
     }
 
     public async Task CreateAudiobook(string path)
@@ -99,23 +101,26 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 {
                     if (existingVersion != null)
                     {
-                        if (existingVersion.Parts?.Any(i => i.Path == path) ?? false)
+                        var existingParts = await _partService.ListItems(i => i.InventoryItemVersionId == existingVersion.Id);
+                        
+                        if (existingParts?.Any(i => i.Path == path) ?? false)
                         {
                             return;
                         }
 
                         var newPartId = Guid.NewGuid();
-                        existingVersion.Parts = existingVersion.Parts?.Append(new()
+                        var part = new InventoryItemPart()
                         {
                             Id = newPartId,
                             Name = partTitle,
+                            InventoryItemVersionId = existingVersion.Id,
                             Path = path,
                             FileInfoId = (await _fileInfoService.CreateFileInfo(path, newPartId, "Audiobook"))?.Id,
                             PrimaryIdentifier = discNr,
                             SecondaryIdentifier = trackNr
-                        });
+                        };
                         
-                        await _versionService.UpdateOrInsert(existingVersion);
+                        await _partService.UpdateOrInsert(part);
                         
                         return;
                     }
@@ -167,21 +172,22 @@ public class DiscoveryAudiobookService : IDiscoveryAudiobookService
                 Id = versionId,
                 InventoryItemId = audiobook.Id,
                 Path = folderPath,
-                Parts =
-                [
-                    new()
-                    {
-                        Id = partId,
-                        Name = partTitle,
-                        Path = path,
-                        FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id,
-                        PrimaryIdentifier = discNr,
-                        SecondaryIdentifier = trackNr
-                    }
-                ]
             };
             
             await _versionService.UpdateOrInsert(newVersion);
+
+            var newPart = new InventoryItemPart()
+            {
+                Id = partId,
+                InventoryItemVersionId = newVersion.Id,
+                Name = partTitle,
+                Path = path,
+                FileInfoId = (await _fileInfoService.CreateFileInfo(path, partId, "Audiobook"))?.Id,
+                PrimaryIdentifier = discNr,
+                SecondaryIdentifier = trackNr
+            };
+            
+            await _partService.UpdateOrInsert(newPart);
         }
         else
         {

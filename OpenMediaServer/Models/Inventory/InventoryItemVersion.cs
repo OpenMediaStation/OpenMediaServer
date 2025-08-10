@@ -23,6 +23,4 @@ public class InventoryItemVersion
     
     [Column(TypeName = "TEXT")]
     public string? Name { get; set; }
-    
-    public IEnumerable<InventoryItemPart>? Parts { get; set; }
 }

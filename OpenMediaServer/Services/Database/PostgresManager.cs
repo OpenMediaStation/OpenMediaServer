@@ -29,6 +29,7 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
         CreateTable<FavoriteInfo>(connectionString);
         CreateTable<Bookmark>(connectionString);
         CreateTable<InventoryItemAddon>(connectionString);
+        CreateTable<InventoryItemPart>(connectionString);
     }
 
     private string GetColumnDefinition<T>()

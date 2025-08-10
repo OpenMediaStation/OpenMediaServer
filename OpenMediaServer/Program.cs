@@ -180,6 +180,7 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IBookMetadataService, BookMetadataService>();
     services.AddSingleton<IBookmarkEndpoints, BookmarkEndpoints>();
     services.AddSingleton<IPostgresManager, PostgresManager>();
+    services.AddSingleton<IPartService, PartService>();
     services.AddSingleton<IVersionService, VersionService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();

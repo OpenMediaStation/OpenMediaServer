@@ -9,7 +9,7 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService) : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService, IPartService partService) : IStreamingService
 {
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
@@ -36,9 +36,11 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                 return null;
             }
 
-            if (playVersion.Parts != null)
+            var parts = await partService.ListItems(i => i.InventoryItemVersionId == playVersion.Id);
+
+            if (parts != null)
             {
-                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+                var part = parts.FirstOrDefault(i => i.Id == partId);
 
                 stream = new FileStream(part.Path, FileMode.Open);
             }
@@ -56,10 +58,12 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
             {
                 return null;
             }
+            
+            var parts = await partService.ListItems(i => i.InventoryItemVersionId == playVersion.Id);
 
-            if (playVersion.Parts != null)
+            if (parts != null)
             {
-                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+                var part = parts.FirstOrDefault(i => i.Id == partId);
 
                 stream = new FileStream(part.Path, FileMode.Open);
             }
@@ -105,13 +109,15 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         FileInfoModel? fileInfo;
 
-        if (version.Parts == null)
+        var parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
+
+        if (parts == null)
         {
             fileInfo = await fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
         }
         else
         {
-            var part = version.Parts.FirstOrDefault(i => i.Id == partId);
+            var part = parts.FirstOrDefault(i => i.Id == partId);
 
             if (part?.FileInfoId == null)
             {
