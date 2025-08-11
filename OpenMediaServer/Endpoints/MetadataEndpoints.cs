@@ -2,6 +2,7 @@ using System;
 using Microsoft.AspNetCore.Mvc;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
 
 namespace OpenMediaServer.Endpoints;

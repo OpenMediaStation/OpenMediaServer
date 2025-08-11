@@ -1,6 +1,7 @@
+using System.Linq.Expressions;
 using OpenMediaServer.Models.Metadata;
 
-namespace OpenMediaServer.Interfaces.Services;
+namespace OpenMediaServer.Interfaces.Services.Metadata;
 
 public interface IMetadataService
 {

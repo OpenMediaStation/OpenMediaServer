@@ -21,7 +21,7 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
         CreateDatabase(connectionString);
 
 
-        CreateTable<MetadataModel>(connectionString);
+        // TODO Implement creation at once or we will have dependency problems
         CreateTable<InventoryItem>(connectionString);
         CreateTable<FileInfoModel>(connectionString);
         CreateTable<InventoryItemVersion>(connectionString);
@@ -30,6 +30,14 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
         CreateTable<Bookmark>(connectionString);
         CreateTable<InventoryItemAddon>(connectionString);
         CreateTable<InventoryItemPart>(connectionString);
+        CreateTable<MetadataModel>(connectionString);
+        CreateTable<MetadataAudiobookModel>(connectionString);
+        CreateTable<MetadataBookModel>(connectionString);
+        CreateTable<MetadataEpisodeModel>(connectionString);
+        CreateTable<MetadataMovieModel>(connectionString);
+        CreateTable<MetadataSeasonModel>(connectionString);
+        CreateTable<MetadataShowModel>(connectionString);
+        CreateTable<MetadataChapter>(connectionString);
     }
 
     private string GetColumnDefinition<T>()

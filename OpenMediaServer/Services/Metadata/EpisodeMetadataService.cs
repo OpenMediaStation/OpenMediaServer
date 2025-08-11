@@ -1,59 +1,49 @@
-using OpenMediaServer.DTOs;
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.APIs;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
-using TMDbLib.Objects.General;
 using TMDbLib.Objects.TvShows;
 
 namespace OpenMediaServer.Services.Metadata;
 
-public class ShowMetadataService(
+public class EpisodeMetadataService(
     IOmdbAPI omdbApi,
     ITMDbAPI tMDbApi,
-    IImageService imageService,
-    ILogger<ShowMetadataService> logger,
-    IDataRepository dataRepository)
-    : TableBaseService<MetadataShowModel>(dataRepository), IShowMetadataService
+    IImageService imageService,    ILogger<EpisodeMetadataService> logger,
+    IDataRepository dataRepository) : TableBaseService<MetadataEpisodeModel>(dataRepository), IEpisodeMetadataService
 {
-    public async Task<MetadataModel> GetShowMetadata(string? year, string title, string? language, Guid metadataId)
+    public async Task<MetadataModel> GetEpisodeMetadata(string? year, string title, string? language, Guid metadataId,
+        int? season, int? episode)
     {
         var omdbData = await omdbApi.GetMetadata
         (
             name: title,
             apiKey: Globals.OmdbApiKey,
-            year: year
+            year: year,
+            season: season,
+            episode: episode
         );
 
-        var tmdbData = await tMDbApi.GetShow
+        var showData = await tMDbApi.GetShow
         (
             name: title,
             apiKey: Globals.TmdbApiKey,
             year: year
         );
 
-        ImagesWithId? tmdbImages = null;
+        TvEpisode? episodeInfo = null;
 
-        if (tmdbData?.Id != null)
+        if (showData != null && season != null && episode != null)
         {
-            tmdbImages = await tMDbApi.GetShowImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
+            episodeInfo = await tMDbApi.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
         }
 
-        var tmdbLogosSorted = tmdbImages?.Logos?.OrderBy(i => i.VoteAverage)?.ToList();
-        var tmdbPostersSorted = tmdbImages?.Posters?.OrderBy(i => i.VoteAverage)?.ToList();
-        
-        var logoPath = tmdbLogosSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ??
-                       tmdbLogosSorted?.FirstOrDefault()?.FilePath;
-        var posterPath = tmdbPostersSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ?? 
-                         tmdbPostersSorted?.FirstOrDefault()?.FilePath ?? omdbData?.Poster;
+        var backdropBlurHash =
+            await WriteImageAndReturnBlurHash(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
 
-        var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Show", metadataId.ToString());
-        var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Show", metadataId.ToString());
-        var posterBlurHash = await WriteImageAndReturnBlurHash(posterPath, "poster", "Show", metadataId.ToString());
-
-        var show = new MetadataShowModel()
+        var episodeMetadata = new MetadataEpisodeModel()
         {
             Id = Guid.NewGuid(),
             Year = omdbData?.Year,
@@ -64,16 +54,14 @@ public class ShowMetadataService(
             Director = omdbData?.Director,
             Writer = omdbData?.Writer,
             Actors = omdbData?.Actors,
-            Plot = tmdbData?.Overview ?? omdbData?.Plot,
+            Plot = episodeInfo?.Overview ?? omdbData?.Plot,
             Language = omdbData?.Language,
             Country = omdbData?.Country,
             Awards = omdbData?.Awards,
-            Poster = posterPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/poster" : null,
-            PosterBlurHash = posterBlurHash,
-            Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/backdrop" : null,
+            Backdrop = episodeInfo?.StillPath != null
+                ? $"{Globals.Domain}/images/Episode/{metadataId}/backdrop"
+                : omdbData?.Poster,
             BackdropBlurHash = backdropBlurHash,
-            Logo = logoPath != null ? $"{Globals.Domain}/images/Show/{metadataId}/logo" : null,
-            LogoBlurHash = logoBlurHash,
             Metascore = omdbData?.Metascore,
             ImdbRating = omdbData?.ImdbRating,
             ImdbVotes = omdbData?.ImdbVotes,
@@ -85,17 +73,17 @@ public class ShowMetadataService(
             Website = omdbData?.Website,
         };
 
-        await UpdateOrInsert(show);
-        
+        await UpdateOrInsert(episodeMetadata);
+
         var metadata = new MetadataModel()
         {
-            Title = omdbData?.Title,
-            ShowMetadataId = show.Id,
+            Title = episodeInfo?.Name ?? omdbData?.Title,
+            EpisodeMetadataId = episodeMetadata.Id,
         };
 
         return metadata;
     }
-
+    
     private async Task<string?> WriteImageAndReturnBlurHash(string? url, string fileName, string category, string id)
     {
         if (url == null)

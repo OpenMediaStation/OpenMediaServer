@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService, IBinService binService, IVersionService versionService) : IDiscoveryMovieService
+public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService, IBinService binService, IVersionService versionService, IMovieMetadataService movieMetadataService) : IDiscoveryMovieService
 {
     private readonly string[] _cleanDateTimeRegex =
     [
@@ -169,10 +170,12 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 year: (year?.ToString()) ?? (fileGroups.TryGetValue("year", out var movieTitleYear) ? movieTitleYear.Value :
                     fileGroups.TryGetValue("folderYear", out var movieFolderYear) ? movieFolderYear.Value : null)
             );
+            
+            var movieMetadata = await movieMetadataService.Get(metadata?.MovieMetadataId);
 
             movie.MetadataId = metadata?.Id;
-            movie.DisplayImageBlurHash = metadata?.Movie?.PosterBlurHash;
-            movie.ReleaseDate = DateOnly.TryParse(metadata?.Movie?.Released, out var dateOnly) ? dateOnly : null;
+            movie.DisplayImageBlurHash = movieMetadata?.PosterBlurHash;
+            movie.ReleaseDate = DateOnly.TryParse(movieMetadata?.Released, out var dateOnly) ? dateOnly : null;
         }
         
         movie.FolderPath = folderPath;

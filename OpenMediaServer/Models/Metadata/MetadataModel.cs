@@ -9,19 +9,42 @@ namespace OpenMediaServer.Models.Metadata;
 public class MetadataModel
 {
     [Key]
-    [Column(Order = 0, TypeName = "UUID")]
+    [Column(TypeName = "UUID")]
     public Guid Id { get; set; }
-    public Guid ParentId { get; set; }
+    
+    [ForeignKey(nameof(InventoryItem)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid InventoryItemId { get; set; }
 
+    [Column(TypeName = "TEXT")]
     public string? Title { get; set; }
-    [Column(Order=1, TypeName = "TEXT")]
+    
+    [Column(TypeName = "TEXT")]
     public string? Category { get; set; }
+    
 
     // Specific information
-    public MetadataMovieModel? Movie { get; set; }
-    public MetadataShowModel? Show { get; set; }
-    public MetadataSeasonModel? Season { get; set; }
-    public MetadataEpisodeModel? Episode { get; set; }
-    public MetadataBookModel? Book { get; set; }
-    public MetadataAudiobookModel? Audiobook { get; set; }
+    [ForeignKey(nameof(MetadataMovieModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid MovieMetadataId { get; set; }    
+    
+    [ForeignKey(nameof(MetadataShowModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid ShowMetadataId { get; set; }    
+    
+    [ForeignKey(nameof(MetadataSeasonModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid SeasonMetadataId { get; set; } 
+    
+    [ForeignKey(nameof(MetadataEpisodeModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid EpisodeMetadataId { get; set; }    
+    
+    [ForeignKey(nameof(MetadataBookModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid BookMetadataId { get; set; }    
+    
+    [ForeignKey(nameof(MetadataAudiobookModel)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid AudiobookMetadataId { get; set; }
 }

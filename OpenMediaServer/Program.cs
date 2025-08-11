@@ -177,11 +177,14 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IAudioBookMetadataService, AudiobookMetadataService>();
     services.AddSingleton<IMovieMetadataService, MovieMetadataService>();
     services.AddSingleton<IShowMetadataService, ShowMetadataService>();
+    services.AddSingleton<ISeasonMetadataService, SeasonMetadataService>();
+    services.AddSingleton<IEpisodeMetadataService, EpisodeMetadataService>();
     services.AddSingleton<IBookMetadataService, BookMetadataService>();
     services.AddSingleton<IBookmarkEndpoints, BookmarkEndpoints>();
     services.AddSingleton<IPostgresManager, PostgresManager>();
     services.AddSingleton<IPartService, PartService>();
     services.AddSingleton<IVersionService, VersionService>();
+    services.AddSingleton<IChapterService, ChapterService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

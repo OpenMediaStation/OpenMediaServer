@@ -114,6 +114,12 @@ public static class ExpressionToSqlConverter
                 var isoString = dateOnly.ToString("yyyy-MM-dd");
                 
                 sb.Append($"\'{isoString}\'");
+                break;            
+            case DateTime:
+                var dateTime = value is DateTime dt ? dt : default;
+                var isoStringDateTime = dateTime.ToString("yyyy-MM-dd");
+                
+                sb.Append($"\'{isoStringDateTime}\'");
                 break;
             default:
                 sb.Append(value);

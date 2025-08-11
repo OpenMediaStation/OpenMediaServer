@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Discovery;
 using OpenMediaServer.Models.Inventory;
@@ -13,7 +14,10 @@ public class DiscoveryShowService(
     IInventoryService _inventoryService,
     IAddonService _addonService,
     IBinService _binService,
-    IVersionService versionService) : IDiscoveryShowService
+    IVersionService versionService,
+    IShowMetadataService showMetadataService,
+    ISeasonMetadataService seasonMetadataService,
+    IEpisodeMetadataService episodeMetadataService) : IDiscoveryShowService
 {
     public async Task CreateShow(string path)
     {
@@ -54,10 +58,12 @@ public class DiscoveryShowService(
                     year: discoveryInfo?.Year,
                     category: show.Category
                 );
+                
+                var showMetadata = await showMetadataService.Get(metadata?.ShowMetadataId);
 
                 show.MetadataId = metadata?.Id;
-                show.DisplayImageBlurHash = metadata?.Show?.PosterBlurHash;
-                show.ReleaseDate = DateOnly.TryParse(metadata?.Show?.Released, out var dateOnly) ? dateOnly : null;
+                show.DisplayImageBlurHash = showMetadata?.PosterBlurHash;
+                show.ReleaseDate = DateOnly.TryParse(showMetadata?.Released, out var dateOnly) ? dateOnly : null;
             }
             else
             {
@@ -102,11 +108,13 @@ public class DiscoveryShowService(
                     category: season.Category,
                     season: discoveryInfo?.SeasonNr
                 );
+                
+                var seasonMetadata = await seasonMetadataService.Get(metadata?.SeasonMetadataId);
 
                 season.MetadataId = metadata?.Id;
-                season.DisplayImageBlurHash = metadata?.Season?.PosterBlurHash;
-                season.ReleaseDate = metadata?.Season?.AirDate != null
-                    ? DateOnly.FromDateTime((DateTime)metadata?.Season?.AirDate!)
+                season.DisplayImageBlurHash = seasonMetadata?.PosterBlurHash;
+                season.ReleaseDate = seasonMetadata?.AirDate != null
+                    ? DateOnly.FromDateTime((DateTime)seasonMetadata?.AirDate!)
                     : null;
             }
             else
@@ -166,11 +174,13 @@ public class DiscoveryShowService(
                     episode: episode.EpisodeNr,
                     season: episode.SeasonNr
                 );
+                
+                var episodeMetadata = await episodeMetadataService.Get(metadata?.EpisodeMetadataId);
 
                 episode.MetadataId = metadata?.Id;
-                episode.DisplayImageBlurHash = metadata?.Episode?.BackdropBlurHash;
+                episode.DisplayImageBlurHash = episodeMetadata?.BackdropBlurHash;
                 episode.ReleaseDate =
-                    DateOnly.TryParse(metadata?.Episode?.Released, out var dateOnly) ? dateOnly : null;
+                    DateOnly.TryParse(episodeMetadata?.Released, out var dateOnly) ? dateOnly : null;
             }
             else
             {
