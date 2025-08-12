@@ -1,25 +1,32 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using FFMpegCore;
 
 namespace OpenMediaServer.Models.FileInfo;
 
 public class MediaData
 {
+    [Key]
+    [Column(TypeName = "UUID")]
+    public Guid Id { get; set; }
+    
+    [Column(TypeName = "INTERVAL")]
     public TimeSpan Duration { get; set; }
-
-    public MediaFormat Format { get; set; }
-
-    public AudioStream? PrimaryAudioStream { get; set; }
-
-    public VideoStream? PrimaryVideoStream { get; set; }
-
-    public SubtitleStream? PrimarySubtitleStream { get; set; }
-
-    public List<VideoStream> VideoStreams { get; set; }
-
-    public List<AudioStream> AudioStreams { get; set; }
-
-    public List<SubtitleStream> SubtitleStreams { get; set; }
-
-    public IReadOnlyList<string> ErrorData { get; set; }
+    
+    [ForeignKey(nameof(MediaFormat)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid MediaFormatId { get; set; }
+    
+    [ForeignKey(nameof(AudioStream)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid PrimaryAudioStreamId { get; set; }    
+    
+    [ForeignKey(nameof(VideoStream)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid PrimaryVideoStreamId { get; set; }  
+    
+    [ForeignKey(nameof(SubtitleStream)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid PrimarySubtitleStreamId { get; set; }
 }

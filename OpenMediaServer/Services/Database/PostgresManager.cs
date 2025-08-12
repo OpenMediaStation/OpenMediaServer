@@ -38,6 +38,11 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
         CreateTable<MetadataSeasonModel>(connectionString);
         CreateTable<MetadataShowModel>(connectionString);
         CreateTable<MetadataChapter>(connectionString);
+        CreateTable<VideoStream>(connectionString);
+        CreateTable<SubtitleStream>(connectionString);
+        CreateTable<AudioStream>(connectionString);
+        CreateTable<MediaData>(connectionString);
+        CreateTable<MediaFormat>(connectionString);
     }
 
     private string GetColumnDefinition<T>()

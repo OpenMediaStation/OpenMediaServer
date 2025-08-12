@@ -1,9 +1,18 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace OpenMediaServer.Models.FileInfo;
 
 public class MediaStream
 {
+    [Key]
+    [Column(TypeName = "UUID")]
+    public Guid Id { get; set; }
+    
+    [ForeignKey(nameof(MediaData)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid MediaDataId { get; set; }
+    
     [Column(TypeName = "INTEGER")]
     public int Index { get; set; }
 
@@ -22,20 +31,14 @@ public class MediaStream
     [Column(TypeName = "BIGINT")]
     public long BitRate { get; set; }
 
-    [NotMapped]
+    [Column(TypeName = "INTERVAL")]
     public TimeSpan StartTime { get; set; }
 
-    [NotMapped]
+    [Column(TypeName = "INTERVAL")]
     public TimeSpan Duration { get; set; }
 
     [Column(TypeName = "TEXT")]
     public string? Language { get; set; }
-
-    [NotMapped]
-    public Dictionary<string, bool>? Disposition { get; set; }
-
-    [NotMapped]
-    public Dictionary<string, string>? Tags { get; set; }
 
     [Column(TypeName = "INTEGER")]
     public int? BitDepth { get; set; }

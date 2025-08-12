@@ -4,6 +4,9 @@ namespace OpenMediaServer.Models.FileInfo;
 
 public class AudioStream : MediaStream
 {
+    [Column(TypeName = "TEXT")] 
+    public string Category { get; set; } = "AudioStream";
+    
     [Column(TypeName = "INTEGER")]
     public int Channels { get; set; }
 

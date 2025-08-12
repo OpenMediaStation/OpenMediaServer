@@ -14,11 +14,13 @@ using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Repositories;
 using OpenMediaServer.Services;
 using OpenMediaServer.Services.Database;
 using OpenMediaServer.Services.Discovery;
+using OpenMediaServer.Services.FileInfo;
 using OpenMediaServer.Services.Metadata;
 using Serilog;
 
@@ -185,6 +187,11 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IPartService, PartService>();
     services.AddSingleton<IVersionService, VersionService>();
     services.AddSingleton<IChapterService, ChapterService>();
+    services.AddSingleton<IAudioStreamService, AudioStreamService>();
+    services.AddSingleton<IMediaDataService, MediaDataService>();
+    services.AddSingleton<IMediaFormatService, MediaFormatService>();
+    services.AddSingleton<ISubtitleStreamService, SubtitleStreamStreamService>();
+    services.AddSingleton<IVideoStreamService, VideoStreamService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

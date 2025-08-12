@@ -3,13 +3,15 @@ using System.Text;
 using System.Text.Json.Nodes;
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.FileInfo;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.FileInfo;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService, IPartService partService) : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService, IPartService partService, IMediaDataService mediaDataService, IMediaFormatService formatService) : IStreamingService
 {
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
@@ -128,7 +130,9 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
 
         // Determine mime type
-        var formatName = fileInfo?.MediaData?.Format.FormatName;
+        var mediaData = await mediaDataService.Get(fileInfo?.MediaDataId);
+        var format = await formatService.Get(mediaData?.MediaFormatId);
+        var formatName = format?.FormatName;
 
         if (formatName == null)
             return null;
