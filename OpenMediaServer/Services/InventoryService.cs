@@ -28,8 +28,13 @@ public class InventoryService(
         });
     }
 
-    public async Task<InventoryItem?> GetItem(Guid id)
+    public async Task<InventoryItem?> GetItem(Guid? id)
     {
+        if (id == null)
+        {
+            return null;
+        }
+        
         var possibleItem = await dataRepository.GetObjectById<InventoryItem>(id);
         
         if (possibleItem == null)

@@ -99,8 +99,8 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         var movies = await inventoryService.ListItems("Movie");
         
         // TODO fix those nullability issues in all discovery services
-        var existingVersion = (await versionService.ListItems(i => i.Path == path)).FirstOrDefault();
-        var existingMovie = await inventoryService.GetItem((Guid)existingVersion.InventoryItemId);
+        var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
+        var existingMovie = await inventoryService.GetItem(existingVersion?.InventoryItemId);
         
         string? folderPath = null;
 

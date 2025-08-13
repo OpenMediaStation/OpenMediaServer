@@ -132,8 +132,13 @@ public class PostgresRepository : IDataRepository
         return results;
     }
 
-    public async Task<T?> GetObjectById<T>(Guid id, Expression<Func<T, bool>>? additionalFilter = null)
+    public async Task<T?> GetObjectById<T>(Guid? id, Expression<Func<T, bool>>? additionalFilter = null)
     {
+        if (id == null)
+        {
+            return default;
+        }
+        
         var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -167,10 +172,7 @@ public class PostgresRepository : IDataRepository
             var column = prop.GetCustomAttribute<ColumnAttribute>();
             resultList.Add((column!.TypeName, propValue!)!);
         }
-
-        // Append the JSONB serialized object at the end
-        resultList.Add(("jsonb", JsonSerializer.Serialize(obj, Globals.JsonOptions)));
-
+        
         return resultList.ToArray();
     }
     
@@ -181,7 +183,7 @@ public class PostgresRepository : IDataRepository
         var columnProps = type.GetProperties()
             .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute))).ToArray();
         var columnNames = columnProps //.OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order)
-            .Select(p => $"{p.Name}").Append("json_data");
+            .Select(p => $"{p.Name}");
         return string.Join(",", columnNames);
     }
 

@@ -47,8 +47,8 @@ public class DiscoveryBookService(
 
         var books = await inventoryService.ListItems("Book");
 
-        var existingVersion = (await versionService.ListItems(i => i.Path == path)).FirstOrDefault();
-        var existingBooks = await inventoryService.GetItem((Guid)existingVersion.InventoryItemId);
+        var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
+        var existingBooks = await inventoryService.GetItem(existingVersion?.InventoryItemId);
 
         string? folderPath = null;
 
