@@ -20,60 +20,32 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
     {
         CreateDatabase(connectionString);
 
-
-        // TODO Implement creation at once or we will have dependency problems
-        CreateTable<InventoryItem>(connectionString);
-        CreateTable<FileInfoModel>(connectionString);
-        CreateTable<InventoryItemVersion>(connectionString);
-        CreateTable<Progress>(connectionString);
-        CreateTable<FavoriteInfo>(connectionString);
-        CreateTable<Bookmark>(connectionString);
-        CreateTable<InventoryItemAddon>(connectionString);
-        CreateTable<InventoryItemPart>(connectionString);
-        CreateTable<MetadataModel>(connectionString);
-        CreateTable<MetadataAudiobookModel>(connectionString);
-        CreateTable<MetadataBookModel>(connectionString);
-        CreateTable<MetadataEpisodeModel>(connectionString);
-        CreateTable<MetadataMovieModel>(connectionString);
-        CreateTable<MetadataSeasonModel>(connectionString);
-        CreateTable<MetadataShowModel>(connectionString);
-        CreateTable<MetadataChapter>(connectionString);
-        CreateTable<VideoStream>(connectionString);
-        CreateTable<SubtitleStream>(connectionString);
-        CreateTable<AudioStream>(connectionString);
-        CreateTable<MediaData>(connectionString);
-        CreateTable<MediaFormat>(connectionString);
-    }
-
-    private string GetColumnDefinition<T>()
-    {
-        var type = typeof(T);
-
-        var props = type.GetProperties()
-            .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute)))
-            .OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order);
-
-        var sb = new StringBuilder();
-
-        foreach (var prop in props)
+        var tables = new List<Type>()
         {
-            var columnName = prop.Name;
-            var columnAttr = prop.GetCustomAttribute<ColumnAttribute>();
-            var columnType = columnAttr!.TypeName;
-            sb.Append($"{columnName} {columnType}");
-            var isPrimaryKey = prop.GetCustomAttribute<KeyAttribute>() != null;
-            if (isPrimaryKey)
-                sb.Append(" PRIMARY KEY");
-            // var foreignKey = prop.GetCustomAttribute<ForeignKeyAttribute>();
-            // if (foreignKey != null)
-            //     sb.Append($" REFERENCES t_{foreignKey.Name} ON DELETE CASCADE");
+            typeof(InventoryItem),
+            typeof(FileInfoModel),
+            typeof(InventoryItemVersion),
+            typeof(Progress),
+            typeof(FavoriteInfo),
+            typeof(Bookmark),
+            typeof(InventoryItemAddon),
+            typeof(InventoryItemPart),
+            typeof(MetadataModel),
+            typeof(MetadataAudiobookModel),
+            typeof(MetadataBookModel),
+            typeof(MetadataEpisodeModel),
+            typeof(MetadataMovieModel),
+            typeof(MetadataSeasonModel),
+            typeof(MetadataShowModel),
+            typeof(MetadataChapter),
+            typeof(VideoStream),
+            typeof(SubtitleStream),
+            typeof(AudioStream),
+            typeof(MediaData),
+            typeof(MediaFormat)
+        };
 
-            sb.Append(", ");
-        }
-
-        sb.Append("json_data JSONB");
-
-        return sb.ToString();
+        CreateTables(connectionString, tables);
     }
 
     private void CreateDatabase(string connectionString)
@@ -98,56 +70,143 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
         }
     }
 
-    private void CreateTable<T>(string connectionString)
+    private void CreateTables(string connectionString, List<Type> tableTypes)
     {
-        var columns = GetColumnDefinition<T>();
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
-
-        using var connection = new NpgsqlConnection(connectionString);
-        connection.Open();
-
-        var tableExists = CheckIfTableExists(tableName, connection);
-        if (!tableExists)
+        foreach (var tableType in tableTypes)
         {
-            connection.Execute($"CREATE TABLE IF NOT EXISTS {tableName} ({columns})");
-        }
-        else
-        {
-            //TODO Implement table update!
-            var existingColumns = GetExistingTableColumns(tableName, connection).ToList();
-            var expectedColumns = GetColumnDefinition<T>().Split(',').Select(cd => cd.Trim());
-            foreach (var columnDef in expectedColumns.Where(c =>
-                         !existingColumns.Any(col =>
-                             c.StartsWith(col.ColumnName, StringComparison.InvariantCultureIgnoreCase))))
+            var columns = GetColumnDefinition(tableType);
+            var tableName = ExpressionToSqlConverter.GetTableName(tableType);
+
+            using var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+
+            var tableExists = CheckIfTableExists(tableName, connection);
+            if (!tableExists)
             {
-                connection.Execute($"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {columnDef.Trim()}");
-                var columnName = columnDef.Split(' ').First();
-                connection.Execute(
-                    $"update {tableName} set {columnName} = COALESCE({columnName}, json_data->>'{columnName}') where {columnName} is null and json_data ? '{columnName}'");
+                connection.Execute($"CREATE TABLE IF NOT EXISTS {tableName} ({columns})");
+            }
+            else
+            {
+                //TODO Implement table update!
+                var existingColumns = GetExistingTableColumns(tableName, connection).ToList();
+                var expectedColumns = GetColumnDefinition(tableType).Split(',').Select(cd => cd.Trim());
+
+                foreach (var columnDef in expectedColumns.Where(c =>
+                             !existingColumns.Any(col =>
+                                 c.StartsWith(col.ColumnName, StringComparison.InvariantCultureIgnoreCase))))
+                {
+                    connection.Execute($"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {columnDef.Trim()}");
+                    var columnName = columnDef.Split(' ').First();
+                    connection.Execute(
+                        $"update {tableName} set {columnName} = COALESCE({columnName}) where {columnName} is null");
+                }
             }
         }
 
-        return;
-
-        static bool CheckIfTableExists(string tableName, NpgsqlConnection connection)
+        foreach (var tableType in tableTypes)
         {
-            var result = (int?)new NpgsqlCommand($"select 1 from pg_tables where tablename = '{tableName}'", connection)
-                .ExecuteScalar();
-            return (result ?? 0) == 1;
+            var constraints = GetConstraintDefinition(tableType);
+
+            if (string.IsNullOrWhiteSpace(constraints))
+            {
+                continue;
+            }
+            
+            var tableName = ExpressionToSqlConverter.GetTableName(tableType);
+            
+            using var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+            
+            var tableExists = CheckIfTableExists(tableName, connection);
+            
+            if (tableExists)
+            {
+                connection.Execute($"ALTER TABLE {tableName} {constraints}");
+            }
+        }
+    }
+
+    private string GetColumnDefinition(Type type)
+    {
+        var props = type.GetProperties()
+            .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute)))
+            .OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order);
+
+        var sb = new StringBuilder();
+
+        foreach (var prop in props)
+        {
+            var columnName = prop.Name;
+            var columnAttr = prop.GetCustomAttribute<ColumnAttribute>();
+            var columnType = columnAttr!.TypeName;
+            sb.Append($"{columnName} {columnType}");
+            var isPrimaryKey = prop.GetCustomAttribute<KeyAttribute>() != null;
+            if (isPrimaryKey)
+                sb.Append(" PRIMARY KEY");
+
+            sb.Append(", ");
         }
 
-        static IEnumerable<(string ColumnName, string type)> GetExistingTableColumns(string tableName,
-            NpgsqlConnection connection)
+        if (sb.Length > 2)
         {
-            var command =
-                new NpgsqlCommand(
-                    $"select column_name, data_type, is_nullable, column_default from information_schema.columns where table_schema = 'public' and table_name = '{tableName}'",
-                    connection);
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            sb.Remove(sb.Length - 2, 2);
+        }
+        
+        return sb.ToString();
+    }
+
+    private string GetConstraintDefinition(Type type)
+    {
+        var props = type.GetProperties()
+            .Where(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(ColumnAttribute)))
+            .OrderBy(p => p.GetCustomAttribute<ColumnAttribute>()!.Order);
+
+        var sb = new StringBuilder();
+
+        foreach (var prop in props)
+        {
+            var foreignKey = prop.GetCustomAttribute<ForeignKeyAttribute>();
+
+            if (foreignKey != null)
             {
-                yield return (reader["column_name"].ToString()!, reader["data_type"].ToString()!);
+                var columnName = prop.Name;
+                var columnAttr = prop.GetCustomAttribute<ColumnAttribute>();
+                var columnType = columnAttr!.TypeName;
+
+                sb.Append($"ADD FOREIGN KEY ({columnName})");
+                
+                sb.Append($" REFERENCES t_{foreignKey.Name} ON DELETE CASCADE");
+
+                sb.Append(", ");
             }
+        }
+
+        if (sb.Length > 2)
+        {
+            sb.Remove(sb.Length - 2, 2);
+        }
+        
+        return sb.ToString();
+    }
+
+    static bool CheckIfTableExists(string tableName, NpgsqlConnection connection)
+    {
+        var result = (int?)new NpgsqlCommand($"select 1 from pg_tables where tablename = '{tableName}'", connection)
+            .ExecuteScalar();
+        return (result ?? 0) == 1;
+    }
+
+    static IEnumerable<(string ColumnName, string type)> GetExistingTableColumns(string tableName,
+        NpgsqlConnection connection)
+    {
+        var command =
+            new NpgsqlCommand(
+                $"select column_name, data_type, is_nullable, column_default from information_schema.columns where table_schema = 'public' and table_name = '{tableName}'",
+                connection);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            yield return (reader["column_name"].ToString()!, reader["data_type"].ToString()!);
         }
     }
 }

@@ -49,7 +49,7 @@ public class PostgresRepository : IDataRepository
         if (items == null)
             return;
 
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         var keyProp = typeof(T).GetProperties()
             .FirstOrDefault(p => p.CustomAttributes.Any(attr => attr.AttributeType == typeof(KeyAttribute)));
 
@@ -89,7 +89,7 @@ public class PostgresRepository : IDataRepository
         var sqlFilter = filter != null
             ? ExpressionToSqlConverter.ExpressionToSql(filter).Replace("WHERE", "AND")
             : string.Empty;
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         var res = await connection.ExecuteAsync($"delete from {tableName} where id = {id} {sqlFilter}");
@@ -108,7 +108,7 @@ public class PostgresRepository : IDataRepository
         if (keyProp == null)
             throw new ArgumentException("Item does not have a valid KeyAttribute");
         var ids = items.Select(i => (Guid?)keyProp.GetValue(i));
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         await connection.ExecuteAsync(
@@ -117,7 +117,7 @@ public class PostgresRepository : IDataRepository
 
     public async Task<IEnumerable<T>> ListObjects<T>(Expression<Func<T, bool>>? filter = null)
     {
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         var filterExpression = ExpressionToSqlConverter.ExpressionToSql(filter);
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
@@ -134,7 +134,7 @@ public class PostgresRepository : IDataRepository
 
     public async Task<T?> GetObjectById<T>(Guid id, Expression<Func<T, bool>>? additionalFilter = null)
     {
-        var tableName = ExpressionToSqlConverter.GetTableName<T>();
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         var results = new List<T?>();

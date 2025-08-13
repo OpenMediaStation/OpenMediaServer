@@ -127,10 +127,8 @@ public static class ExpressionToSqlConverter
         }
     }
     
-    public static string GetTableName<T>()
+    public static string GetTableName(Type type)
     {
-        var type = typeof(T);
-        
         if (type.BaseType != null && type.BaseType.Assembly == Assembly.GetExecutingAssembly())
             type = type.BaseType;
         var className = type.Name;
