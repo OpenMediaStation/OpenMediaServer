@@ -64,9 +64,9 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
             var isPrimaryKey = prop.GetCustomAttribute<KeyAttribute>() != null;
             if (isPrimaryKey)
                 sb.Append(" PRIMARY KEY");
-            var foreignKey = prop.GetCustomAttribute<ForeignKeyAttribute>();
-            if (foreignKey != null)
-                sb.Append($" REFERENCES t_{foreignKey.Name} ON DELETE CASCADE");
+            // var foreignKey = prop.GetCustomAttribute<ForeignKeyAttribute>();
+            // if (foreignKey != null)
+            //     sb.Append($" REFERENCES t_{foreignKey.Name} ON DELETE CASCADE");
 
             sb.Append(", ");
         }

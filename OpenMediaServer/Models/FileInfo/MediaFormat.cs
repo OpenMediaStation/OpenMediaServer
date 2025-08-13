@@ -25,9 +25,9 @@ public class MediaFormat
     [Column(TypeName = "INTEGER")]
     public int StreamCount { get; set; }
 
-    [Column(TypeName = "DOUBLE")]
+    [Column(TypeName = "DOUBLE PRECISION")]
     public double ProbeScore { get; set; }
 
-    [Column(TypeName = "DOUBLE")]
+    [Column(TypeName = "DOUBLE PRECISION")]
     public double BitRate { get; set; }
 }
