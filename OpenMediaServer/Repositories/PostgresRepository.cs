@@ -92,7 +92,7 @@ public class PostgresRepository : IDataRepository
         var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
-        var res = await connection.ExecuteAsync($"delete from {tableName} where id = {id} {sqlFilter}");
+        var res = await connection.ExecuteAsync($"delete from {tableName} where id = \'{id}\' {sqlFilter}");
         if (res != 1)
         {
             //TODO Maybe throw exception!
@@ -107,7 +107,13 @@ public class PostgresRepository : IDataRepository
             p.PropertyType == typeof(Guid));
         if (keyProp == null)
             throw new ArgumentException("Item does not have a valid KeyAttribute");
-        var ids = items.Select(i => (Guid?)keyProp.GetValue(i));
+        var ids = items.Select(i => (Guid?)keyProp.GetValue(i)).ToList();
+
+        if (ids.Count == 0)
+        {
+            return;
+        }
+        
         var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();

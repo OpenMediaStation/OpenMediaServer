@@ -110,23 +110,27 @@ public static class ExpressionToSqlConverter
                 break;
             case DateOnly:
                 var dateOnly = value is DateOnly only ? only : default;
-                
+
                 var isoString = dateOnly.ToString("yyyy-MM-dd");
-                
+
                 sb.Append($"\'{isoString}\'");
-                break;            
+                break;
             case DateTime:
                 var dateTime = value is DateTime dt ? dt : default;
                 var isoStringDateTime = dateTime.ToString("yyyy-MM-dd");
-                
+
                 sb.Append($"\'{isoStringDateTime}\'");
+                break;
+            case TimeSpan:
+                var timeSpan = value is TimeSpan ts ? ts : default;
+                sb.Append($"'{timeSpan:hh\\:mm\\:ss}'::interval");
                 break;
             default:
                 sb.Append(value);
                 break;
         }
     }
-    
+
     public static string GetTableName(Type type)
     {
         if (type.BaseType != null && type.BaseType.Assembly == Assembly.GetExecutingAssembly())

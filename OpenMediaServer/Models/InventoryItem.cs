@@ -27,7 +27,7 @@ public class InventoryItem
     public bool IsOrphan { get; set; }
     
     [Column(TypeName = "DATE")]
-    public DateOnly? ReleaseDate { get; set; }
+    public DateTime? ReleaseDate { get; set; }
     
     [Column(TypeName = "TEXT")]
     public string? DisplayImageBlurHash { get; set; }

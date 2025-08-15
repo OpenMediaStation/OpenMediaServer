@@ -20,13 +20,13 @@ public class MediaData
     
     [ForeignKey(nameof(AudioStream)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid PrimaryAudioStreamId { get; set; }    
+    public Guid? PrimaryAudioStreamId { get; set; }    
     
     [ForeignKey(nameof(VideoStream)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid PrimaryVideoStreamId { get; set; }  
+    public Guid? PrimaryVideoStreamId { get; set; }  
     
     [ForeignKey(nameof(SubtitleStream)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid PrimarySubtitleStreamId { get; set; }
+    public Guid? PrimarySubtitleStreamId { get; set; }
 }

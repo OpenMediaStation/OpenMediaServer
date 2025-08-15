@@ -153,8 +153,8 @@ public class DiscoveryAudiobookService(
             var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
             
             audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateOnly.TryParse(audiobookMetadata?.PublishedDate, out var dateOnly)
-                ? dateOnly
+            audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
+                ? dateTime
                 : null;
 
             await inventoryService.AddItem(audiobook);
@@ -260,8 +260,8 @@ public class DiscoveryAudiobookService(
             var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
             
             audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateOnly.TryParse(audiobookMetadata?.PublishedDate, out var dateOnly)
-                ? dateOnly
+            audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
+                ? dateTime
                 : null;
 
             await inventoryService.AddItem(audiobook);

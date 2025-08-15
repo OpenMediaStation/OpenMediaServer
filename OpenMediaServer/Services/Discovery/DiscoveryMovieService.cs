@@ -98,7 +98,6 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
     {
         var movies = await inventoryService.ListItems("Movie");
         
-        // TODO fix those nullability issues in all discovery services
         var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
         var existingMovie = await inventoryService.GetItem(existingVersion?.InventoryItemId);
         
@@ -121,6 +120,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 var version = new InventoryItemVersion
                 {
                     Id = Guid.NewGuid(),
+                    InventoryItemId = existingMovie.Id,
                     Path = path,
                     Name = versionName
                 };
@@ -175,7 +175,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
             movie.MetadataId = metadata?.Id;
             movie.DisplayImageBlurHash = movieMetadata?.PosterBlurHash;
-            movie.ReleaseDate = DateOnly.TryParse(movieMetadata?.Released, out var dateOnly) ? dateOnly : null;
+            movie.ReleaseDate = DateTime.TryParse(movieMetadata?.Released, out var dateTime) ? dateTime : null;
         }
         
         movie.FolderPath = folderPath;

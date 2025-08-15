@@ -63,7 +63,7 @@ public class DiscoveryShowService(
 
                 show.MetadataId = metadata?.Id;
                 show.DisplayImageBlurHash = showMetadata?.PosterBlurHash;
-                show.ReleaseDate = DateOnly.TryParse(showMetadata?.Released, out var dateOnly) ? dateOnly : null;
+                show.ReleaseDate = DateTime.TryParse(showMetadata?.Released, out var dateTime) ? dateTime : null;
             }
             else
             {
@@ -113,9 +113,7 @@ public class DiscoveryShowService(
 
                 season.MetadataId = metadata?.Id;
                 season.DisplayImageBlurHash = seasonMetadata?.PosterBlurHash;
-                season.ReleaseDate = seasonMetadata?.AirDate != null
-                    ? DateOnly.FromDateTime((DateTime)seasonMetadata?.AirDate!)
-                    : null;
+                season.ReleaseDate = seasonMetadata?.AirDate;
             }
             else
             {
@@ -180,7 +178,7 @@ public class DiscoveryShowService(
                 episode.MetadataId = metadata?.Id;
                 episode.DisplayImageBlurHash = episodeMetadata?.BackdropBlurHash;
                 episode.ReleaseDate =
-                    DateOnly.TryParse(episodeMetadata?.Released, out var dateOnly) ? dateOnly : null;
+                    DateTime.TryParse(episodeMetadata?.Released, out var dateTime) ? dateTime : null;
             }
             else
             {
@@ -189,14 +187,14 @@ public class DiscoveryShowService(
 
             var addons = _addonService.DiscoverAddons(path);
 
+            await _inventoryService.AddItem(episode);
+            
             foreach (var addon in addons)
             {
                 addon.InventoryItemId = episode.Id;
 
                 await _addonService.UpdateOrInsert(addon);
             }
-
-            await _inventoryService.AddItem(episode);
 
             var newVersion = new InventoryItemVersion()
             {
@@ -205,9 +203,9 @@ public class DiscoveryShowService(
                 Path = path,
                 FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
             };
-
+            
             await versionService.UpdateOrInsert(newVersion);
-
+            
             await _inventoryService.UpdateOrInsert(season);
         }
     }

@@ -101,7 +101,7 @@ public class DiscoveryBookService(
 
         book.MetadataId = metadata?.Id;
         book.DisplayImageBlurHash = bookMetadata?.ThumbnailBlurHash;
-        book.ReleaseDate = DateOnly.TryParse(bookMetadata?.PublishedDate, out var dateOnly) ? dateOnly : null;
+        book.ReleaseDate = DateTime.TryParse(bookMetadata?.PublishedDate, out var dateTime) ? dateTime : null;
 
         await inventoryService.AddItem(book);
 
