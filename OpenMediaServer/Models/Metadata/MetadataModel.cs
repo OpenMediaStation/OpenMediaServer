@@ -11,10 +11,6 @@ public class MetadataModel
     [Key]
     [Column(TypeName = "UUID")]
     public Guid Id { get; set; }
-    
-    [ForeignKey(nameof(InventoryItem)+"(Id)")]
-    [Column(TypeName = "UUID")]
-    public Guid InventoryItemId { get; set; }
 
     [Column(TypeName = "TEXT")]
     public string? Title { get; set; }
@@ -26,25 +22,25 @@ public class MetadataModel
     // Specific information
     [ForeignKey(nameof(MetadataMovieModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid MovieMetadataId { get; set; }    
+    public Guid? MovieMetadataId { get; set; }    
     
     [ForeignKey(nameof(MetadataShowModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid ShowMetadataId { get; set; }    
+    public Guid? ShowMetadataId { get; set; }    
     
     [ForeignKey(nameof(MetadataSeasonModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid SeasonMetadataId { get; set; } 
+    public Guid? SeasonMetadataId { get; set; } 
     
     [ForeignKey(nameof(MetadataEpisodeModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid EpisodeMetadataId { get; set; }    
+    public Guid? EpisodeMetadataId { get; set; }    
     
     [ForeignKey(nameof(MetadataBookModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid BookMetadataId { get; set; }    
+    public Guid? BookMetadataId { get; set; }    
     
     [ForeignKey(nameof(MetadataAudiobookModel)+"(Id)")]
     [Column(TypeName = "UUID")]
-    public Guid AudiobookMetadataId { get; set; }
+    public Guid? AudiobookMetadataId { get; set; }
 }

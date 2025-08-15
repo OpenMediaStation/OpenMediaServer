@@ -50,10 +50,33 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
-    c.AddSecurityDefinition("openid", new OpenApiSecurityScheme
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.OpenIdConnect,
-        OpenIdConnectUrl = new Uri(Globals.AuthConfigurationUrl ?? "")
+        Description = "Paste your JWT here (no quotes). Example:  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "bearer",
+                Name = "Authorization",
+                In = ParameterLocation.Header
+            },
+            Array.Empty<string>()
+        }
     });
 });
 

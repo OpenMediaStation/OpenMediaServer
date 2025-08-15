@@ -12,8 +12,7 @@ public class AudiobookMetadataService(
     IGoogleBooksApi googleBooksApi,
     IOpenLibraryApi openLibraryApi,
     IImageService imageService,
-    IDataRepository dataRepository,
-    IChapterService chapterService)
+    IDataRepository dataRepository)
     : TableBaseService<MetadataAudiobookModel>(dataRepository), IAudioBookMetadataService
 {
     public async Task<MetadataModel> GenerateMetadata(string? year, string title, string? language, Guid metadataId, string? filePath)
@@ -56,9 +55,7 @@ public class AudiobookMetadataService(
         }
         
         await UpdateOrInsert(audiobook);
-
-        await chapterService.ExtractChapters(filePath, metadataId);
-
+        
         var metadata = new MetadataModel()
         {
             Title = extractedTitle ?? openLibraryData?.Title ?? googleBooksData?.Title,

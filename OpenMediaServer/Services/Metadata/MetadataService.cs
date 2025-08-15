@@ -15,7 +15,8 @@ public class MetadataService(
     IEpisodeMetadataService episodeMetadataService,
     IBookMetadataService bookMetadataService,
     IAudioBookMetadataService audioBookMetadataService,
-    IImageService imageService)
+    IImageService imageService,
+    IChapterService chapterService)
     : IMetadataService
 {
     public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title,
@@ -82,11 +83,15 @@ public class MetadataService(
 
         metadata.Id = metadataId;
         metadata.Category = category;
-        metadata.InventoryItemId = parentId;
 
         // metadatas = metadatas.Append(metadata);
 
         await dataRepository.WriteObject(metadata);
+
+        if (category == "Audiobook")
+        {
+            await chapterService.ExtractChapters(path, metadataId);
+        }
 
         return metadata;
     }
