@@ -125,6 +125,21 @@ public static class ExpressionToSqlConverter
                 var timeSpan = value is TimeSpan ts ? ts : default;
                 sb.Append($"'{timeSpan:hh\\:mm\\:ss}'::interval");
                 break;
+            
+            case double d:
+                if (double.IsNaN(d) || double.IsInfinity(d))
+                    sb.Append("NULL");
+                else
+                    sb.Append(d.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                break;
+
+            case float f:
+                if (float.IsNaN(f) || float.IsInfinity(f))
+                    sb.Append("NULL");
+                else
+                    sb.Append(f.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                break;
+            
             default:
                 sb.Append(value);
                 break;

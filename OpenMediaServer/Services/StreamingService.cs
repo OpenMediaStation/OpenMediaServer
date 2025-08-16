@@ -30,7 +30,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
             var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
@@ -53,7 +53,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            var versions = await versionService.List(i => i.Id  == versionId);
             var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
@@ -95,12 +95,12 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
             version = versions?.FirstOrDefault();
         }
         else
         {
-            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            var versions = await versionService.List(i => i.Id  == versionId);
             version = versions?.FirstOrDefault();
         }
 
@@ -149,7 +149,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
             var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
@@ -160,7 +160,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var versions = await versionService.ListItems(i => i.Id  == versionId);
+            var versions = await versionService.List(i => i.Id  == versionId);
             var playVersion = versions?.FirstOrDefault();
             
             if (playVersion == null)
@@ -267,12 +267,12 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
             if (versionId != null)
             {
-                var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+                var versions = await versionService.List(i => i.InventoryItemId == item.Id);
                 path = versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
             }
             else
             {
-                var versions = await versionService.ListItems(i => i.Id  == versionId);
+                var versions = await versionService.List(i => i.Id  == versionId);
                 var version = versions?.FirstOrDefault();
                 path = version?.Path;
             }

@@ -128,14 +128,14 @@ public class DiscoveryShowService(
         }
 
         // Episode
-        var versions = await versionService.ListItems(i => i.Path == path);
+        var versions = await versionService.List(i => i.Path == path);
         var episodes = new List<InventoryItem>();
 
-        foreach (var version in versions)
+        foreach (var version in versions ?? [])
         {
             var item = await _inventoryService.GetItem(version.InventoryItemId);
 
-            if (item == null)
+            if (item != null)
             {
                 episodes.Add(item);
             }

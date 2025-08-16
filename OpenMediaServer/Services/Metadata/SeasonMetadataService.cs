@@ -36,6 +36,7 @@ public class SeasonMetadataService(
 
         var seasonMetadata = new MetadataSeasonModel()
         {
+            Id = Guid.NewGuid(),
             Poster = seasonInfo?.PosterPath != null ? $"{Globals.Domain}/images/Season/{metadataId}/poster" : null,
             PosterBlurHash = posterBlurHash,
             AirDate = seasonInfo?.AirDate,

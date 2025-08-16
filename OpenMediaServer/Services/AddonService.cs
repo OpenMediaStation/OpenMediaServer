@@ -21,7 +21,7 @@ public class AddonService(
     public async Task<IEnumerable<InventoryItemAddon>?> ListItems(
         Expression<Func<InventoryItemAddon, bool>>? filter = null)
     {
-        var items = await dataRepository.ListObjects<InventoryItemAddon>();
+        var items = await dataRepository.ListObjects(filter);
 
         return items;
     }

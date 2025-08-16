@@ -98,7 +98,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
     {
         var movies = await inventoryService.ListItems("Movie");
         
-        var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
+        var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
         var existingMovie = await inventoryService.GetItem(existingVersion?.InventoryItemId);
         
         string? folderPath = null;
@@ -125,7 +125,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                     Name = versionName
                 };
 
-                var versions = await versionService.ListItems(i => i.Path == path);
+                var versions = await versionService.List(i => i.Path == path);
 
                 if (versions?.Any(i => i.Path == path) ?? false)                {
                     return;

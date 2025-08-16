@@ -30,7 +30,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
 
         var audiobooks = await _inventoryService.ListItems("Audiobook");
 
-        await HandleDelete(paths, books);
+        await HandleDelete(paths, audiobooks);
 
         var episodes = await _inventoryService.ListItems("Episode");
 
@@ -211,7 +211,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     }
                 }
 
-                var versions = await versionService.ListItems(i => i.InventoryItemId == item.Id);
+                var versions = await versionService.List(i => i.InventoryItemId == item.Id);
 
                 if (versions != null)
                 {
@@ -219,7 +219,7 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     {
                         if (!paths.Contains(version.Path))
                         {                            
-                            await versionService.DeleteVersion(version.Id);
+                            await versionService.Delete(version.Id);
 
                             await _fileInfo.DeleteFileInfo(version.Id);
                         }

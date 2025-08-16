@@ -59,7 +59,7 @@ public class DiscoveryAudiobookService(
             }
 
             var books = await inventoryService.ListItems("Audiobook");
-            var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
+            var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
             var existingVersionId = existingVersion?.Id;
 
             InventoryItem? existingBook = null;
@@ -118,6 +118,7 @@ public class DiscoveryAudiobookService(
                     {
                         Id = Guid.NewGuid(),
                         Path = path,
+                        InventoryItemId = existingBook.Id,
                     };
 
                     // Do this after the path check because a file info will be created
@@ -201,7 +202,7 @@ public class DiscoveryAudiobookService(
 
             var books = await inventoryService.ListItems("Audiobook");
             
-            var existingVersion = (await versionService.ListItems(i => i.Path == path) ?? []).FirstOrDefault();
+            var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
             var existingBook = await inventoryService.GetItem(existingVersion?.InventoryItemId);
 
             string? folderPath = null;
@@ -222,7 +223,7 @@ public class DiscoveryAudiobookService(
                         Path = path,
                     };
 
-                    var versions = await versionService.ListItems(i => i.Path == path);
+                    var versions = await versionService.List(i => i.Path == path);
 
                     if (versions?.Any(i => i.Path == path) ?? false)
                     {

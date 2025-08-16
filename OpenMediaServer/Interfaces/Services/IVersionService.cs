@@ -3,11 +3,7 @@ using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Interfaces.Services;
 
-public interface IVersionService
+public interface IVersionService : ITableBaseService<InventoryItemVersion>
 {
-    Task DeleteVersion(Guid versionId);
-
-    Task<IEnumerable<InventoryItemVersion>?> ListItems(Expression<Func<InventoryItemVersion, bool>>? filter = null);
-    Task UpdateOrInsert(InventoryItemVersion item);
 
 }

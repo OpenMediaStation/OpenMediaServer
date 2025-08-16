@@ -23,7 +23,7 @@ public class TableBaseService<T>(IDataRepository dataRepository) : ITableBaseSer
 
     public async Task<IEnumerable<T>?> List(Expression<Func<T, bool>>? filter = null)
     {
-        var items = await dataRepository.ListObjects<T>();
+        var items = await dataRepository.ListObjects(filter);
 
         return items;
     }
