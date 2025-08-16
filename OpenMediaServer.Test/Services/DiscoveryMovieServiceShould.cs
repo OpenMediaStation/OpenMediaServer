@@ -22,6 +22,8 @@ public class DiscoveryMovieServiceShould
     private readonly IInventoryService _inventoryService;
     private readonly IAddonService _addonService;
     private readonly IBinService _binService;
+    private readonly IVersionService _versionService;
+    private readonly IMovieMetadataService _movieMetadataService;
 
     public DiscoveryMovieServiceShould()
     {
@@ -33,8 +35,10 @@ public class DiscoveryMovieServiceShould
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
         _binService = Substitute.For<IBinService>();
+        _movieMetadataService = Substitute.For<IMovieMetadataService>();
+        _versionService = Substitute.For<IVersionService>();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService);
+        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService, _versionService, _movieMetadataService);
     }
 
     [Theory]
@@ -98,6 +102,5 @@ public class DiscoveryMovieServiceShould
         resultItem.Versions.First().Path.ShouldBe(path);
         resultItem.Versions.First().Name.ShouldBe(versionName);
         resultItem.FolderPath.ShouldBe(folderPath);
-        
     }
 }
