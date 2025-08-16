@@ -53,16 +53,9 @@ public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository da
         return fileInfos;
     }
 
-    public async Task DeleteFileInfo(string category, Guid id)
+    public async Task DeleteFileInfo(Guid id)
     {
-        await dataRepository.DeleteObjectWithFilter<FileInfoModel>(id, (fi => fi.ParentCategory == category));
-    }
-
-    public async Task DeleteFileInfoByParentId(string category, Guid parentId)
-    {
-        var matchingFileInfos = await dataRepository.ListObjects<FileInfoModel>(fi => fi.ParentCategory == category && fi.ParentId == parentId);
-        
-        await dataRepository.DeleteObjects(matchingFileInfos);
+        await dataRepository.DeleteObjectWithFilter<FileInfoModel>(id);
     }
 
     private async Task<FileInfoModel> MapFileInfo(Guid parentId, string parentCategory, IMediaAnalysis mappingInput)
@@ -70,7 +63,6 @@ public class FileInfoService(ILogger<FileInfoService> logger, IDataRepository da
         var fileInfo = new FileInfoModel
         {
             Id = Guid.NewGuid(),
-            ParentId = parentId,
             ParentCategory = parentCategory,
         };
 

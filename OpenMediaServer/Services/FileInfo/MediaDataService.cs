@@ -20,6 +20,11 @@ public class MediaDataService(IDataRepository dataRepository, IMediaFormatServic
         
         mediaData.MediaFormatId = mediaFormat.Id;
         
+        await UpdateOrInsert(mediaData);
+
+        mediaData.PrimaryAudioStreamId = await audioStreamService.CreateAudioStreams(mappingInput, mediaData.Id);
+        mediaData.PrimaryVideoStreamId = await videoStreamService.CreateVideoStream(mappingInput, mediaData.Id);
+        mediaData.PrimarySubtitleStreamId = await subtitleStreamService.CreateSubtitleStream(mappingInput, mediaData.Id);
         
         await UpdateOrInsert(mediaData);
         

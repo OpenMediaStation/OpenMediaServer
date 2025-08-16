@@ -182,15 +182,15 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         
         var newAddons = addonService.DiscoverAddons(path);
 
+        await inventoryService.AddItem(movie);
+        
         foreach (var addon in newAddons)
         {
             addon.InventoryItemId = movie.Id;
             
             await addonService.UpdateOrInsert(addon);
         }
-
-        await inventoryService.AddItem(movie);
-
+        
         var newVersion = new InventoryItemVersion()
         {
             Id = versionId,

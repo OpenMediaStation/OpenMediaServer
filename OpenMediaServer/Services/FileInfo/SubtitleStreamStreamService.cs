@@ -7,28 +7,18 @@ namespace OpenMediaServer.Services.FileInfo;
  
 public class SubtitleStreamStreamService(IDataRepository dataRepository) : TableBaseService<SubtitleStream>(dataRepository), ISubtitleStreamService
 {
-    public async Task<SubtitleStream?> CreateSubtitleStream(IMediaAnalysis mappingInput, Guid mediaDataId)
+    public async Task<Guid?> CreateSubtitleStream(IMediaAnalysis mappingInput, Guid mediaDataId)
     {
         var streams = mappingInput.SubtitleStreams.Select(i => MapSubtitleStream(i, mediaDataId)).ToList();
-        
-        SubtitleStream? primarySubtitleStream = null;
-
-        if (mappingInput.PrimarySubtitleStream != null)
-        {
-            primarySubtitleStream = MapSubtitleStream(mappingInput.PrimarySubtitleStream, mediaDataId);
-        }
-
-        if (primarySubtitleStream != null)
-        {
-            streams.Add(primarySubtitleStream);
-        }
 
         foreach (var stream in streams)
         {
             await UpdateOrInsert(stream);
         }
         
-        return primarySubtitleStream;
+        var primaryStream = streams.FirstOrDefault(i => i.Index == mappingInput.PrimarySubtitleStream?.Index);
+        
+        return primaryStream?.Id;
     }
     
     private SubtitleStream MapSubtitleStream(FFMpegCore.SubtitleStream input, Guid mediaDataId)

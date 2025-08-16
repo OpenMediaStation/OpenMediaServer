@@ -7,28 +7,18 @@ namespace OpenMediaServer.Services.FileInfo;
 
 public class VideoStreamService(IDataRepository dataRepository) : TableBaseService<VideoStream>(dataRepository), IVideoStreamService
 {
-    public async Task<VideoStream?> CreateVideoStream(IMediaAnalysis mappingInput, Guid mediaDataId)
+    public async Task<Guid?> CreateVideoStream(IMediaAnalysis mappingInput, Guid mediaDataId)
     {
         var streams = mappingInput.VideoStreams.Select(i => MapVideoStream(i, mediaDataId)).ToList();
         
-        VideoStream? primaryVideoStream = null;
-
-        if (mappingInput.PrimaryVideoStream != null)
-        {
-            primaryVideoStream = MapVideoStream(mappingInput.PrimaryVideoStream, mediaDataId);
-        }
-
-        if (primaryVideoStream != null)
-        {
-            streams.Add(primaryVideoStream);
-        }
-
         foreach (var stream in streams)
         {
             await UpdateOrInsert(stream);
         }
         
-        return primaryVideoStream;
+        var primaryStream = streams.FirstOrDefault(i => i.Index == mappingInput.PrimaryVideoStream?.Index);
+        
+        return primaryStream?.Id;
     }
     
     private VideoStream MapVideoStream(FFMpegCore.VideoStream input, Guid mediaDataId)

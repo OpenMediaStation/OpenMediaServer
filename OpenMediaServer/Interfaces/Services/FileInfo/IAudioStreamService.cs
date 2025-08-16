@@ -5,5 +5,5 @@ namespace OpenMediaServer.Interfaces.Services.FileInfo;
 
 public interface IAudioStreamService  : ITableBaseService<AudioStream>
 {
-    Task<AudioStream?> CreateAudioStreams(IMediaAnalysis mappingInput, Guid mediaDataId);
+    Task<Guid?> CreateAudioStreams(IMediaAnalysis mappingInput, Guid mediaDataId);
 }

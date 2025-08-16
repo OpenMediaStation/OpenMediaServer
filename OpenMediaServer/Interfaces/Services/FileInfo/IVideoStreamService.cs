@@ -5,5 +5,5 @@ namespace OpenMediaServer.Interfaces.Services.FileInfo;
 
 public interface IVideoStreamService  : ITableBaseService<VideoStream>
 {
-    Task<VideoStream?> CreateVideoStream(IMediaAnalysis mappingInput, Guid mediaDataId);
+    Task<Guid?> CreateVideoStream(IMediaAnalysis mappingInput, Guid mediaDataId);
 }

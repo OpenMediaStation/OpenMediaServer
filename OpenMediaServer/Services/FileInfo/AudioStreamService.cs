@@ -8,28 +8,18 @@ namespace OpenMediaServer.Services.FileInfo;
 public class AudioStreamService(IDataRepository dataRepository)
     : TableBaseService<AudioStream>(dataRepository), IAudioStreamService
 {
-    public async Task<AudioStream?> CreateAudioStreams(IMediaAnalysis mappingInput, Guid mediaDataId)
+    public async Task<Guid?> CreateAudioStreams(IMediaAnalysis mappingInput, Guid mediaDataId)
     {
         var streams = mappingInput.AudioStreams.Select(i => MapAudioStream(i, mediaDataId)).ToList();
-
-        AudioStream? primaryAudioStream = null;
-
-        if (mappingInput.PrimaryAudioStream != null)
-        {
-            primaryAudioStream = MapAudioStream(mappingInput.PrimaryAudioStream, mediaDataId);
-        }
-
-        if (primaryAudioStream != null)
-        {
-            streams.Add(primaryAudioStream);
-        }
 
         foreach (var stream in streams)
         {
             await UpdateOrInsert(stream);
         }
         
-        return primaryAudioStream;
+        var primaryStream = streams.FirstOrDefault(i => i.Index == mappingInput.PrimaryAudioStream?.Index);
+        
+        return primaryStream?.Id;    
     }
 
     private AudioStream MapAudioStream(FFMpegCore.AudioStream input, Guid mediaDataId)

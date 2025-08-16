@@ -5,5 +5,5 @@ namespace OpenMediaServer.Interfaces.Services.FileInfo;
 
 public interface ISubtitleStreamService  : ITableBaseService<SubtitleStream>
 {
-    Task<SubtitleStream?> CreateSubtitleStream(IMediaAnalysis mappingInput, Guid mediaDataId);
+    Task<Guid?> CreateSubtitleStream(IMediaAnalysis mappingInput, Guid mediaDataId);
 }

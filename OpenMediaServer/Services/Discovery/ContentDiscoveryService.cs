@@ -218,10 +218,10 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
                     foreach (var version in versions)
                     {
                         if (!paths.Contains(version.Path))
-                        {
+                        {                            
                             await versionService.DeleteVersion(version.Id);
 
-                            await _fileInfo.DeleteFileInfoByParentId(item.Category, version.Id);
+                            await _fileInfo.DeleteFileInfo(version.Id);
                         }
                     }
 
