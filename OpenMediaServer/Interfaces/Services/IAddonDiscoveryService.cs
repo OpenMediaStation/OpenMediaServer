@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using OpenMediaServer.DTOs.Endpoints;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Interfaces.Services;

@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using OpenMediaServer.DTOs.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
@@ -8,7 +9,6 @@ namespace OpenMediaServer.Services;
 
 public class AddonService(
     ILogger<AddonService> logger,
-    IInventoryService inventoryService,
     IFileSystemRepository fileSystemRepository,
     IDataRepository dataRepository)
     : IAddonService

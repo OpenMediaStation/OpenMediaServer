@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using OpenMediaServer.DTOs.Endpoints;
+using OpenMediaServer.Extensions.Mapping;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
@@ -8,10 +10,6 @@ namespace OpenMediaServer.Endpoints;
 
 public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryService inventoryService, IDataRepository dataRepository) : IBookmarkEndpoints
 {
-    private readonly ILogger<BookmarkEndpoints> _logger = logger;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IDataRepository _dataRepository = dataRepository;
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/bookmark");
@@ -23,7 +21,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         group.MapGet("{inventoryItemId}/{id}", GetBookmark).RequireAuthorization();
     }
 
-    public async Task<IResult> AddBookmark(HttpContext httpContext, Guid inventoryItemId, string category, [FromBody] Bookmark bookmark)
+    public async Task<IResult> AddBookmark(HttpContext httpContext, Guid inventoryItemId, string category, [FromBody] BookmarkDto bookmark)
     {
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
@@ -31,24 +29,16 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await _inventoryService.GetItem(inventoryItemId);
+        var item = await inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
         }
 
-        var entry = new Bookmark
-        {
-            Id = Guid.NewGuid(),
-            PositionInSeconds = bookmark.PositionInSeconds,
-            Title = bookmark.Title,
-            Description = bookmark.Description,
-            PageNumber = bookmark.PageNumber,
-            UserId = userId,
-            Category = category,
-            InventoryItemId = inventoryItemId,
-        };
-        await _dataRepository.WriteObject(entry);
+        var entry = bookmark.ToTable(userId, category, inventoryItemId);
+        entry.Id = Guid.NewGuid();
+        
+        await dataRepository.WriteObject(entry);
 
         return Results.Ok(entry);
     }
@@ -60,18 +50,20 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-        await _dataRepository.DeleteObjectWithFilter<Bookmark>(id);
+        await dataRepository.DeleteObjectWithFilter<Bookmark>(id);
        
         return Results.Ok();
     }
 
-    public async Task<IResult> UpdateBookmark(HttpContext httpContext, Guid id, [FromBody] Bookmark bookmark, Guid inventoryItemId, string category)
+    public async Task<IResult> UpdateBookmark(HttpContext httpContext, Guid id, [FromBody] BookmarkDto bookmarkDto, Guid inventoryItemId, string category)
     {
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
         {
             return Results.Forbid();
         }
+
+        var bookmark = bookmarkDto.ToTable(userId, category, inventoryItemId);
 
         bookmark.Id = id;
         if (bookmark.UserId == null)
@@ -83,7 +75,7 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        await _dataRepository.WriteObject(bookmark);
+        await dataRepository.WriteObject(bookmark);
 
         return Results.Ok(bookmark);
     }
@@ -95,9 +87,16 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
         {
             return Results.Forbid();
         }
-        var bookmarks = await _dataRepository.ListObjects<Bookmark>(bm => bm.UserId == userId && bm.Category == category && bm.InventoryItemId == inventoryItemId);
+        var bookmarks = await dataRepository.ListObjects<Bookmark>(bm => bm.UserId == userId && bm.Category == category && bm.InventoryItemId == inventoryItemId);
 
-        return Results.Ok(bookmarks);
+        List<BookmarkDto> bookmarkDtos = [];
+        
+        foreach (var bookmark in bookmarks)
+        {
+            bookmarkDtos.Add(bookmark.ToDto());
+        }
+        
+        return Results.Ok(bookmarkDtos);
     }
 
     public async Task<IResult> GetBookmark(HttpContext httpContext, Guid id, Guid inventoryItemId, string category)
@@ -108,11 +107,11 @@ public class BookmarkEndpoints(ILogger<BookmarkEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var bookmark = await _dataRepository.GetObjectById<Bookmark>(id);
+        var bookmark = await dataRepository.GetObjectById<Bookmark>(id);
         
         if(bookmark != null && bookmark?.UserId != userId)
             return Results.Forbid();
         
-        return bookmark != null ? Results.Ok(bookmark) : Results.NotFound();
+        return bookmark != null ? Results.Ok(bookmark.ToDto()) : Results.NotFound();
     }
 }

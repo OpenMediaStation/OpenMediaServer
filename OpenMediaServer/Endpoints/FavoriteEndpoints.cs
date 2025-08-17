@@ -8,8 +8,6 @@ namespace OpenMediaServer.Endpoints;
 
 public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryService inventoryService, IDataRepository dataRepository) : IFavoriteEndpoints
 {
-    private readonly ILogger<FavoriteEndpoints> _logger = logger;
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/favorite");

@@ -1,6 +1,7 @@
+using OpenMediaServer.DTOs.Endpoints;
+using OpenMediaServer.Extensions.Mapping;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
-using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Endpoints;
 
@@ -18,8 +19,15 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
     public async Task<IResult> ListAddons(Guid inventoryItemId, string category)
     {
         var addons = await addonService.ListItems(i => i.InventoryItemId == inventoryItemId);
+
+        List<AddonDto> addonDtos = [];
         
-        return Results.Ok(addons);
+        foreach (var addon in addons ?? [])
+        {
+            addonDtos.Add(addon.ToDto());
+        }
+        
+        return Results.Ok(addonDtos);
     }   
 
     public async Task<IResult> GetAddon(Guid inventoryItemId, string category, Guid addonId)
@@ -33,7 +41,7 @@ public class AddonEndpoints(ILogger<AddonEndpoints> logger, IInventoryService in
             return Results.NotFound();
         }
 
-        return Results.Ok(addon);
+        return Results.Ok(addon.ToDto());
     }
 
     public async Task<IResult> GetAddonContent(Guid inventoryItemId, string category, Guid addonId)
