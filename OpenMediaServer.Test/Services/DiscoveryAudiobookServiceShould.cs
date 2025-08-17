@@ -8,6 +8,7 @@ using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Services;
 using OpenMediaServer.Services.Discovery;
+using OpenMediaServer.Services.Metadata;
 using OpenMediaServer.Test.Mocks;
 using Shouldly;
 
@@ -20,6 +21,9 @@ public class DiscoveryAudiobookServiceShould
     private readonly IFileInfoService _fileInfoService;
     private readonly DiscoveryAudiobookService _inventoryBookService;
     private readonly IInventoryService _inventoryService;
+    private readonly IVersionService _versionService;
+    private readonly IPartService _partService;
+    private readonly IAudioBookMetadataService _audioBookMetadataService;
 
     public DiscoveryAudiobookServiceShould()
     {
@@ -28,8 +32,11 @@ public class DiscoveryAudiobookServiceShould
         _logger = Substitute.For<ILogger<DiscoveryAudiobookService>>();
         _storageRepository = new DataRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
+        _partService = Substitute.For<IPartService>();
+        _audioBookMetadataService = Substitute.For<IAudioBookMetadataService>();
+        _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryBookService = new DiscoveryAudiobookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
+        _inventoryBookService = new DiscoveryAudiobookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>(), _versionService, _partService, _audioBookMetadataService);
     }
 
     [Theory]
@@ -47,16 +54,17 @@ public class DiscoveryAudiobookServiceShould
         await _inventoryBookService.CreateAudiobook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
         var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
+        var versions = await _versionService.List();
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Audiobook");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
+        versions.ShouldNotBeNull();
+        versions.Count().ShouldBe(1);
+        versions.First().Id.ShouldNotBe(Guid.Empty);
+        versions.First().Path.ShouldBe(path);
         resultItem.FolderPath.ShouldBe(folderPath);
     }
 }

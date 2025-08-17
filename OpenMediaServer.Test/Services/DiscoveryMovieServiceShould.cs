@@ -36,7 +36,7 @@ public class DiscoveryMovieServiceShould
         _addonService = Substitute.For<IAddonService>();
         _binService = Substitute.For<IBinService>();
         _movieMetadataService = Substitute.For<IMovieMetadataService>();
-        _versionService = Substitute.For<IVersionService>();
+        _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
         _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService, _versionService, _movieMetadataService);
     }
@@ -90,17 +90,18 @@ public class DiscoveryMovieServiceShould
         await _inventoryMovieShowService.CreateMovie(path);
         var resultJson = _storageRepository.WrittenObjects.First();
         var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
+        var versions = await _versionService.List();
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Movie");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
-        resultItem.Versions.First().Name.ShouldBe(versionName);
+        versions.ShouldNotBeNull();
+        versions.Count().ShouldBe(1);
+        versions.First().Id.ShouldNotBe(Guid.Empty);
+        versions.First().Path.ShouldBe(path);
+        versions.First().Name.ShouldBe(versionName);
         resultItem.FolderPath.ShouldBe(folderPath);
     }
 }

@@ -22,6 +22,10 @@ public class DiscoveryShowServiceShould
     private readonly IInventoryService _inventoryService;
     private readonly IAddonService _addonService;
     private readonly IBinService _binService;
+    private readonly IVersionService _versionService;
+    private readonly IShowMetadataService _showMetadataService;
+    private readonly ISeasonMetadataService _seasonMetadataService;
+    private readonly IEpisodeMetadataService _episodeMetadataService;
 
     public DiscoveryShowServiceShould()
     {
@@ -33,8 +37,12 @@ public class DiscoveryShowServiceShould
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
         _binService = Substitute.For<IBinService>();
+        _showMetadataService = Substitute.For<IShowMetadataService>();
+        _seasonMetadataService = Substitute.For<ISeasonMetadataService>();
+        _episodeMetadataService = Substitute.For<IEpisodeMetadataService>();
+        _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryShowService = new DiscoveryShowService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService);
+        _inventoryShowService = new DiscoveryShowService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService, _versionService, _showMetadataService, _seasonMetadataService, _episodeMetadataService);
     }
 
     [Theory]
@@ -84,16 +92,17 @@ public class DiscoveryShowServiceShould
         await _inventoryShowService.CreateShow(path);
         var resultJson = _storageRepository.WrittenObjects.First(i => i.Contains("\"Episode\""));
         var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
+        var versions = await _versionService.List();
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Episode");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
+        versions.ShouldNotBeNull();
+        versions.Count().ShouldBe(1);
+        versions.First().Id.ShouldNotBe(Guid.Empty);
+        versions.First().Path.ShouldBe(path);
         resultItem.FolderPath.ShouldBe(folderPath);
     }
 

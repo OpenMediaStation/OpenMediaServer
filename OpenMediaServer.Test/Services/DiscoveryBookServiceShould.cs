@@ -19,7 +19,9 @@ public class DiscoveryBookServiceShould
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryBookService _inventoryBookService;
     private readonly IInventoryService _inventoryService;
-
+    private readonly IVersionService _versionService;
+    private readonly IBookMetadataService _bookMetadataService;
+    
     public DiscoveryBookServiceShould()
     {
         Setup.Configure();
@@ -27,8 +29,10 @@ public class DiscoveryBookServiceShould
         _logger = Substitute.For<ILogger<DiscoveryBookService>>();
         _storageRepository = new DataRepoMock();
         _fileInfoService = Substitute.For<IFileInfoService>();
+        _bookMetadataService = Substitute.For<IBookMetadataService>();
+        _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>());
+        _inventoryBookService = new DiscoveryBookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>(), _versionService, _bookMetadataService);
     }
 
     [Theory]
@@ -50,16 +54,17 @@ public class DiscoveryBookServiceShould
         await _inventoryBookService.CreateBook(path);
         var resultJson = _storageRepository.WrittenObjects.First();
         var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
+        var versions = await _versionService.List();
 
         // Assert
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Book");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
+        versions.ShouldNotBeNull();
+        versions.Count().ShouldBe(1);
+        versions.First().Id.ShouldNotBe(Guid.Empty);
+        versions.First().Path.ShouldBe(path);
         resultItem.FolderPath.ShouldBe(folderPath);
     }
 }

@@ -30,14 +30,6 @@ public class DataRepoMock : IDataRepository
     {
         return [];
     }
-    
-    public async Task WriteObjectsAsync<T>(IEnumerable<T> items)
-    {
-        foreach (var item in items)
-        {
-            WrittenObjects.Add(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
-        }
-    }
 
     public async Task DeleteObjectWithFilter<T>(Guid id, Expression<Func<T, bool>>? filter = null)
     {
