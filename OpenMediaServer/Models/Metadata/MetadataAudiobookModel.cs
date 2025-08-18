@@ -11,7 +11,7 @@ public class MetadataAudiobookModel
     public Guid Id { get; set; }
     
     [Column(TypeName = "TEXT")]
-    public string? Authors { get; set; }
+    public string? Author { get; set; }
         
     [Column(TypeName = "TEXT")]
     public string? Publisher { get; set; }

@@ -1,21 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
+using OpenMediaServer.DTOs.Endpoints;
+using OpenMediaServer.Extensions.Mapping;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models.Progress;
 
 namespace OpenMediaServer.Endpoints;
 
-public class ProgressEndpoints : IProgressEndpoints
+public class ProgressEndpoints(ILogger<ProgressEndpoints> logger, IProgressService progressService) : IProgressEndpoints
 {
-    private readonly ILogger<ProgressEndpoints> _logger;
-    private readonly IProgressService _progressService;
-
-    public ProgressEndpoints(ILogger<ProgressEndpoints> logger, IProgressService progressService)
-    {
-        _logger = logger;
-        _progressService = progressService;
-    }
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/progress").RequireAuthorization();
@@ -26,9 +19,9 @@ public class ProgressEndpoints : IProgressEndpoints
         group.MapPost("", UpdateProgress);
     }
 
-    public async Task<IResult> UpdateProgress(HttpContext httpContext, Progress progress)
+    public async Task<IResult> UpdateProgress(HttpContext httpContext, ProgressDto progress)
     {
-        _logger.LogTrace("Updating progress");
+        logger.LogTrace("Updating progress");
 
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
@@ -41,14 +34,14 @@ public class ProgressEndpoints : IProgressEndpoints
             return Results.BadRequest("Category must be set");
         }
 
-        await _progressService.UpdateProgress(progress, userId);
+        await progressService.UpdateProgress(progress.ToTable(), userId);
 
         return Results.Ok();
     }
 
     public async Task<IResult> GetProgress(HttpContext httpContext, string category, Guid? progressId, Guid? parentId)
     {
-        _logger.LogTrace("Getting progress");
+        logger.LogTrace("Getting progress");
 
         var userId = Globals.GetUserId(httpContext);
         if (userId == null)
@@ -58,14 +51,14 @@ public class ProgressEndpoints : IProgressEndpoints
 
         try
         {
-            var progress = await _progressService.GetProgress(userId, category, progressId, parentId);
+            var progress = await progressService.GetProgress(userId, category, progressId, parentId);
 
             if (progress == null)
             {
                 return Results.NotFound();
             }
 
-            return Results.Ok(progress);
+            return Results.Ok(progress.ToDto());
         }
         catch (ArgumentException ex)
         {
@@ -83,14 +76,14 @@ public class ProgressEndpoints : IProgressEndpoints
 
         try
         {
-            var progresses = new List<Progress>();
+            var progresses = new List<ProgressDto>();
 
             foreach (var id in ids)
             {
-                var progress = await _progressService.GetProgress(userId, category, null, id);
+                var progress = await progressService.GetProgress(userId, category, null, id);
                 if (progress != null)
                 {
-                    progresses.Add(progress);
+                    progresses.Add(progress.ToDto());
                 }
             }
 
@@ -110,13 +103,13 @@ public class ProgressEndpoints : IProgressEndpoints
             return Results.Forbid();
         }
 
-        var progresses = await _progressService.ListProgresses(userId, category);
+        var progresses = await progressService.ListProgresses(userId, category);
 
         if (progresses == null)
         {
-            return Results.Ok(new List<Progress>());
+            return Results.Ok(new List<ProgressDto>());
         }
 
-        return Results.Ok(progresses);
+        return Results.Ok(progresses.Select(i => i.ToDto()));
     }
 }

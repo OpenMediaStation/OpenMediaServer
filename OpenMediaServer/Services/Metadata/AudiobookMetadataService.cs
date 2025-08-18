@@ -36,7 +36,7 @@ public class AudiobookMetadataService(
         var audiobook = new MetadataAudiobookModel()
         {
             Id = Guid.NewGuid(),
-            Authors = fileExtract?.Authors ?? openLibraryData?.AuthorName?.FirstOrDefault() ?? googleBooksData?.Authors.FirstOrDefault(),
+            Author = fileExtract?.Author ?? openLibraryData?.AuthorName?.FirstOrDefault() ?? googleBooksData?.Authors.FirstOrDefault(),
             Publisher = fileExtract?.Publisher ?? googleBooksData?.Publisher,
             PublishedDate = fileExtract?.PublishedDate ?? googleBooksData?.PublishedDate,
             Description = fileExtract?.Description ?? description ?? googleBooksData?.Description,
@@ -71,7 +71,7 @@ public class AudiobookMetadataService(
         var (thumbnailPath, thumbnailBlurHash) = await ExtractCoverArt(file);
         return (new MetadataAudiobookModel()
         {
-            Authors = file.Tag.Performers?.FirstOrDefault(),
+            Author = file.Tag.Performers?.FirstOrDefault(),
             Publisher = file.Tag.Publisher,
             PublishedDate = file.Tag.Year.ToString(),
             Description = file.Tag.Comment,
