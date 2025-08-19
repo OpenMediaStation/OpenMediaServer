@@ -14,4 +14,13 @@ public class InventoryItemDto
     /// Folder path. Only set if item is in a folder other than the category folder
     /// </summary>
     public string? FolderPath { get; set; }
+    
+    // Show
+    public IEnumerable<Guid>? SeasonIds { get; set; }
+    
+    public IEnumerable<Guid>? EpisodeIds { get; set; }
+    public Guid? ShowId { get; set; }
+    public int? SeasonNr { get; set; } 
+    public Guid? SeasonId { get; set; }
+    public int? EpisodeNr { get; set; }
 }

@@ -61,7 +61,7 @@ public class MetadataEndpoints(
             var metadata = await metadataService.GetMetadata(category, item);
             if (metadata != null)
             {
-                await ToDto(metadata, category);
+                metadataDtos.Add(await ToDto(metadata, category));
             }
         }
         
@@ -93,6 +93,6 @@ public class MetadataEndpoints(
         var audiobook = await audiobookMetadataService.Get(metadata.AudiobookMetadataId);
         var chapters = await chapterService.List(i => i.MetadataModelId == metadata.Id);
 
-        return metadata.ToDto(inventoryItem.Id, movie, show, episode, season, audiobook, book, chapters);
+        return metadata.ToDto(inventoryItem?.Id, movie, show, episode, season, audiobook, book, chapters);
     }
 }

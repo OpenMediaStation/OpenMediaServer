@@ -11,14 +11,15 @@ public class PartService(ILogger<PartService> logger, IDataRepository dataReposi
     {
         await dataRepository.DeleteObjectWithFilter<InventoryItemPart>(partId);
     }
-    
-    public async Task<IEnumerable<InventoryItemPart>?> ListItems(Expression<Func<InventoryItemPart,bool>>? filter = null)
+
+    public async Task<IEnumerable<InventoryItemPart>?> ListItems(
+        Expression<Func<InventoryItemPart, bool>>? filter = null)
     {
         var items = await dataRepository.ListObjects<InventoryItemPart>();
 
-        return items;
+        return items.Any() ? items : null;
     }
-    
+
     public async Task UpdateOrInsert(InventoryItemPart item)
     {
         await dataRepository.WriteObject(item);

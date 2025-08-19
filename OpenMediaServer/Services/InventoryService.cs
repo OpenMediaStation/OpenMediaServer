@@ -28,6 +28,17 @@ public class InventoryService(
         });
     }
 
+    public async Task<IEnumerable<InventoryItem>?> ListItems(string category, Expression<Func<InventoryItem, bool>> filter)
+    {
+        filter = filter.AndAlso(n => n.Category == category && n.IsOrphan == false);
+        
+        var items = await dataRepository.ListObjects(filter);
+        return items.Select(i =>
+        {
+            _ = Task.Run(() => CreateMissingBlurHash(i));
+            return i;
+        });    }
+
     public async Task<InventoryItem?> GetItem(Guid? id)
     {
         if (id == null)

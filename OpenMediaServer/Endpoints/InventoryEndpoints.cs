@@ -285,10 +285,28 @@ public class InventoryEndpoints(ILogger<InventoryEndpoints> logger, IInventorySe
         foreach (var version in versions ?? [])
         {
             var part = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
-                
+
+            if (part == null)
+            {
+                continue;
+            }
+            
             parts.Add(version.Id, part.ToList());
         }
-                
-        return item.ToDto(versions, addons, parts);
+
+        IEnumerable<InventoryItem>? seasons = null;
+        IEnumerable<InventoryItem>? episodes = null;
+
+        switch (item.Category)
+        {
+            case "Show":
+                seasons = await inventoryService.ListItems("Season", i => i.ShowId == item.Id);
+                break;
+            case "Season":
+                episodes = await inventoryService.ListItems("Episode", i => i.SeasonId == item.Id);
+                break;
+        }
+
+        return item.ToDto(versions, addons, parts, episodes, seasons);
     }
 }

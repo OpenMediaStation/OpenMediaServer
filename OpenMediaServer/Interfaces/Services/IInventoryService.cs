@@ -10,6 +10,7 @@ public interface IInventoryService
     Task AddItems(IEnumerable<InventoryItem> items);
     IEnumerable<string> ListCategories();
     Task<IEnumerable<InventoryItem>?> ListItems(string category);
+    Task<IEnumerable<InventoryItem>?> ListItems(string category, Expression<Func<InventoryItem, bool>> filter);
     Task<InventoryItem?> GetItem(Guid? id);
     Task<InventoryItem?> GetItem(string category, Expression<Func<InventoryItem, bool>> filter);
     Task UpdateOrInsert(InventoryItem item);

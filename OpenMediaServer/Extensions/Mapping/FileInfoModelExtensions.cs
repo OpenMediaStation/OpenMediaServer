@@ -1,4 +1,3 @@
-using FFMpegCore;
 using OpenMediaServer.DTOs.Endpoints.FileInfo;
 using OpenMediaServer.Models.FileInfo;
 using AudioStream = OpenMediaServer.Models.FileInfo.AudioStream;
@@ -10,8 +9,11 @@ namespace OpenMediaServer.Extensions.Mapping;
 
 public static class FileInfoModelExtensions
 {
-    public static FileInfoDto ToDto(this FileInfoModel fileInfo, MediaData mediaData, MediaFormat mediaFormat, AudioStream primaryAudioStream, IEnumerable<AudioStream> audioStreams, SubtitleStream primarySubtitleStream, IEnumerable<SubtitleStream> subtitleStreams, VideoStream primaryVideoStream, IEnumerable<VideoStream> videoStreams)
+    public static FileInfoDto ToDto(this FileInfoModel fileInfo, MediaData? mediaData, MediaFormat? mediaFormat, AudioStream? primaryAudioStream, IEnumerable<AudioStream>? audioStreams, SubtitleStream? primarySubtitleStream, IEnumerable<SubtitleStream>? subtitleStreams, VideoStream? primaryVideoStream, IEnumerable<VideoStream>? videoStreams)
     {
+        ArgumentNullException.ThrowIfNull(mediaData);
+        ArgumentNullException.ThrowIfNull(mediaFormat);
+
         var result = new FileInfoDto()
         {
             Id = fileInfo.Id,
@@ -32,17 +34,22 @@ public static class FileInfoModelExtensions
                 PrimaryAudioStream = MapAudioStream(primaryAudioStream),
                 PrimarySubtitleStream = MapSubtitleStream(primarySubtitleStream),
                 PrimaryVideoStream = MapVideoStream(primaryVideoStream),
-                AudioStreams = audioStreams.Select(i => i.MapAudioStream()).ToList(),
-                SubtitleStreams = subtitleStreams.Select(i => i.MapSubtitleStream()).ToList(),
-                VideoStreams = videoStreams.Select(i => i.MapVideoStream()).ToList(),
+                AudioStreams = audioStreams?.Select(i => i.MapAudioStream()).ToList(),
+                SubtitleStreams = subtitleStreams?.Select(i => i.MapSubtitleStream()).ToList(),
+                VideoStreams = videoStreams?.Select(i => i.MapVideoStream()).ToList(),
             }
         };
         
         return result;
     }
 
-    public static AudioStreamDto MapAudioStream(this AudioStream audioStream)
+    public static AudioStreamDto? MapAudioStream(this AudioStream? audioStream)
     {
+        if (audioStream == null)
+        {
+            return null;
+        }
+        
         return new AudioStreamDto()
         {
             Channels = audioStream.Channels,
@@ -62,8 +69,13 @@ public static class FileInfoModelExtensions
         };
     }    
     
-    public static VideoStreamDto MapVideoStream(this VideoStream videoStream)
+    public static VideoStreamDto? MapVideoStream(this VideoStream? videoStream)
     {
+        if (videoStream == null)
+        {
+            return null;
+        }
+        
         return new VideoStreamDto()
         {
             AverageFrameRate = videoStream.AverageFrameRate,
@@ -87,8 +99,13 @@ public static class FileInfoModelExtensions
         };
     }    
     
-    public static SubtitleStreamDto MapSubtitleStream(this SubtitleStream subtitleStream)
+    public static SubtitleStreamDto? MapSubtitleStream(this SubtitleStream? subtitleStream)
     {
+        if (subtitleStream == null)
+        {
+            return null;
+        }
+        
         return new SubtitleStreamDto()
         {
             Index = subtitleStream.Index,

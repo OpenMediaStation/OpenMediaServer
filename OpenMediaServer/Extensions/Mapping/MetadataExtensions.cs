@@ -5,22 +5,27 @@ namespace OpenMediaServer.Extensions.Mapping;
 
 public static class MetadataExtensions
 {
-    public static MetadataDto ToDto(this MetadataModel metadataModel, Guid inventoryItemId, MetadataMovieModel movie,
-        MetadataShowModel show, MetadataEpisodeModel episode, MetadataSeasonModel season,
-        MetadataAudiobookModel audiobook, MetadataBookModel book, IEnumerable<MetadataChapter> chapters)
+    public static MetadataDto ToDto(this MetadataModel metadataModel, Guid? inventoryItemId, MetadataMovieModel? movie,
+        MetadataShowModel? show, MetadataEpisodeModel? episode, MetadataSeasonModel? season,
+        MetadataAudiobookModel? audiobook, MetadataBookModel? book, IEnumerable<MetadataChapter>? chapters)
     {
+        if (inventoryItemId == null)
+        {
+            throw new ArgumentNullException(nameof(inventoryItemId));
+        }
+        
         var result = new MetadataDto()
         {
             Id = metadataModel.Id,
             Title = metadataModel.Title,
             Category = metadataModel.Category,
-            ParentId = inventoryItemId,
-            Movie = movie.ToDto(),
-            Show = show.ToDto(),
-            Episode = episode.ToDto(),
-            Season = season.ToDto(),
-            Audiobook = audiobook.ToDto(chapters),
-            Book = book.ToDto()
+            ParentId = (Guid)inventoryItemId,
+            Movie = movie?.ToDto(),
+            Show = show?.ToDto(),
+            Episode = episode?.ToDto(),
+            Season = season?.ToDto(),
+            Audiobook = audiobook?.ToDto(chapters),
+            Book = book?.ToDto()
         };
 
         return result;
@@ -151,7 +156,7 @@ public static class MetadataExtensions
     {
         var result = new MetadataBookDto()
         {
-            Authors = [model.Author],
+            Authors = model.Author != null ? [model.Author] : null,
             Publisher = model.Publisher,
             PublishedDate = model.PublishedDate,
             Description = model.Description,
@@ -164,18 +169,18 @@ public static class MetadataExtensions
         return result;
     }
 
-    public static MetadataAudiobookDto ToDto(this MetadataAudiobookModel model, IEnumerable<MetadataChapter> chapters)
+    public static MetadataAudiobookDto ToDto(this MetadataAudiobookModel model, IEnumerable<MetadataChapter>? chapters)
     {
         var result = new MetadataAudiobookDto()
         {
-            Authors = [model.Author],
+            Authors = model.Author != null ? [model.Author] : null,
             Publisher = model.Publisher,
             PublishedDate = model.PublishedDate,
             Description = model.Description,
             Language = model.Language,
             Thumbnail = model.Thumbnail,
             ThumbnailBlurHash = model.ThumbnailBlurHash,
-            Chapters = chapters.Select(i => i.ToDto())
+            Chapters = chapters?.Select(i => i.ToDto())
         };
 
         return result;

@@ -12,9 +12,9 @@ public class MediaDataDto
 
     public SubtitleStreamDto? PrimarySubtitleStream { get; set; }
 
-    public List<VideoStreamDto> VideoStreams { get; set; }
+    public List<VideoStreamDto?>? VideoStreams { get; set; }
 
-    public List<AudioStreamDto> AudioStreams { get; set; }
+    public List<AudioStreamDto?>? AudioStreams { get; set; }
 
-    public List<SubtitleStreamDto> SubtitleStreams { get; set; }
+    public List<SubtitleStreamDto?>? SubtitleStreams { get; set; }
 }
