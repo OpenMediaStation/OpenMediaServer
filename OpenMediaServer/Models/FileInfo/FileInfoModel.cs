@@ -1,17 +1,20 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Models.FileInfo;
 
 public class FileInfoModel
 {
+    [Key]
+    [Column(TypeName = "UUID")]
     public Guid Id { get; set; }
 
-    /// <summary>
-    /// Referring to the version id
-    /// </summary>
-    public Guid ParentId { get; set; }
-
-    public string ParentCategory { get; set; }
-
-    public MediaData? MediaData { get; set; }
+    [Column(TypeName = "TEXT")]
+    public required string ParentCategory { get; set; }
+    
+    [ForeignKey(nameof(MediaData)+"(Id)")]
+    [Column(TypeName = "UUID")]
+    public Guid MediaDataId { get; set; }
 }

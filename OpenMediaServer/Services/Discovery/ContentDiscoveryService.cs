@@ -2,13 +2,23 @@ using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
 using OpenMediaServer.Models;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
-public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, IDiscoveryShowService showService, IDiscoveryMovieService movieService, IDiscoveryBookService _bookService, IInventoryService _inventoryService, IBinService _binService, IAddonService _addonService, IFileInfoService _fileInfo, IDiscoveryAudiobookService _audiobookDiscoveryService) : IContentDiscoveryService
+public class ContentDiscoveryService(
+    ILogger<ContentDiscoveryService> logger,
+    IDiscoveryShowService showService,
+    IDiscoveryMovieService movieService,
+    IDiscoveryBookService bookService,
+    IInventoryService inventoryService,
+    IBinService binService,
+    IAddonService addonService,
+    IFileInfoService fileInfo,
+    IDiscoveryAudiobookService audiobookDiscoveryService,
+    IVersionService versionService) : IContentDiscoveryService
 {
-    private readonly ILogger<ContentDiscoveryService> _logger = logger;
-    private readonly IDiscoveryShowService _showService = showService;
-    private readonly IDiscoveryMovieService _movieService = movieService;
+    private FileSystemWatcher? _watcher;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private int _waitingCount = 0;
 
     /// <summary>
     /// This method aims to do a full cleanup of the inventory. It first checks if there is something which was deleted and moves those 
@@ -17,21 +27,21 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     /// <returns></returns>
     public async Task MoveToBinIfDeleted()
     {
-        var paths = GetPaths(Globals.MediaFolder);
+        var paths = GetPaths(Globals.MediaFolder).ToList();
 
-        var movies = await _inventoryService.ListItems<Movie>("Movie");
+        var movies = await inventoryService.ListItems("Movie");
 
         await HandleDelete(paths, movies);
 
-        var books = await _inventoryService.ListItems<Book>("Book");
+        var books = await inventoryService.ListItems("Book");
 
         await HandleDelete(paths, books);
 
-        var audiobooks = await _inventoryService.ListItems<Audiobook>("Audiobook");
+        var audiobooks = await inventoryService.ListItems("Audiobook");
 
-        await HandleDelete(paths, books);
+        await HandleDelete(paths, audiobooks);
 
-        var episodes = await _inventoryService.ListItems<Episode>("Episode");
+        var episodes = await inventoryService.ListItems("Episode");
 
         await HandleDelete(paths, episodes);
     }
@@ -43,17 +53,32 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
     /// <returns></returns>
     public async Task ActiveScan(string path)
     {
-        // This must be done before any scanning so that deleted items got moved to the bin
+        logger.LogInformation("Scanning {Path}", path);
+
+        if (_waitingCount > 0)
+        {
+            logger.LogDebug("Skipping active scan because one is already waiting.");
+
+            return;
+        }
+
+        Interlocked.Increment(ref _waitingCount);
+        await _semaphore.WaitAsync();
+        Interlocked.Decrement(ref _waitingCount);
+
+        // This must be done before any scanning so that deleted items have been moved to the bin
         await MoveToBinIfDeleted();
 
-        IEnumerable<string> files = GetPaths(path);
+        var files = GetPaths(path);
 
         await CreateFromPaths(files);
+
+        _semaphore.Release();
     }
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
     {
-        _logger.LogTrace("Creating from path");
+        logger.LogTrace("Creating from path");
 
         foreach (var path in paths)
         {
@@ -62,97 +87,107 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
             switch (category)
             {
                 case "Movies":
-                    {
-                        await _movieService.CreateMovie(path);
+                {
+                    await movieService.CreateMovie(path);
 
-                        break;
-                    }
+                    break;
+                }
                 case "Shows":
-                    {
-                        await _showService.CreateShow(path);
+                {
+                    await showService.CreateShow(path);
 
-                        break;
-                    }
+                    break;
+                }
                 case "Books":
-                    {
-                        await _bookService.CreateBook(path);
+                {
+                    await bookService.CreateBook(path);
 
-                        break;
-                    }
+                    break;
+                }
                 case "Audiobooks":
-                    {
-                        await _audiobookDiscoveryService.CreateAudiobook(path);
+                {
+                    await audiobookDiscoveryService.CreateAudiobook(path);
 
-                        break;
-                    }
+                    break;
+                }
                 case "default":
-                    {
-                        _logger.LogWarning("Unknown category: {Category}", category);
+                {
+                    logger.LogWarning("Unknown category: {Category}", category);
 
-                        break;
-                    }
+                    break;
+                }
             }
         }
     }
 
     public void Watch(string path)
     {
-        _logger.LogInformation("Watching file system");
+        logger.LogInformation("Watching file system at {Path}", path);
 
-        FileSystemWatcher watcher = new FileSystemWatcher();
-        watcher.Path = path;
-        watcher.NotifyFilter = NotifyFilters.LastWrite;
-        watcher.Filter = "**";
-        watcher.IncludeSubdirectories = true;
-        watcher.Changed += new FileSystemEventHandler(OnChanged);
-        watcher.Created += new FileSystemEventHandler(OnChanged);
-        watcher.Deleted += new FileSystemEventHandler(OnChanged);
-        watcher.EnableRaisingEvents = true;
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+            throw new DirectoryNotFoundException($"Watch path not found: {path}");
+
+        // Dispose any previous watcher
+        _watcher?.Dispose();
+
+        _watcher = new FileSystemWatcher(path)
+        {
+            IncludeSubdirectories = true,
+            // Filter = "*",
+            NotifyFilter =
+                NotifyFilters.FileName |
+                NotifyFilters.DirectoryName |
+                NotifyFilters.LastWrite |
+                NotifyFilters.Size |
+                NotifyFilters.CreationTime,
+            // Increase buffer to reduce overflow risk (64 KiB; must be a multiple of 4 KB)
+            InternalBufferSize = 64 * 1024
+        };
+
+        _watcher.Changed += OnChanged;
+        _watcher.Created += OnChanged;
+        _watcher.Deleted += OnChanged;
+        _watcher.Renamed += OnChanged;
+
+        _watcher.EnableRaisingEvents = true;
     }
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        _logger.LogDebug("FileSystem changed");
+        logger.LogInformation("FileSystem changed");
 
         ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
     }
 
-    private async Task UpdateShow(IEnumerable<Season>? seasons)
+    private async Task UpdateShow(IEnumerable<InventoryItem>? seasons)
     {
         if (seasons != null)
         {
             foreach (var season in seasons)
             {
-                var show = await _inventoryService.GetItem<Show>(season.ShowId, "Show");
+                var show = await inventoryService.GetItem(season.ShowId);
 
-                if (show != null)
+                var seasonsWithId = await inventoryService.ListItems("Season", i => i.Id == season.ShowId);
+                var seasonIds = seasonsWithId?.Select(i => i.Id).ToList();
+                
+                if (show != null && (!seasonIds?.Any() ?? true))
                 {
-                    var seasonIds = show.SeasonIds?.ToList();
-                    seasonIds?.RemoveAll(i => i == season.Id);
-
-                    show.SeasonIds = seasonIds;
-
-                    await _inventoryService.UpdateById(show);
-                }
-
-                if (show != null && (!show?.SeasonIds?.Any() ?? true))
-                {
-                    await _binService.AddItem(show!);
-                    await _inventoryService.RemoveById(show!);
+                    await binService.AddItem(show!);
+                    await inventoryService.Remove(show!);
                 }
             }
         }
     }
 
-    private async Task UpdateSeason(IEnumerable<Episode>? items)
+    private async Task UpdateSeason(IEnumerable<InventoryItem>? items)
     {
         if (items != null)
         {
-            List<Season> seasons = [];
+            List<InventoryItem> seasons = [];
 
             foreach (var episode in items)
             {
-                var season = await _inventoryService.GetItem<Season>(episode.SeasonId, "Season");
+                var season = await inventoryService.GetItem(episode.SeasonId);
 
                 if (season != null)
                 {
@@ -164,73 +199,61 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
             {
                 var season = seasons.FirstOrDefault(i => i.Id == episode.SeasonId);
 
-                if (season != null)
-                {
-                    var episodeIds = season.EpisodeIds?.ToList();
-                    episodeIds?.RemoveAll(i => i == episode.Id);
+                var episodes = await inventoryService.ListItems("Episode", i => i.Id == episode.SeasonId);
+                var episodeIDs = episodes?.Select(i => i.Id).ToList();
 
-                    season.EpisodeIds = episodeIds;
-
-                    await _inventoryService.UpdateById(season);
-                }
-
-                if (season != null && (!season?.EpisodeIds?.Any() ?? true))
+                if (season != null && (!episodeIDs?.Any() ?? true))
                 {
                     await UpdateShow(seasons);
 
-                    await _binService.AddItem(season!);
-                    await _inventoryService.RemoveById(season!);
+                    await binService.AddItem(season!);
                 }
             }
         }
     }
 
-    private async Task HandleDelete<T>(IEnumerable<string> paths, IEnumerable<T>? items) where T : InventoryItem
+    private async Task HandleDelete(IEnumerable<string> paths, IEnumerable<InventoryItem>? items)
     {
         if (items != null)
         {
             foreach (var item in items)
             {
-                if (item.Addons != null)
-                {
-                    var addonPaths = _addonService.GetPaths(item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"), SearchOption.TopDirectoryOnly);
+                var addons = await addonService.ListItems(i => i.InventoryItemId == item.Id);
 
-                    foreach (var addon in item.Addons)
+                if (addons != null)
+                {
+                    var addonPaths = addonService.GetPaths(
+                        item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"),
+                        SearchOption.TopDirectoryOnly);
+
+                    foreach (var addon in addons)
                     {
                         if (!addonPaths.Contains(addon.Path))
                         {
-                            var temp = item.Addons.ToList();
-                            temp.Remove(addon);
-                            item.Addons = temp;
-                            await _inventoryService.UpdateById(item);
+                            await addonService.DeleteAddon(addon.Id);
                         }
                     }
                 }
 
-                if (item.Versions != null)
+                var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+
+                if (versions != null)
                 {
-                    foreach (var version in item.Versions)
+                    foreach (var version in versions)
                     {
                         if (!paths.Contains(version.Path))
                         {
-                            var temp = item.Versions.ToList();
-                            temp.Remove(version);
-                            item.Versions = temp;
-                            await _inventoryService.UpdateById(item);
+                            await versionService.Delete(version.Id);
 
-                            await _fileInfo.DeleteFileInfoByParentId(item.Category, version.Id);
+                            await fileInfo.DeleteFileInfo(version.Id);
                         }
                     }
 
-                    if (!item.Versions.Any())
+                    if (!versions.Any())
                     {
-                        if (typeof(Episode).IsAssignableFrom(typeof(T)))
-                        {
-                            await UpdateSeason(items as IEnumerable<Episode>);
-                        }
+                        await UpdateSeason(items);
 
-                        await _binService.AddItem(item);
-                        await _inventoryService.RemoveById(item);
+                        await binService.AddItem(item);
                     }
                 }
             }
@@ -257,7 +280,8 @@ public class ContentDiscoveryService(ILogger<ContentDiscoveryService> logger, ID
             ".pdf"
         ];
 
-        var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(n => mediaExtensions.Contains(Path.GetExtension(n), StringComparer.InvariantCultureIgnoreCase));
+        var files = Directory.EnumerateFiles(path, "*.*", SearchOption.AllDirectories).Where(n =>
+            mediaExtensions.Contains(Path.GetExtension(n), StringComparer.InvariantCultureIgnoreCase));
         return files;
     }
 }

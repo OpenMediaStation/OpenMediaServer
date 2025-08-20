@@ -1,16 +1,15 @@
-using System;
 using Microsoft.AspNetCore.Mvc;
+using OpenMediaServer.DTOs.Endpoints.FileInfo;
+using OpenMediaServer.Extensions.Mapping;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Models.FileInfo;
 
 namespace OpenMediaServer.Endpoints;
 
-public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoService fileInfoService) : IFileInfoEndpoints
+public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoService fileInfoService, IMediaDataService mediaDataService, IMediaFormatService mediaFormatService, IAudioStreamService audioStreamService, IVideoStreamService videoStreamService, ISubtitleStreamService subtitleStreamService) : IFileInfoEndpoints
 {
-    private readonly ILogger<FileInfoEndpoints> _logger = logger;
-    private readonly IFileInfoService _fileInfoService = fileInfoService;
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/fileInfo");
@@ -22,22 +21,51 @@ public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoServi
 
     public async Task<IResult> ListFileInfos(string category)
     {
-        var fileInfos = await _fileInfoService.ListFileInfo(category);
+        var fileInfos = await fileInfoService.ListFileInfo(category);
 
-        return Results.Ok(fileInfos);
+        List<FileInfoDto> fileInfoDtos = [];
+        
+        foreach (var fileInfo in fileInfos)
+        {
+            fileInfoDtos.Add(await ToFileInfoDto(fileInfo));
+        }
+
+        return Results.Ok(fileInfoDtos);
     }
 
     public async Task<IResult> GetFileInfo(string category, Guid id)
     {
-        var fileInfo = await _fileInfoService.GetFileInfo(category, id);
+        var fileInfo = await fileInfoService.GetFileInfo(category, id);
 
-        return Results.Ok(fileInfo);
+        return Results.Ok(await ToFileInfoDto(fileInfo));
     }
 
     public async Task<IResult> GetFileInfos(string category, [FromQuery] Guid[] ids)
     {
-        var fileInfos = await _fileInfoService.GetFileInfos(category, ids.ToList());
+        var fileInfos = await fileInfoService.GetFileInfos(category, ids.ToList());
 
-        return Results.Ok(fileInfos);
+        List<FileInfoDto> fileInfoDtos = [];
+        
+        foreach (var fileInfo in fileInfos)
+        {
+            fileInfoDtos.Add(await ToFileInfoDto(fileInfo));
+        }
+
+        return Results.Ok(fileInfoDtos);
+    }
+
+    private async Task<FileInfoDto> ToFileInfoDto(FileInfoModel fileInfo)
+    {
+        var mediaData = await mediaDataService.Get(fileInfo.MediaDataId);
+        var mediaFormat = await mediaFormatService.Get(mediaData?.MediaFormatId);
+        var primaryAudioStream = await audioStreamService.Get(mediaData?.PrimaryAudioStreamId);
+        var primaryVideoStream = await videoStreamService.Get(mediaData?.PrimaryVideoStreamId);
+        var primarySubtitleStream = await subtitleStreamService.Get(mediaData?.PrimarySubtitleStreamId);
+        var audioStreams = await audioStreamService.List(i => i.MediaDataId == mediaData.Id);
+        var videoStreams = await videoStreamService.List(i => i.MediaDataId == mediaData.Id);
+        var subtitleStreams = await subtitleStreamService.List(i => i.MediaDataId == mediaData.Id);
+            
+            
+        return fileInfo.ToDto(mediaData, mediaFormat, primaryAudioStream, audioStreams, primarySubtitleStream, subtitleStreams, primaryVideoStream, videoStreams);
     }
 }

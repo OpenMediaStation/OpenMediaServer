@@ -1,87 +1,78 @@
+using System.Linq.Expressions;
+using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class InventoryService : IInventoryService
+public class InventoryService(
+    ILogger<InventoryService> logger,
+    IDataRepository dataRepository,
+    IImageService imageService)
+    : IInventoryService
 {
-    private readonly ILogger<InventoryService> _logger;
-    private readonly IFileSystemRepository _storageRepository;
-    private readonly IImageService _imageService;
-
-    public InventoryService(ILogger<InventoryService> logger, IFileSystemRepository storageRepository, IImageService imageService)
-    {
-        _logger = logger;
-        _storageRepository = storageRepository;
-        _imageService = imageService;
-    }
-
-    #region Get Functions
     
     public IEnumerable<string> ListCategories()
     {
-        var files = _storageRepository.EnumerateFiles(Path.Join(Globals.ConfigFolder, "inventory"));
-        var fileNames = files.Select(i => i.Split("/").Last().Replace(".json", ""));
-
-        return fileNames;
+        return ["Audiobook", "Book", "Episode", "Movie", "Season", "Show"];
     }
 
-    public async Task<IEnumerable<T>?> ListItems<T>(string category) where T : InventoryItem
+    public async Task<IEnumerable<InventoryItem>?> ListItems(string category)
     {
-        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
+        var items = await dataRepository.ListObjects<InventoryItem>(n => n.Category == category && n.IsOrphan == false);
+        return items.Select(i =>
+        {
+            _ = Task.Run(() => CreateMissingBlurHash(i));
+            return i;
+        });
+    }
 
-        if (items != null)
+    public async Task<IEnumerable<InventoryItem>?> ListItems(string category, Expression<Func<InventoryItem, bool>> filter)
+    {
+        filter = filter.AndAlso(n => n.Category == category && n.IsOrphan == false);
+        
+        var items = await dataRepository.ListObjects(filter);
+        return items.Select(i =>
         {
-            var fixedItems = items.Select(CreateMissingBlurHash<T>);
-            return fixedItems;
+            _ = Task.Run(() => CreateMissingBlurHash(i));
+            return i;
+        });    }
+
+    public async Task<InventoryItem?> GetItem(Guid? id)
+    {
+        if (id == null)
+        {
+            return null;
         }
-        else
+        
+        var possibleItem = await dataRepository.GetObjectById<InventoryItem>(id);
+        
+        if (possibleItem == null)
         {
-            _logger.LogWarning("Category could not be found");
+            logger.LogWarning("Id could not be found");
+            return null;
+        }
+        return possibleItem;
+    }
+
+    public async Task<InventoryItem?> GetItem(string category, Expression<Func<InventoryItem, bool>> predicate)
+    {
+        logger.LogTrace("Getting item by name");
+        
+        
+        var items = (await dataRepository.ListObjects<InventoryItem>(predicate.AndAlso(n => n.Category == category && n.IsOrphan == false))).ToArray();
+        
+        if (items.Length != 1)
+        {
+            logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", items?.Length);
+            logger.LogWarning("Id could not be found in category");
 
             return null;
         }
+
+        return items.FirstOrDefault();
     }
-
-    public async Task<T?> GetItem<T>(Guid id, string category) where T : InventoryItem
-    {
-        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-
-        var possibleItems = items?.Where(i => i.Id == id);
-
-        if (possibleItems == null || possibleItems.Count() != 1)
-        {
-            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
-            _logger.LogWarning("Id could not be found in category");
-
-            return null;
-        }
-
-        return CreateMissingBlurHash<T>(possibleItems.FirstOrDefault());
-    }
-
-    public async Task<T?> GetItem<T>(string category, Func<T, bool> predicate) where T : InventoryItem
-    {
-        _logger.LogTrace("Getting item by name");
-
-        var items = await _storageRepository.ReadObject<IEnumerable<T>>(Path.Combine(Globals.ConfigFolder, "inventory", category) + ".json");
-
-        var possibleItems = items?.Where(predicate);
-
-        if (possibleItems == null || possibleItems.Count() != 1)
-        {
-            _logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", possibleItems?.Count());
-            _logger.LogWarning("Id could not be found in category");
-
-            return null;
-        }
-
-        return possibleItems.FirstOrDefault();
-    }
-    #endregion
-    
-    #region Set Functions
     
     public async Task AddItems(IEnumerable<InventoryItem> items)
     {
@@ -91,104 +82,25 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task AddItem<T>(T item) where T : InventoryItem
+    public async Task AddItem(InventoryItem item)
     {
-        var items = await _storageRepository.ReadObject<IEnumerable<T>>(GetPath(item));
-
-        items ??= [];
-
-        if (!items.Any(i => i.Id == item.Id))
-        {
-            items = items.Append(item);
-            await _storageRepository.WriteObject(GetPath(item), items);
-        }
-        else
-        {
-            throw new ArgumentException("Item already exists");
-        }
+        await dataRepository.WriteObject(item);
     }
 
-    public async Task AddOrUpdate<T>(T? item) where T : InventoryItem
+    public async Task UpdateOrInsert(InventoryItem item)
     {
-        if (item == null)
-        {
-            _logger.LogWarning("Tried to add empty item in inventory");
-            return;
-        }
-
-        try
-        {
-            await AddItem(item);
-        }
-        catch (ArgumentException)
-        {
-            await UpdateByTitle(item);
-        }
+        await dataRepository.WriteObject(item);
     }
-
-    public async Task UpdateByTitle<T>(T item) where T : InventoryItem
-    {
-        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
-
-        items ??= [];
-
-        var existingItem = items.FirstOrDefault(i => i.Title == item.Title);
-
-        if (existingItem != null)
-        {
-            items.Remove(existingItem);
-        }
-
-        items.Add(item);
-
-        await _storageRepository.WriteObject(GetPath(item), items);
-    }
-
-    public async Task UpdateById<T>(T item) where T : InventoryItem
-    {
-        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
-
-        items ??= [];
-
-        var existingItem = items.FirstOrDefault(i => i.Id == item.Id);
-
-        if (existingItem != null)
-        {
-            items.Remove(existingItem);
-        }
-
-        items.Add(item);
-
-        await _storageRepository.WriteObject(GetPath(item), items);
-    }
-
-    #endregion
     
-    public async Task RemoveById<T>(T item) where T : InventoryItem
+    public async Task Remove(InventoryItem item)
     {
-        var items = await _storageRepository.ReadObject<List<T>>(GetPath(item));
-
-        items ??= [];
-
-        var existingItem = items.FirstOrDefault(i => i.Id == item.Id);
-
-        if (existingItem != null)
-        {
-            items.Remove(existingItem);
-        }
-
-        await _storageRepository.WriteObject(GetPath(item), items);
+        await dataRepository.DeleteObjectWithFilter<InventoryItem>(item.Id);
     }
 
-    private string GetPath(InventoryItem item)
-    {
-        return Path.Join(Globals.ConfigFolder, "inventory", item.Category + ".json");
-    }
-
-    private T CreateMissingBlurHash<T>(InventoryItem inventoryItem) where T : InventoryItem
+    private async Task CreateMissingBlurHash(InventoryItem inventoryItem)
     {
         if (inventoryItem.DisplayImageBlurHash != null || inventoryItem.MetadataId == null)
-            return (T)inventoryItem;
+            return;
 
         try
         {
@@ -214,31 +126,30 @@ public class InventoryService : IInventoryService
                     displayImageType = "cover";
                     break;
                 default:
-                    return (T)inventoryItem;
+                    return;
             }
             
-            var path = _imageService.GetPath(inventoryItem.Category, (Guid)inventoryItem.MetadataId, displayImageType, null, null);
-            using (var stream = _imageService.GetImageStream(path))
+            var path = imageService.GetPath(inventoryItem.Category, (Guid)inventoryItem.MetadataId, displayImageType, null, null);
+            using (var stream = imageService.GetImageStream(path))
             {
-                if(stream == null)
-                    return (T)inventoryItem;
+                if (stream == null)
+                    return;
                 using (var memStr = new MemoryStream())
                 {
                     stream.CopyTo(memStr);
                     var bytes = memStr.ToArray();
 
-                    var blurHash = _imageService.CreateBlurHash(bytes);
+                    var blurHash = imageService.CreateBlurHash(bytes);
                     inventoryItem.DisplayImageBlurHash = blurHash;
                     
-                    _ = UpdateById((T)inventoryItem);
+                    await UpdateOrInsert(inventoryItem);
                 }
             }
-            return (T)inventoryItem;
+            return ;
         }
         catch (Exception e)
         {
             Console.WriteLine(e);
-            return (T)inventoryItem;
         }
     }
 }

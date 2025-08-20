@@ -1,8 +1,6 @@
-using System;
+namespace OpenMediaServer.DTOs.Endpoints.FileInfo;
 
-namespace OpenMediaServer.Models.FileInfo;
-
-public class MediaStream
+public class MediaStreamDto
 {
     public int Index { get; set; }
 
@@ -21,10 +19,6 @@ public class MediaStream
     public TimeSpan Duration { get; set; }
 
     public string? Language { get; set; }
-
-    public Dictionary<string, bool>? Disposition { get; set; }
-
-    public Dictionary<string, string>? Tags { get; set; }
-
+    
     public int? BitDepth { get; set; }
 }

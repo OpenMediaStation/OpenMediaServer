@@ -9,14 +9,18 @@ using OpenMediaServer;
 using OpenMediaServer.APIs;
 using OpenMediaServer.Endpoints;
 using OpenMediaServer.Interfaces.APIs;
+using OpenMediaServer.Interfaces.Database;
 using OpenMediaServer.Interfaces.Endpoints;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Repositories;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Database;
 using OpenMediaServer.Services.Discovery;
+using OpenMediaServer.Services.FileInfo;
 using OpenMediaServer.Services.Metadata;
 using Serilog;
 
@@ -28,6 +32,13 @@ builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration)
           .Enrich.FromLogContext();
 });
+
+var envLogLevel = Environment.GetEnvironmentVariable("LOGLEVEL");
+
+if (!string.IsNullOrWhiteSpace(envLogLevel) && Enum.TryParse<LogLevel>(envLogLevel, ignoreCase: true, out var parsedLogLevel))
+{
+    builder.Logging.SetMinimumLevel(parsedLogLevel);
+}
 
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
@@ -46,6 +57,34 @@ builder.Services.AddSwaggerGen(c =>
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Paste your JWT here (no quotes). Example:  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "bearer",
+                Name = "Authorization",
+                In = ParameterLocation.Header
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // Register application services and endpoints
@@ -109,7 +148,12 @@ Globals.TmdbApiKey = Environment.GetEnvironmentVariable("TMDB_KEY") ?? configura
 // Configure middleware
 app.UseCors("AllowAll");
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.OAuthClientId(Globals.ClientId);
+    c.OAuthAppName("Swagger");
+    c.OAuthUsePkce();
+});
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -136,6 +180,7 @@ void RegisterServices(IServiceCollection services)
 {
     services.AddSingleton<IContentDiscoveryService, ContentDiscoveryService>();
     services.AddSingleton<IFileSystemRepository, FileSystemRepository>();
+    services.AddSingleton<IDataRepository, PostgresRepository>();
     services.AddSingleton<IInventoryService, InventoryService>();
     services.AddSingleton<IStreamingService, StreamingService>();
     services.AddSingleton<IOmdbAPI, OMDbAPI>();
@@ -164,8 +209,19 @@ void RegisterServices(IServiceCollection services)
     services.AddSingleton<IAudioBookMetadataService, AudiobookMetadataService>();
     services.AddSingleton<IMovieMetadataService, MovieMetadataService>();
     services.AddSingleton<IShowMetadataService, ShowMetadataService>();
+    services.AddSingleton<ISeasonMetadataService, SeasonMetadataService>();
+    services.AddSingleton<IEpisodeMetadataService, EpisodeMetadataService>();
     services.AddSingleton<IBookMetadataService, BookMetadataService>();
     services.AddSingleton<IBookmarkEndpoints, BookmarkEndpoints>();
+    services.AddSingleton<IPostgresManager, PostgresManager>();
+    services.AddSingleton<IPartService, PartService>();
+    services.AddSingleton<IVersionService, VersionService>();
+    services.AddSingleton<IChapterService, ChapterService>();
+    services.AddSingleton<IAudioStreamService, AudioStreamService>();
+    services.AddSingleton<IMediaDataService, MediaDataService>();
+    services.AddSingleton<IMediaFormatService, MediaFormatService>();
+    services.AddSingleton<ISubtitleStreamService, SubtitleStreamStreamService>();
+    services.AddSingleton<IVideoStreamService, VideoStreamService>();
 
     services.AddHttpClient<IOmdbAPI, OMDbAPI>();
 }

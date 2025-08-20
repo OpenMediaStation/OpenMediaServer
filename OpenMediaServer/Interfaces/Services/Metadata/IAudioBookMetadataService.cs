@@ -1,9 +1,11 @@
 using System;
+using OpenMediaServer.Helpers;
 using OpenMediaServer.Models.Metadata;
+using OpenMediaServer.Services.Metadata;
 
 namespace OpenMediaServer.Interfaces.Services.Metadata;
 
-public interface IAudioBookMetadataService
+public interface IAudioBookMetadataService : ITableBaseService<MetadataAudiobookModel>
 {
-    Task<MetadataModel> GetMetadata(string? year, string title, string? language, Guid metadataId, string? filePath);
+    Task<MetadataModel> GenerateMetadata(string? year, string title, string? language, Guid metadataId, string? filePath);
 }

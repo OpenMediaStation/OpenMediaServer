@@ -3,27 +3,23 @@ using System.Text;
 using System.Text.Json.Nodes;
 using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.Services;
-using OpenMediaServer.Models;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Models.FileInfo;
 using OpenMediaServer.Models.Inventory;
 
 namespace OpenMediaServer.Services;
 
-public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService) : IStreamingService
+public class StreamingService(ILogger<StreamingService> logger, IInventoryService inventoryService, IFileInfoService fileInfoService, IVersionService versionService, IPartService partService, IMediaDataService mediaDataService, IMediaFormatService formatService) : IStreamingService
 {
-    private readonly ILogger<StreamingService> _logger = logger;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IFileInfoService _fileInfoService = fileInfoService;
-
     public async Task<Stream?> GetMediaStream(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
-        _logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
+        logger.LogTrace("Streaming in category: {Category} id: {Id}", category, id);
 
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+        var item = await inventoryService.GetItem(id);
 
         if (item == null)
         {
-            _logger.LogWarning("Item not found in category while streaming");
+            logger.LogWarning("Item not found in category while streaming");
 
             return null;
         }
@@ -32,16 +28,19 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            var playVersion = item.Versions?.FirstOrDefault();
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
                 return null;
             }
 
-            if (playVersion.Parts != null)
+            var parts = await partService.ListItems(i => i.InventoryItemVersionId == playVersion.Id);
+
+            if (parts != null)
             {
-                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+                var part = parts.FirstOrDefault(i => i.Id == partId);
 
                 stream = new FileStream(part.Path, FileMode.Open);
             }
@@ -52,16 +51,19 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+            var versions = await versionService.List(i => i.Id  == versionId);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
                 return null;
             }
+            
+            var parts = await partService.ListItems(i => i.InventoryItemVersionId == playVersion.Id);
 
-            if (playVersion.Parts != null)
+            if (parts != null)
             {
-                var part = playVersion.Parts.FirstOrDefault(i => i.Id == partId);
+                var part = parts.FirstOrDefault(i => i.Id == partId);
 
                 stream = new FileStream(part.Path, FileMode.Open);
             }
@@ -78,11 +80,11 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
     public async Task<string?> GetMimeType(Guid id, string category, Guid? versionId = null, Guid? partId = null)
     {
         // Get file info
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+        var item = await inventoryService.GetItem(id);
 
         if (item == null)
         {
-            _logger.LogWarning("Item not found in category while getting file type");
+            logger.LogWarning("Item not found in category while getting file type");
 
             return null;
         }
@@ -91,11 +93,13 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (versionId == null)
         {
-            version = item.Versions?.FirstOrDefault();
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+            version = versions?.FirstOrDefault();
         }
         else
         {
-            version = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
+            var versions = await versionService.List(i => i.Id  == versionId);
+            version = versions?.FirstOrDefault();
         }
 
         if (version == null || version.FileInfoId == null)
@@ -105,24 +109,28 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         FileInfoModel? fileInfo;
 
-        if (version.Parts == null)
+        var parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
+
+        if (parts == null)
         {
-            fileInfo = await _fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
         }
         else
         {
-            var part = version.Parts.FirstOrDefault(i => i.Id == partId);
+            var part = parts.FirstOrDefault(i => i.Id == partId);
 
             if (part?.FileInfoId == null)
             {
                 return null;
             }
 
-            fileInfo = await _fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
         }
 
         // Determine mime type
-        var formatName = fileInfo?.MediaData?.Format.FormatName;
+        var mediaData = await mediaDataService.Get(fileInfo?.MediaDataId);
+        var format = await formatService.Get(mediaData?.MediaFormatId);
+        var formatName = format?.FormatName;
 
         if (formatName == null)
             return null;
@@ -134,12 +142,13 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
     public async Task<IResult> GetTranscodingPlaylist(Guid id, string category, HttpRequest request, HttpResponse response, Guid? versionId = null)
     {
-        var item = await _inventoryService.GetItem<InventoryItem>(id, category) ?? throw new Exception("Requested Item not found in category while prepare transcoding");
+        var item = await inventoryService.GetItem(id) ?? throw new Exception("Requested Item not found while prepare transcoding");
         var path = "";
 
         if (versionId == null)
         {
-            var playVersion = item.Versions?.FirstOrDefault();
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+            var playVersion = versions?.FirstOrDefault();
 
             if (playVersion == null)
             {
@@ -149,8 +158,9 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         }
         else
         {
-            var playVersion = item.Versions?.Where(i => i.Id == versionId).FirstOrDefault();
-
+            var versions = await versionService.List(i => i.Id  == versionId);
+            var playVersion = versions?.FirstOrDefault();
+            
             if (playVersion == null)
             {
                 return Results.BadRequest("PlayVersion not found");
@@ -248,18 +258,21 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
         try
         {
             var path = "";
-            var item = await _inventoryService.GetItem<InventoryItem>(id, category);
+            var item = await inventoryService.GetItem(id);
 
             if (item == null)
                 throw new ApplicationException($"Item with id {id} was not found");
 
             if (versionId != null)
             {
-                path = item.Versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
+                var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+                path = versions?.FirstOrDefault(v => v.Id == versionId)?.Path;
             }
             else
             {
-                path = item.Versions?.FirstOrDefault()?.Path;
+                var versions = await versionService.List(i => i.Id  == versionId);
+                var version = versions?.FirstOrDefault();
+                path = version?.Path;
             }
 
             if (string.IsNullOrWhiteSpace(path))

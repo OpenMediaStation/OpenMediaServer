@@ -6,12 +6,8 @@ using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Endpoints;
 
-public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryService inventoryService, IFileSystemRepository fileSystemRepository) : IFavoriteEndpoints
+public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryService inventoryService, IDataRepository dataRepository) : IFavoriteEndpoints
 {
-    private readonly ILogger<FavoriteEndpoints> _logger = logger;
-    private readonly IInventoryService _inventoryService = inventoryService;
-    private readonly IFileSystemRepository _fileSystemRepository = fileSystemRepository;
-
     public void Map(WebApplication app)
     {
         var group = app.MapGroup("/api/favorite");
@@ -31,19 +27,17 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId, category);
+        var item = await inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
         }
 
-        var path = GetFavoritesFilePath(userId, category);
-        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path) ?? [];
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId);
 
-        if (!favorites.Contains(inventoryItemId))
+        if (favorites.All(fi => fi.InventoryId != inventoryItemId))
         {
-            favorites.Add(inventoryItemId);
-            await _fileSystemRepository.WriteObject(path, favorites);
+            await dataRepository.WriteObject(new FavoriteInfo(){Id = Guid.NewGuid(), InventoryId = inventoryItemId, UserId = userId, Category = category});
         }
 
         return Results.Ok();
@@ -57,19 +51,17 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var item = await _inventoryService.GetItem<InventoryItem>(inventoryItemId, category);
+        var item = await inventoryService.GetItem(inventoryItemId);
         if (item == null)
         {
             return Results.NotFound();
         }
 
-        var path = GetFavoritesFilePath(userId, category);
-        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path) ?? [];
+        var favorite = (await dataRepository.ListObjects<FavoriteInfo>(fi => fi.UserId == userId && fi.InventoryId == inventoryItemId)).FirstOrDefault();
 
-        if (favorites.Contains(inventoryItemId))
+        if (favorite != null)
         {
-            favorites.Remove(inventoryItemId);
-            await _fileSystemRepository.WriteObject(path, favorites);
+            await dataRepository.DeleteObjects([favorite]);
         }
 
         return Results.Ok();
@@ -83,10 +75,9 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var path = GetFavoritesFilePath(userId, category);
-        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path) ?? [];
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(f => f.Category == category && f.UserId == userId);;
 
-        return Results.Ok(favorites);
+        return Results.Ok(favorites.Select(f => f.InventoryId));
     }
 
     public async Task<IResult> IsFavorited(HttpContext httpContext, Guid inventoryItemId, string category)
@@ -97,10 +88,9 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var path = GetFavoritesFilePath(userId, category);
-        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path);
+        var favorites = (await dataRepository.ListObjects<FavoriteInfo>(f => f.UserId == userId && f.InventoryId == inventoryItemId)).FirstOrDefault();
 
-        return Results.Ok(favorites?.Contains(inventoryItemId) ?? false);
+        return Results.Ok(favorites != null);
     }
 
     public async Task<IResult> IsFavoritedBatch(HttpContext httpContext, [FromQuery] Guid[] ids, [FromQuery] string category)
@@ -111,16 +101,10 @@ public class FavoriteEndpoints(ILogger<FavoriteEndpoints> logger, IInventoryServ
             return Results.Forbid();
         }
 
-        var path = GetFavoritesFilePath(userId, category);
-        var favorites = await _fileSystemRepository.ReadObject<List<Guid>>(path) ?? [];
+        var favorites = await dataRepository.ListObjects<FavoriteInfo>(f => f.UserId == userId && ids.Contains(f.InventoryId));
 
-        var result = ids.ToDictionary(id => id, id => favorites.Contains(id));
+        var result = ids.ToDictionary(id => id, id => favorites.Any(f => f.InventoryId == id));
 
         return Results.Ok(result);
-    }
-
-    private string GetFavoritesFilePath(string userId, string category)
-    {
-        return Path.Combine(Globals.GetUserStorage(userId), "favorites", category) + ".json";
     }
 }

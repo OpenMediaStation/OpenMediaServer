@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonDiscoveryService, IBinService binService) : IDiscoveryMovieService
+public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileInfoService fileInfoService, IMetadataService metadataService, IInventoryService inventoryService, IAddonService addonService, IBinService binService, IVersionService versionService, IMovieMetadataService movieMetadataService) : IDiscoveryMovieService
 {
     private readonly string[] _cleanDateTimeRegex =
     [
@@ -95,9 +96,11 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
     private async Task ReallyCreateMovie(string path, string[] parts, string title, int? year, GroupCollection fileGroups, string category, string folderTitle, string versionName)
     {
-        var movies = await inventoryService.ListItems<Movie>("Movie");
-        var existingMovie = movies?.Where(i => i.Versions?.Any(j => j.Path == path) ?? false).FirstOrDefault();
-
+        var movies = await inventoryService.ListItems("Movie");
+        
+        var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
+        var existingMovie = await inventoryService.GetItem(existingVersion?.InventoryItemId);
+        
         string? folderPath = null;
 
         if (!string.IsNullOrEmpty(folderTitle) && title.StartsWith(folderTitle))
@@ -117,24 +120,30 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 var version = new InventoryItemVersion
                 {
                     Id = Guid.NewGuid(),
+                    InventoryItemId = existingMovie.Id,
                     Path = path,
                     Name = versionName
                 };
 
-                if (existingMovie.Versions?.Any(i => i.Path == path) ?? false)
-                {
+                var versions = await versionService.List(i => i.Path == path);
+
+                if (versions?.Any(i => i.Path == path) ?? false)                {
                     return;
                 }
 
                 // Do this after the path check because a file info will be created
                 version.FileInfoId = (await fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
 
-                existingMovie.Versions = existingMovie.Versions?.Append(version);
+                await versionService.UpdateOrInsert(version);
 
-                var addons = addonDiscoveryService.DiscoverAddons(path);
-                existingMovie.Addons = existingMovie.Addons?.Concat(addons);
+                var addons = addonService.DiscoverAddons(path);
 
-                await inventoryService.UpdateByTitle(existingMovie);
+                foreach (var addon in addons)
+                {
+                    addon.InventoryItemId = existingMovie.Id;
+                    
+                    await addonService.UpdateOrInsert(addon);
+                }
             }
 
             return;
@@ -142,13 +151,14 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
 
         var versionId = Guid.NewGuid();
 
-        var movie = await binService.GetItem<Movie>(title, "Movie");
+        var movie = await binService.GetItem<InventoryItem>(title, "Movie");
 
         if (movie == null)
         {
-            movie = new Movie()
+            movie = new InventoryItem()
             {
                 Id = Guid.NewGuid(),
+                Category = "Movie",
                 Title = title, //!string.IsNullOrEmpty(hypenAddition) && folderPath != null ? $"{title} - {hypenAddition}" :          
             };
 
@@ -160,27 +170,38 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 year: (year?.ToString()) ?? (fileGroups.TryGetValue("year", out var movieTitleYear) ? movieTitleYear.Value :
                     fileGroups.TryGetValue("folderYear", out var movieFolderYear) ? movieFolderYear.Value : null)
             );
+            
+            var movieMetadata = await movieMetadataService.Get(metadata?.MovieMetadataId);
 
             movie.MetadataId = metadata?.Id;
-            movie.DisplayImageBlurHash = metadata?.Movie?.PosterBlurHash;
+            movie.DisplayImageBlurHash = movieMetadata?.PosterBlurHash;
+            movie.ReleaseDate = DateTime.TryParse(movieMetadata?.Released, out var dateTime) ? dateTime : null;
         }
-
-        movie.Versions =
-        [
-            new()
-            {
-                Id = versionId,
-                Path = path,
-                FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id,
-                Name = versionName,
-            }
-        ];
-
+        
         movie.FolderPath = folderPath;
-        movie.Addons = addonDiscoveryService.DiscoverAddons(path);
+        
+        var newAddons = addonService.DiscoverAddons(path);
 
         await inventoryService.AddItem(movie);
-
+        
+        foreach (var addon in newAddons)
+        {
+            addon.InventoryItemId = movie.Id;
+            
+            await addonService.UpdateOrInsert(addon);
+        }
+        
+        var newVersion = new InventoryItemVersion()
+        {
+            Id = versionId,
+            InventoryItemId = movie.Id,
+            Path = path,
+            FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, category))?.Id,
+            Name = versionName,
+        };
+        
+        await versionService.UpdateOrInsert(newVersion);
+        
         if (movie != null)
         {
             await binService.RemoveById(movie);

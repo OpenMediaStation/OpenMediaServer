@@ -3,8 +3,10 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using NSubstitute;
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Services;
+using OpenMediaServer.Services.Discovery;
 using OpenMediaServer.Test.Mocks;
 using Shouldly;
 
@@ -13,26 +15,30 @@ namespace OpenMediaServer.Test.Services;
 public class DiscoveryMovieServiceShould
 {
     private readonly ILogger<DiscoveryMovieService> _logger;
-    private readonly FileSystemRepoMock _storageRepository;
+    private readonly DataRepoMock _storageRepository;
     private readonly IMetadataService _metadataService;
     private readonly IFileInfoService _fileInfoService;
     private readonly IDiscoveryMovieService _inventoryMovieShowService;
     private readonly IInventoryService _inventoryService;
     private readonly IAddonService _addonService;
     private readonly IBinService _binService;
+    private readonly IVersionService _versionService;
+    private readonly IMovieMetadataService _movieMetadataService;
 
     public DiscoveryMovieServiceShould()
     {
         Setup.Configure();
 
         _logger = Substitute.For<ILogger<DiscoveryMovieService>>();
-        _storageRepository = new FileSystemRepoMock();
+        _storageRepository = new DataRepoMock();
         _metadataService = Substitute.For<IMetadataService>();
         _fileInfoService = Substitute.For<IFileInfoService>();
         _addonService = Substitute.For<IAddonService>();
         _binService = Substitute.For<IBinService>();
+        _movieMetadataService = Substitute.For<IMovieMetadataService>();
+        _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService);
+        _inventoryMovieShowService = new DiscoveryMovieService(_logger, _fileInfoService, _metadataService, _inventoryService, _addonService, _binService, _versionService, _movieMetadataService);
     }
 
     [Theory]
@@ -83,20 +89,19 @@ public class DiscoveryMovieServiceShould
         // Act
         await _inventoryMovieShowService.CreateMovie(path);
         var resultJson = _storageRepository.WrittenObjects.First();
-        var result = JsonSerializer.Deserialize<IEnumerable<Movie>>(resultJson);
+        var resultItem = JsonSerializer.Deserialize<InventoryItem>(resultJson, Globals.JsonOptions);
+        var versions = await _versionService.List();
 
         // Assert
-        var resultItem = result.First();
         resultItem.Id.ShouldNotBe(Guid.Empty);
         resultItem.Title.ShouldBe(title);
         resultItem.Category.ShouldBe("Movie");
         resultItem.MetadataId.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.ShouldNotBeNull();
-        resultItem.Versions.Count().ShouldBe(1);
-        resultItem.Versions.First().Id.ShouldNotBe(Guid.Empty);
-        resultItem.Versions.First().Path.ShouldBe(path);
-        resultItem.Versions.First().Name.ShouldBe(versionName);
+        versions.ShouldNotBeNull();
+        versions.Count().ShouldBe(1);
+        versions.First().Id.ShouldNotBe(Guid.Empty);
+        versions.First().Path.ShouldBe(path);
+        versions.First().Name.ShouldBe(versionName);
         resultItem.FolderPath.ShouldBe(folderPath);
-        
     }
 }

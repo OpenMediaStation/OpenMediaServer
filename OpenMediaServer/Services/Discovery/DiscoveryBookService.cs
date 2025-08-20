@@ -1,27 +1,22 @@
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Discovery;
 
-public class DiscoveryBookService : IDiscoveryBookService
+public class DiscoveryBookService(
+    ILogger<DiscoveryBookService> logger,
+    IFileInfoService fileInfoService,
+    IInventoryService inventoryService,
+    IMetadataService metadataService,
+    IVersionService versionService,
+    IBookMetadataService bookMetadataService)
+    : IDiscoveryBookService
 {
-    private readonly ILogger<DiscoveryBookService> _logger;
-    private readonly IFileInfoService _fileInfoService;
-    private readonly IInventoryService _inventoryService;
-    private readonly IMetadataService _metadataService;
-
-    public DiscoveryBookService(ILogger<DiscoveryBookService> logger, IFileInfoService fileInfoService, IInventoryService inventoryService, IMetadataService metadataService)
-    {
-        _logger = logger;
-        _fileInfoService = fileInfoService;
-        _inventoryService = inventoryService;
-        _metadataService = metadataService;
-    }
-
     public async Task CreateBook(string path)
     {
-        _logger.LogTrace("Creating book for path: {Path}", path);
+        logger.LogTrace("Creating book for path: {Path}", path);
 
         var splittedPath = path.Split("/");
 
@@ -38,7 +33,7 @@ public class DiscoveryBookService : IDiscoveryBookService
 
         if (splittedTitle == null)
         {
-            _logger.LogWarning("SplittedTitle null.... Invalid path: {Path}", path);
+            logger.LogWarning("SplittedTitle null.... Invalid path: {Path}", path);
             return;
         }
 
@@ -46,12 +41,14 @@ public class DiscoveryBookService : IDiscoveryBookService
 
         if (extension == null || title == null)
         {
-            _logger.LogWarning("Invalid path: {Path}", path);
+            logger.LogWarning("Invalid path: {Path}", path);
             return;
         }
 
-        var books = await _inventoryService.ListItems<Book>("Book");
-        var existingBooks = books?.Where(i => i.Versions?.Any(i => i.Path == path) ?? false).FirstOrDefault();
+        var books = await inventoryService.ListItems("Book");
+
+        var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
+        var existingBooks = await inventoryService.GetItem(existingVersion?.InventoryItemId);
 
         string? folderPath = null;
 
@@ -71,45 +68,50 @@ public class DiscoveryBookService : IDiscoveryBookService
                     Path = path,
                 };
 
-                if (existingBooks.Versions?.Any(i => i.Path == path) ?? false)
+                var versions = await versionService.List(i => i.Path == path);
+
+                if (versions?.Any(i => i.Path == path) ?? false)
                 {
                     return;
                 }
 
-                existingBooks.Versions = existingBooks.Versions?.Append(version);
-
-                await _inventoryService.UpdateByTitle(existingBooks);
+                await versionService.UpdateOrInsert(version);
             }
 
             return;
         }
 
         var versionId = Guid.NewGuid();
-        var book = new Book()
+        var book = new InventoryItem()
         {
             Id = Guid.NewGuid(),
-            Versions =
-            [
-                new()
-                {
-                    Id = versionId,
-                    Path = path,
-                }
-            ],
+            Category = "Book",
             Title = title,
             FolderPath = folderPath
         };
 
-        var metadata = await _metadataService.CreateNewMetadata
+        var metadata = await metadataService.CreateNewMetadata
         (
             parentId: book.Id,
             title: book.Title,
             category: book.Category
         );
+        
+        var bookMetadata = await bookMetadataService.Get(metadata?.BookMetadataId);
 
         book.MetadataId = metadata?.Id;
-        book.DisplayImageBlurHash = metadata?.Book?.ThumbnailBlurHash;
+        book.DisplayImageBlurHash = bookMetadata?.ThumbnailBlurHash;
+        book.ReleaseDate = DateTime.TryParse(bookMetadata?.PublishedDate, out var dateTime) ? dateTime : null;
 
-        await _inventoryService.AddItem(book);
+        await inventoryService.AddItem(book);
+
+        var newVersion = new InventoryItemVersion()
+        {
+            Id = versionId,
+            Path = path,
+            InventoryItemId = book.Id
+        };
+
+        await versionService.UpdateOrInsert(newVersion);
     }
 }

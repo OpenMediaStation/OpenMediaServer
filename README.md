@@ -17,3 +17,10 @@ OpenMediaStation is a collection of server and client software to manage and str
 ## About this repo
 
 This repo is all about the server software for Open Media Server.
+
+## Development
+
+### Notes
+
+If docker compose does not want to work with rider try `docker system prune -a --volumes`...  
+And apparently turn you VPN of...

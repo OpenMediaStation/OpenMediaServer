@@ -1,112 +1,84 @@
 using ATL;
+using OpenMediaServer.Helpers;
 using OpenMediaServer.Interfaces.APIs;
+using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
 
 namespace OpenMediaServer.Services.Metadata;
 
-public class AudiobookMetadataService : IAudioBookMetadataService
+public class AudiobookMetadataService(
+    IGoogleBooksApi googleBooksApi,
+    IOpenLibraryApi openLibraryApi,
+    IImageService imageService,
+    IDataRepository dataRepository)
+    : TableBaseService<MetadataAudiobookModel>(dataRepository), IAudioBookMetadataService
 {
-    private readonly IGoogleBooksApi _googleBooksApi;
-    private readonly IOpenLibraryApi _openLibraryApi;
-    private readonly IImageService _imageService;
-
-    public AudiobookMetadataService(IGoogleBooksApi googleBooksApi, IOpenLibraryApi openLibraryApi, IImageService imageService)
+    public async Task<MetadataModel> GenerateMetadata(string? year, string title, string? language, Guid metadataId, string? filePath)
     {
-        _googleBooksApi = googleBooksApi;
-        _openLibraryApi = openLibraryApi;
-        _imageService = imageService;
-    }
-
-    public async Task<MetadataModel> GetMetadata(string? year, string title, string? language, Guid metadataId, string? filePath)
-    {
-        MetadataModel metadata = new();
+        MetadataAudiobookModel? fileExtract = null;
+        string? extractedTitle = null;
 
         if (filePath != null)
         {
-            metadata = await ExtractMetadataFromAudioFile(filePath);
+            (fileExtract, extractedTitle) = await ExtractMetadataFromAudioFile(filePath);
         }
 
-        var googleBooksResult = await _googleBooksApi.GetBookMetadata(title);
-        var searchResult = await _openLibraryApi.SearchBook(title, true, language ?? "en");
+        var googleBooksResult = await googleBooksApi.GetBookMetadata(title);
+        var searchResult = await openLibraryApi.SearchBook(title, true, language ?? "en");
         var openLibraryData = searchResult?.Docs.FirstOrDefault();
-        var openLibraryBookDetails = await _openLibraryApi.GetBookDetails(openLibraryData?.Key);
+        var openLibraryBookDetails = await openLibraryApi.GetBookDetails(openLibraryData?.Key);
         var description = openLibraryBookDetails?.Description?.ToString();
-        var works = await _openLibraryApi.GetWorks(openLibraryData?.Key);
+        var works = await openLibraryApi.GetWorks(openLibraryData?.Key);
         var googleBooksData = googleBooksResult?.Items?.FirstOrDefault()?.VolumeInfo;
 
-        metadata = new MetadataModel()
+        var audiobook = new MetadataAudiobookModel()
         {
-            Title = metadata.Title ?? openLibraryData?.Title ?? googleBooksData?.Title,
-            Audiobook = new()
-            {
-                Authors = metadata.Audiobook?.Authors ?? openLibraryData?.AuthorName ?? googleBooksData?.Authors,
-                Publisher = metadata.Audiobook?.Publisher ?? googleBooksData?.Publisher,
-                PublishedDate = metadata.Audiobook?.PublishedDate ?? googleBooksData?.PublishedDate,
-                Description = metadata.Audiobook?.Description ?? description ?? googleBooksData?.Description,
-                Language = metadata.Audiobook?.Language ?? googleBooksData?.Language,
-                Thumbnail = metadata.Audiobook?.Thumbnail,
-                ThumbnailBlurHash = metadata.Audiobook?.ThumbnailBlurHash,
-            }
+            Id = Guid.NewGuid(),
+            Author = fileExtract?.Author ?? openLibraryData?.AuthorName?.FirstOrDefault() ?? googleBooksData?.Authors.FirstOrDefault(),
+            Publisher = fileExtract?.Publisher ?? googleBooksData?.Publisher,
+            PublishedDate = fileExtract?.PublishedDate ?? googleBooksData?.PublishedDate,
+            Description = fileExtract?.Description ?? description ?? googleBooksData?.Description,
+            Language = fileExtract?.Language ?? googleBooksData?.Language,
+            Thumbnail = fileExtract?.Thumbnail,
+            ThumbnailBlurHash = fileExtract?.ThumbnailBlurHash,
         };
-
-        if (metadata.Audiobook.Thumbnail == null)
+        
+        if (audiobook.Thumbnail == null)
         {
-            string? coverUrl = _openLibraryApi.GetCover(true, openLibraryData, works?.Entries) ?? googleBooksData?.ImageLinks?.Thumbnail;
+            string? coverUrl = openLibraryApi.GetCover(true, openLibraryData, works?.Entries) ?? googleBooksData?.ImageLinks?.Thumbnail;
             (coverUrl, var blurHash) = await WriteImageAndReturnPathAndBlurHash(coverUrl, metadataId.ToString());
 
-            metadata.Audiobook.Thumbnail = coverUrl;
-            metadata.Audiobook.ThumbnailBlurHash = blurHash;
+            audiobook.Thumbnail = coverUrl;
+            audiobook.ThumbnailBlurHash = blurHash;
         }
-
-        metadata.Audiobook.Chapters = ExtractChapters(filePath);
+        
+        await UpdateOrInsert(audiobook);
+        
+        var metadata = new MetadataModel()
+        {
+            Title = extractedTitle ?? openLibraryData?.Title ?? googleBooksData?.Title,
+            AudiobookMetadataId = audiobook.Id,
+        };
 
         return metadata;
     }
 
-    public List<MetadataAudiobookChapter> ExtractChapters(string? filePath)
-    {
-        if (filePath == null)
-        {
-            return [];
-        }
-
-        Track track = new Track(filePath);
-
-        List<MetadataAudiobookChapter> chapters = [];
-
-        foreach (var item in track.Chapters)
-        {
-            chapters.Add(new MetadataAudiobookChapter()
-            {
-                Title = item.Title,
-                StartTimeInSeconds = item.StartTime / 1000,
-                EndTimeInSeconds = item.EndTime / 1000,
-            });
-        }
-
-        return chapters;
-    }
-
-    public async Task<MetadataModel> ExtractMetadataFromAudioFile(string filePath)
+    public async Task<(MetadataAudiobookModel, string)> ExtractMetadataFromAudioFile(string filePath)
     {
         var file = TagLib.File.Create(filePath);
         var (thumbnailPath, thumbnailBlurHash) = await ExtractCoverArt(file);
-        return new MetadataModel()
+        return (new MetadataAudiobookModel()
         {
-            Title = file.Tag.Title,
-            Audiobook = new()
-            {
-                Authors = file.Tag.Performers?.ToList(),
-                Publisher = file.Tag.Publisher,
-                PublishedDate = file.Tag.Year.ToString(),
-                Description = file.Tag.Comment,
-                // Language = file.Tag.Languages?.FirstOrDefault(),
-                Thumbnail = thumbnailPath,
-                ThumbnailBlurHash = thumbnailBlurHash
-            }
-        };
+            Author = file.Tag.Performers?.FirstOrDefault(),
+            Publisher = file.Tag.Publisher,
+            PublishedDate = file.Tag.Year.ToString(),
+            Description = file.Tag.Comment,
+            // Language = file.Tag.Languages?.FirstOrDefault(),
+            Thumbnail = thumbnailPath,
+            ThumbnailBlurHash = thumbnailBlurHash
+        }, file.Tag.Title);
     }
 
     private async Task<(string? Path, string? BlurHash)> ExtractCoverArt(TagLib.File file)
@@ -118,8 +90,8 @@ public class AudiobookMetadataService : IAudioBookMetadataService
             var imageType = picture.MimeType.Split('/').LastOrDefault();
             var metadataId = Guid.NewGuid().ToString();
             
-            var coverPath =  await _imageService.WriteImage(coverData, "", "cover", "Audiobook", metadataId, imageType);
-            var blurHash = _imageService.CreateBlurHash(coverData);
+            var coverPath =  await imageService.WriteImage(coverData, "", "cover", "Audiobook", metadataId, imageType);
+            var blurHash = imageService.CreateBlurHash(coverData);
             return (coverPath, blurHash);
         }
         return (null,null);
@@ -130,12 +102,12 @@ public class AudiobookMetadataService : IAudioBookMetadataService
         if (coverUrl == null)
             return (null,null);
 
-        var (bytes, imageType) = await _openLibraryApi.GetBytesFromUrlAsync(coverUrl);
+        var (bytes, imageType) = await openLibraryApi.GetBytesFromUrlAsync(coverUrl);
 
         imageType = imageType?.Split("/").LastOrDefault();
 
-        var imagePath = await _imageService.WriteImage(bytes, coverUrl, "cover", "Audiobook", metadataId, imageType: imageType);
-        var blurHash = _imageService.CreateBlurHash(bytes);
+        var imagePath = await imageService.WriteImage(bytes, coverUrl, "cover", "Audiobook", metadataId, imageType: imageType);
+        var blurHash = imageService.CreateBlurHash(bytes);
         return (imagePath, blurHash);
     }
 }

@@ -1,37 +1,30 @@
-using OpenMediaServer.Interfaces.APIs;
+using System.Linq.Expressions;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models.Metadata;
 
-namespace OpenMediaServer.Services;
+namespace OpenMediaServer.Services.Metadata;
 
-public class MetadataService : IMetadataService
+public class MetadataService(
+    ILogger<MetadataService> logger,
+    IDataRepository dataRepository,
+    IMovieMetadataService movieMetadataService,
+    IShowMetadataService showMetadataService,
+    ISeasonMetadataService seasonMetadataService,
+    IEpisodeMetadataService episodeMetadataService,
+    IBookMetadataService bookMetadataService,
+    IAudioBookMetadataService audioBookMetadataService,
+    IImageService imageService,
+    IChapterService chapterService)
+    : IMetadataService
 {
-    private readonly ILogger<MetadataService> _logger;
-    private readonly IFileSystemRepository _storageRepository;
-    private readonly IMovieMetadataService _movieMetadataService;
-    private readonly IShowMetadataService _showMetadataService;
-    private readonly IBookMetadataService _bookMetadataService;
-    private readonly IAudioBookMetadataService _audioBookMetadataService;
-    private readonly IImageService _imageService;
-
-    public MetadataService(ILogger<MetadataService> logger, IFileSystemRepository storageRepository, IMovieMetadataService movieMetadataService, IShowMetadataService showMetadataService, IBookMetadataService bookMetadataService, IAudioBookMetadataService audioBookMetadataService, IImageService imageService)
+    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title,
+        string? year = null, int? season = null, int? episode = null, string? language = null, string? path = null)
     {
-        _logger = logger;
-        _storageRepository = storageRepository;
-        _movieMetadataService = movieMetadataService;
-        _showMetadataService = showMetadataService;
-        _bookMetadataService = bookMetadataService;
-        _audioBookMetadataService = audioBookMetadataService;
-        _imageService = imageService;
-    }
+        // var metadatas = await ListMetadata(category);
 
-    public async Task<MetadataModel?> CreateNewMetadata(string category, Guid parentId, string title, string? year = null, int? season = null, int? episode = null, string? language = null, string? path = null)
-    {
-        var metadatas = await ListMetadata(category);
-
-        MetadataModel? metadata = new();
+        MetadataModel? metadata;
         var metadataId = Guid.NewGuid();
 
         language ??= Globals.PreferredLanguage;
@@ -39,128 +32,128 @@ public class MetadataService : IMetadataService
         switch (category)
         {
             case "Movie":
-                {
-                    metadata = await _movieMetadataService.GetMetadata(year, title, language, metadataId);
+            {
+                metadata = await movieMetadataService.GetMetadata(year, title, language, metadataId);
 
-                    break;
-                }
+                break;
+            }
             case "Show":
-                {
-                    metadata = await _showMetadataService.GetShowMetadata(year, title, language, metadataId);
+            {
+                metadata = await showMetadataService.GetShowMetadata(year, title, language, metadataId);
 
-                    break;
-                }
+                break;
+            }
 
             case "Season":
-                {
-                    metadata = await _showMetadataService.GetSeasonMetadata(year, title, language, metadataId, season);
+            {
+                metadata = await seasonMetadataService.GetSeasonMetadata(year, title, language, metadataId, season);
 
-                    break;
-                }
+                break;
+            }
 
             case "Episode":
-                {
-                    metadata = await _showMetadataService.GetEpisodeMetadata(year, title, language, metadataId, season, episode);
+            {
+                metadata = await episodeMetadataService.GetEpisodeMetadata(year, title, language, metadataId, season,
+                    episode);
 
-                    break;
-                }
+                break;
+            }
 
             case "Book":
-                {
-                    metadata = await _bookMetadataService.GetMetadata(year, title, language, metadataId);
+            {
+                metadata = await bookMetadataService.GetMetadata(year, title, language, metadataId);
 
-                    break;
-                }
+                break;
+            }
 
             case "Audiobook":
-                {
-                    metadata = await _audioBookMetadataService.GetMetadata(year, title, language, metadataId, path);
+            {
+                metadata = await audioBookMetadataService.GenerateMetadata(year, title, language, metadataId, path);
 
-                    break;
-                }
+                break;
+            }
 
             default:
-                {
-                    _logger.LogWarning("Cannot create metadata for type {Type}", category);
+            {
+                logger.LogWarning("Cannot create metadata for type {Type}", category);
 
-                    return null;
-                }
+                return null;
+            }
         }
+
         metadata.Id = metadataId;
         metadata.Category = category;
-        metadata.ParentId = parentId;
 
-        metadatas = metadatas.Append(metadata);
+        // metadatas = metadatas.Append(metadata);
 
-        await _storageRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json", metadatas);
+        await dataRepository.WriteObject(metadata);
+
+        if (category == "Audiobook")
+        {
+            await chapterService.ExtractChapters(path, metadataId);
+        }
 
         return metadata;
     }
 
     public async Task<IEnumerable<MetadataModel>> ListMetadata(string category)
     {
-        var metadatas = await _storageRepository.ReadObject<IEnumerable<MetadataModel>>(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json");
+        var metadataObjects = await dataRepository.ListObjects<MetadataModel>(m => m.Category == category);
 
-        metadatas ??= [];
-
-        return metadatas;
+        return metadataObjects;
     }
 
     public async Task<MetadataModel?> GetMetadata(string category, Guid id)
     {
-        var metadatas = await _storageRepository.ReadObject<IEnumerable<MetadataModel>>(Path.Combine(Globals.ConfigFolder, "metadata", category) + ".json");
-        var fixedMetadatas = metadatas?.Select(CreateBlurHashIfMissing);
-        
-        var metadata = fixedMetadatas?.FirstOrDefault(x => x.Id == id);
-
+        var metadata = await dataRepository.GetObjectById<MetadataModel>(id);
+        _ = Task.Run(() => CreateBlurHashIfMissing(metadata));
         return metadata;
     }
 
-    private MetadataModel CreateBlurHashIfMissing(MetadataModel metadata)
+    private async Task CreateBlurHashIfMissing(MetadataModel? metadata)
     {
-        if(metadata.Category == null)
-            return metadata;
-        
+        if (metadata?.Category == null)
+            return;
+
         var props = typeof(MetadataModel).GetProperties();
-        var matchingProp = props.FirstOrDefault(p => p.Name.Equals(metadata.Category, StringComparison.InvariantCultureIgnoreCase));
-        if(matchingProp == null)
-            return metadata;
+        var matchingProp = props.FirstOrDefault(p =>
+            p.Name.Equals(metadata.Category, StringComparison.InvariantCultureIgnoreCase));
+        if (matchingProp == null)
+            return;
 
         var subObj = matchingProp.GetValue(metadata);
-        
+
         var subObjProps = matchingProp.PropertyType.GetProperties();
-        
-        var blurHashProps = subObjProps.Where(p => p.Name.EndsWith("BlurHash", StringComparison.InvariantCultureIgnoreCase));
+
+        var blurHashProps =
+            subObjProps.Where(p => p.Name.EndsWith("BlurHash", StringComparison.InvariantCultureIgnoreCase));
         foreach (var blurHashProp in blurHashProps)
         {
-            if(blurHashProp.GetValue(subObj) != null)
+            if (blurHashProp.GetValue(subObj) != null)
                 continue;
-            
-            var imgProp = subObjProps.FirstOrDefault(p => p.Name.Equals(blurHashProp.Name.Replace("BlurHash", ""), StringComparison.InvariantCultureIgnoreCase));
-            if(imgProp == null)
+
+            var imgProp = subObjProps.FirstOrDefault(p =>
+                p.Name.Equals(blurHashProp.Name.Replace("BlurHash", ""), StringComparison.InvariantCultureIgnoreCase));
+            if (imgProp == null)
                 continue;
 
             try
             {
-                var path = _imageService.GetPath(metadata.Category, metadata.Id, imgProp.Name.ToLower(), null, null);
-                using (var stream = _imageService.GetImageStream(path))
-                {
-                    if(stream == null)
-                        continue;
-                    using (var ms = new MemoryStream())
-                    {
-                        stream.CopyTo(ms);
-                        blurHashProp.SetValue(subObj,_imageService.CreateBlurHash(ms.ToArray()));
-                    }
-                }
+                var path = imageService.GetPath(metadata.Category, metadata.Id, imgProp.Name.ToLower(), null, null);
+                using var stream = imageService.GetImageStream(path);
+                if (stream == null)
+                    continue;
+                using var ms = new MemoryStream();
+                stream.CopyTo(ms);
+                blurHashProp.SetValue(subObj, imageService.CreateBlurHash(ms.ToArray()));
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
         }
-        _ = UpdateOrAddMetadata(metadata);
-        return metadata;
+
+        _ = await UpdateOrAddMetadata(metadata);
     }
 
     public async Task<bool> UpdateOrAddMetadata(MetadataModel metadataModel)
@@ -170,21 +163,7 @@ public class MetadataService : IMetadataService
             return false;
         }
 
-        var metadatas = (await ListMetadata(metadataModel.Category)).ToList();
-
-        var existingMetadata = metadatas.FirstOrDefault(m => m.Id == metadataModel.Id);
-
-        if (existingMetadata != null)
-        {
-            var index = metadatas.IndexOf(existingMetadata);
-            metadatas[index] = metadataModel;
-        }
-        else
-        {
-            metadatas.Add(metadataModel);
-        }
-
-        await _storageRepository.WriteObject(Path.Combine(Globals.ConfigFolder, "metadata", metadataModel.Category) + ".json", metadatas);
+        await dataRepository.WriteObject(metadataModel);
 
         return true;
     }
