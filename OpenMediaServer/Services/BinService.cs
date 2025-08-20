@@ -1,12 +1,10 @@
-using System;
 using OpenMediaServer.Interfaces.Repositories;
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services;
 
-public class BinService(ILogger<BinService> logger, IDataRepository dataRepository)
-    : IBinService
+public class BinService(ILogger<BinService> logger, IDataRepository dataRepository) : IBinService
 {
     public async Task<T?> GetItem<T>(string title, string category) where T : InventoryItem
     {

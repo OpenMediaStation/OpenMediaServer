@@ -33,6 +33,13 @@ builder.Host.UseSerilog((context, config) =>
           .Enrich.FromLogContext();
 });
 
+var envLogLevel = Environment.GetEnvironmentVariable("LOGLEVEL");
+
+if (!string.IsNullOrWhiteSpace(envLogLevel) && Enum.TryParse<LogLevel>(envLogLevel, ignoreCase: true, out var parsedLogLevel))
+{
+    builder.Logging.SetMinimumLevel(parsedLogLevel);
+}
+
 // Add services to the container
 builder.Services.AddEndpointsApiExplorer();
 
