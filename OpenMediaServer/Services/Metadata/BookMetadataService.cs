@@ -38,7 +38,7 @@ public class BookMetadataService(
         var book = new MetadataBookModel()
         {
             Id = Guid.NewGuid(),
-            Author = openLibraryData?.AuthorName?.FirstOrDefault() ?? googleBooksData?.Authors.FirstOrDefault(),
+            Author = openLibraryData?.AuthorName?.FirstOrDefault() ?? googleBooksData?.Authors?.FirstOrDefault(),
             Publisher = googleBooksData?.Publisher,
             PublishedDate = googleBooksData?.PublishedDate,
             Description = description ?? googleBooksData?.Description,

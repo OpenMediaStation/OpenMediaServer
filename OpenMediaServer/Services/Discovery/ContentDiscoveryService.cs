@@ -71,9 +71,20 @@ public class ContentDiscoveryService(
 
         var files = GetPaths(path);
 
-        await CreateFromPaths(files);
-
-        _semaphore.Release();
+        try
+        {
+            await CreateFromPaths(files);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to create files from {Path}", path);
+            
+            throw;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
@@ -169,7 +180,7 @@ public class ContentDiscoveryService(
 
                 var seasonsWithId = await inventoryService.ListItems("Season", i => i.Id == season.ShowId);
                 var seasonIds = seasonsWithId?.Select(i => i.Id).ToList();
-                
+
                 if (show != null && (!seasonIds?.Any() ?? true))
                 {
                     await binService.AddItem(show!);
