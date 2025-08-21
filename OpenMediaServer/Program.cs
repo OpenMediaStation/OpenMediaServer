@@ -161,7 +161,7 @@ app.UseAuthorization();
 // Run initial content scan
 var contentDiscoveryService = app.Services.GetRequiredService<IContentDiscoveryService>();
 
-Task.Run(async () => 
+_ = Task.Run(async () => 
 {
     await contentDiscoveryService.ActiveScan(Globals.MediaFolder);
 });

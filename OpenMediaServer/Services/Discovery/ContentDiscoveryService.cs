@@ -165,9 +165,20 @@ public class ContentDiscoveryService(
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        logger.LogInformation("FileSystem changed");
+        logger.LogInformation("FileSystem changed: {ChangeType} {Path}", e.ChangeType, e.FullPath);
 
-        ActiveScan(Globals.MediaFolder).Wait(); // TODO Might be problematic
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await ActiveScan(Globals.MediaFolder);
+            }
+            catch (Exception ex)
+            {
+                // Prevent unobserved-task exceptions
+                logger.LogError(ex, "Active scan failed");
+            }
+        });
     }
 
     private async Task UpdateShow(IEnumerable<InventoryItem>? seasons)
