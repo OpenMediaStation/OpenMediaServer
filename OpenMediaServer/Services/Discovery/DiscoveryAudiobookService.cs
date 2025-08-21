@@ -220,6 +220,7 @@ public class DiscoveryAudiobookService(
                     var version = new InventoryItemVersion
                     {
                         Id = Guid.NewGuid(),
+                        InventoryItemId = existingBook.Id,
                         Path = path,
                     };
 
