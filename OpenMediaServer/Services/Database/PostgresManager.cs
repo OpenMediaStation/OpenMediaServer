@@ -11,6 +11,7 @@ using OpenMediaServer.Models.FileInfo;
 using OpenMediaServer.Models.Inventory;
 using OpenMediaServer.Models.Metadata;
 using OpenMediaServer.Models.Progress;
+using Polly;
 
 namespace OpenMediaServer.Services.Database;
 
@@ -72,13 +73,25 @@ public class PostgresManager(ILogger<PostgresManager> logger) : IPostgresManager
 
     private void CreateTables(string connectionString, List<Type> tableTypes)
     {
+        var retryPolicy = Policy
+            .Handle<NpgsqlException>() 
+            .Or<TimeoutException>()   
+            .WaitAndRetry(
+                retryCount: 3, 
+                sleepDurationProvider: attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)), 
+                onRetry: (exception, timespan, retryAttempt, context) =>
+                {
+                    logger.LogDebug("Retry {RetryAttempt} after {TimespanTotalSeconds}s due to: {ExceptionMessage}", retryAttempt, timespan.TotalSeconds, exception.Message);
+                });
+
         foreach (var tableType in tableTypes)
         {
             var columns = GetColumnDefinition(tableType);
             var tableName = ExpressionToSqlConverter.GetTableName(tableType);
 
             using var connection = new NpgsqlConnection(connectionString);
-            connection.Open();
+
+            retryPolicy.Execute(() => connection.Open());
 
             var tableExists = CheckIfTableExists(tableName, connection);
             if (!tableExists)
