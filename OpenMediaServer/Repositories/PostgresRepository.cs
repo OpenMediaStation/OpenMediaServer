@@ -97,6 +97,21 @@ public class PostgresRepository : IDataRepository
         {
             //TODO Maybe throw exception!
         }
+    }    
+    
+    public async Task DeleteObjectWithFilter<T>(Expression<Func<T, bool>>? filter = null)
+    {
+        var sqlFilter = filter != null
+            ? ExpressionToSqlConverter.ExpressionToSql(filter)
+            : string.Empty;
+        var tableName = ExpressionToSqlConverter.GetTableName(typeof(T));
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+        var res = await connection.ExecuteAsync($"delete from {tableName} {sqlFilter}");
+        if (res != 1)
+        {
+            //TODO Maybe throw exception!
+        }
     }
     
     public async Task DeleteObjects<T>(IEnumerable<T> items)

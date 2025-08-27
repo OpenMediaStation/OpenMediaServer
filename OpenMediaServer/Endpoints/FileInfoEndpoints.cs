@@ -35,7 +35,7 @@ public class FileInfoEndpoints(ILogger<FileInfoEndpoints> logger, IFileInfoServi
 
     public async Task<IResult> GetFileInfo(string category, Guid id)
     {
-        var fileInfo = await fileInfoService.GetFileInfo(category, id);
+        var fileInfo = await fileInfoService.GetFileInfo(id);
 
         return Results.Ok(await ToFileInfoDto(fileInfo));
     }

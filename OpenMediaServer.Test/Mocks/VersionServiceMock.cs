@@ -53,4 +53,9 @@ public class VersionServiceMock : IVersionService
         _store.TryRemove(id, out _);
         return Task.CompletedTask;
     }
+
+    public Task Delete(Expression<Func<InventoryItemVersion, bool>>? filter)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -8,4 +8,5 @@ public interface ITableBaseService<T>
     Task UpdateOrInsert(T item);
     Task<IEnumerable<T>?> List(Expression<Func<T, bool>>? filter = null);
     Task Delete(Guid id);
+    Task Delete(Expression<Func<T, bool>>? filter);
 }

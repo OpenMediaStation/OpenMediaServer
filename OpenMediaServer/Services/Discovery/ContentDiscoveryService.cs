@@ -1,5 +1,6 @@
 using OpenMediaServer.Interfaces.Services;
 using OpenMediaServer.Interfaces.Services.Discovery;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Models;
 
 namespace OpenMediaServer.Services.Discovery;
@@ -78,18 +79,24 @@ public class ContentDiscoveryService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to create files from {Path}", path);
-            
+
             throw;
         }
         finally
         {
             _semaphore.Release();
         }
+
+        logger.LogInformation("Finished scanning");
     }
 
     public async Task CreateFromPaths(IEnumerable<string> paths)
     {
         logger.LogTrace("Creating from path");
+        
+        // All paths get added here so each category can be executed in parallel.
+        // Currently, we do not parallelize the same category because there could be multiple versions of the same item and that will not be handled correctly.
+        List<KeyValuePair<string, string>> toDos = [];
 
         foreach (var path in paths)
         {
@@ -99,26 +106,22 @@ public class ContentDiscoveryService(
             {
                 case "Movies":
                 {
-                    await movieService.CreateMovie(path);
-
+                    toDos.Add(new KeyValuePair<string, string>("Movies", path));
                     break;
                 }
                 case "Shows":
                 {
-                    await showService.CreateShow(path);
-
+                    toDos.Add(new KeyValuePair<string, string>("Shows", path));
                     break;
                 }
                 case "Books":
                 {
-                    await bookService.CreateBook(path);
-
+                    toDos.Add(new KeyValuePair<string, string>("Books", path));
                     break;
                 }
                 case "Audiobooks":
                 {
-                    await audiobookDiscoveryService.CreateAudiobook(path);
-
+                    toDos.Add(new KeyValuePair<string, string>("Audiobooks", path));
                     break;
                 }
                 case "default":
@@ -129,6 +132,44 @@ public class ContentDiscoveryService(
                 }
             }
         }
+
+        var movies = Task.Run(async () =>
+        {
+            foreach (var kv in toDos.Where(i => i.Key == "Movies"))
+            {
+                logger.LogInformation("Checking {Category} path: {Path}", kv.Key, kv.Value);
+                await movieService.CreateMovie(kv.Value);
+            }
+        });
+
+        var shows = Task.Run(async () =>
+        {
+            foreach (var kv in toDos.Where(i => i.Key == "Shows"))
+            {
+                logger.LogInformation("Checking {Category} path: {Path}", kv.Key, kv.Value);
+                await showService.CreateShow(kv.Value);
+            }
+        });
+
+        var audiobooks = Task.Run(async () =>
+        {
+            foreach (var kv in toDos.Where(i => i.Key == "Audiobooks"))
+            {
+                logger.LogInformation("Checking {Category} path: {Path}", kv.Key, kv.Value);
+                await audiobookDiscoveryService.CreateAudiobook(kv.Value);
+            }
+        });
+        
+        var books = Task.Run(async () =>
+        {
+            foreach (var kv in toDos.Where(i => i.Key == "Books"))
+            {
+                logger.LogInformation("Checking {Category} path: {Path}", kv.Key, kv.Value);
+                await bookService.CreateBook(kv.Value);
+            }
+        });
+        
+        await Task.WhenAll(movies, shows, audiobooks, books);
     }
 
     public void Watch(string path)
@@ -195,7 +236,6 @@ public class ContentDiscoveryService(
                 if (show != null && (!seasonIds?.Any() ?? true))
                 {
                     await binService.AddItem(show!);
-                    await inventoryService.Remove(show!);
                 }
             }
         }
@@ -236,47 +276,54 @@ public class ContentDiscoveryService(
 
     private async Task HandleDelete(IEnumerable<string> paths, IEnumerable<InventoryItem>? items)
     {
-        if (items != null)
+        if (items == null)
         {
-            foreach (var item in items)
+            return;
+        }
+
+        foreach (var item in items)
+        {
+            var addons = await addonService.ListItems(i => i.InventoryItemId == item.Id);
+
+            if (addons != null)
             {
-                var addons = await addonService.ListItems(i => i.InventoryItemId == item.Id);
+                var addonPaths = addonService.GetPaths(
+                    item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"),
+                    SearchOption.TopDirectoryOnly);
 
-                if (addons != null)
+                foreach (var addon in addons)
                 {
-                    var addonPaths = addonService.GetPaths(
-                        item.FolderPath ?? Path.Combine(Globals.MediaFolder, item.Category + "s"),
-                        SearchOption.TopDirectoryOnly);
-
-                    foreach (var addon in addons)
+                    if (!addonPaths.Contains(addon.Path))
                     {
-                        if (!addonPaths.Contains(addon.Path))
-                        {
-                            await addonService.DeleteAddon(addon.Id);
-                        }
+                        await addonService.DeleteAddon(addon.Id);
+                    }
+                }
+            }
+
+            var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+
+            if (versions != null)
+            {
+                foreach (var version in versions)
+                {
+                    if (!paths.Contains(version.Path))
+                    {
+                        await versionService.Delete(version.Id);
+
+                        await fileInfo.DeleteFileInfo(version.FileInfoId);
                     }
                 }
 
-                var versions = await versionService.List(i => i.InventoryItemId == item.Id);
+                versions = await versionService.List(i => i.InventoryItemId == item.Id);
 
-                if (versions != null)
+                if (!versions.Any())
                 {
-                    foreach (var version in versions)
-                    {
-                        if (!paths.Contains(version.Path))
-                        {
-                            await versionService.Delete(version.Id);
-
-                            await fileInfo.DeleteFileInfo(version.Id);
-                        }
-                    }
-
-                    if (!versions.Any())
+                    if (item.Category == "Episode")
                     {
                         await UpdateSeason(items);
-
-                        await binService.AddItem(item);
                     }
+
+                    await binService.AddItem(item);
                 }
             }
         }

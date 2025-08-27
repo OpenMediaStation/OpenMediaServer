@@ -31,5 +31,10 @@ public class TableBaseService<T>(IDataRepository dataRepository) : ITableBaseSer
     public async Task Delete(Guid id)
     {
         await dataRepository.DeleteObjectWithFilter<T>(id);
+    }    
+    
+    public async Task Delete(Expression<Func<T,bool>>? filter)
+    {
+        await dataRepository.DeleteObjectWithFilter(filter);
     }
 }

@@ -113,7 +113,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
 
         if (parts == null)
         {
-            fileInfo = await fileInfoService.GetFileInfo(category, version.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(version.FileInfoId.Value);
         }
         else
         {
@@ -124,7 +124,7 @@ public class StreamingService(ILogger<StreamingService> logger, IInventoryServic
                 return null;
             }
 
-            fileInfo = await fileInfoService.GetFileInfo(category, part.FileInfoId.Value);
+            fileInfo = await fileInfoService.GetFileInfo(part.FileInfoId.Value);
         }
 
         // Determine mime type

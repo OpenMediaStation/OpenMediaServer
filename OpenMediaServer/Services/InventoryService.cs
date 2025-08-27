@@ -66,7 +66,7 @@ public class InventoryService(
         if (items.Length != 1)
         {
             logger.LogDebug("PossibleItems count in GetItem: {ItemCount}", items?.Length);
-            logger.LogWarning("Id could not be found in category");
+            logger.LogDebug("Id could not be found in category");
 
             return null;
         }

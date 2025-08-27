@@ -43,4 +43,9 @@ public class DataRepoMock : IDataRepository
             WrittenObjects.Remove(JsonSerializer.Serialize(item, options: Globals.JsonOptions));
         }
     }
+
+    public Task DeleteObjectWithFilter<T>(Expression<Func<T, bool>>? filter = null)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -93,6 +93,13 @@ public class OpenLibraryApi : IOpenLibraryApi
 
     public async Task<BookEditionsResponse?> GetWorks(string? workKey)
     {
+        if (workKey == null)
+        {
+            _logger.LogDebug("WorkKey is null");
+            
+            return null;
+        }
+        
         try
         {
             string detailsUrl = $"{OpenLibraryBaseUrl}{workKey}/editions.json";
@@ -107,7 +114,7 @@ public class OpenLibraryApi : IOpenLibraryApi
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to retrieve book description.");
+            _logger.LogWarning(ex, "Failed to retrieve book description.");
             return null;
         }
     }

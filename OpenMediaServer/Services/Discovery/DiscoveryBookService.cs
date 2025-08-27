@@ -1,4 +1,5 @@
 using OpenMediaServer.Interfaces.Services;
+using OpenMediaServer.Interfaces.Services.FileInfo;
 using OpenMediaServer.Interfaces.Services.Metadata;
 using OpenMediaServer.Models;
 using OpenMediaServer.Models.Inventory;

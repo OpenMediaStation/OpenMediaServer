@@ -14,4 +14,5 @@ public interface IDataRepository
     Task DeleteObjectWithFilter<T>(Guid id, Expression<Func<T, bool>>? filter = null);
     
     Task DeleteObjects<T>(IEnumerable<T> items);
+    Task DeleteObjectWithFilter<T>(Expression<Func<T, bool>>? filter = null);
 }
