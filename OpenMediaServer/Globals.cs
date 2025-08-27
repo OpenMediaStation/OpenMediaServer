@@ -37,26 +37,4 @@ public static class Globals
         return httpContext.User.FindFirst("sub")?.Value ??
                httpContext.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
     }
-
-    public static string GetUserStorage(HttpContext httpContext)
-    {
-        var userId = GetUserId(httpContext);
-
-        if (userId == null)
-        {
-           throw new ArgumentNullException(userId);
-        }
-
-        return Path.Combine(ConfigFolder, "users", userId);
-    }
-
-    public static string GetUserStorage(string? userId)
-    {
-        if (userId == null)
-        {
-           throw new ArgumentNullException(userId);
-        }
-
-        return Path.Combine(ConfigFolder, "users", userId);
-    }
 }

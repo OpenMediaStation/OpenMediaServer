@@ -172,9 +172,4 @@ public class ProgressService(
 
         return progresses;
     }
-
-    private string GetProgressFilePath(string userId, string category)
-    {
-        return Path.Combine(Globals.GetUserStorage(userId), "progress", category) + ".json";
-    }
 }
