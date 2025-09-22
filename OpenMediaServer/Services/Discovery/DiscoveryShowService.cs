@@ -38,7 +38,7 @@ public class DiscoveryShowService(
         
         var cleanedFolderTitle = !string.IsNullOrWhiteSpace(discoveryInfo.Year) ? folderTitle?.Replace(discoveryInfo.Year, "")?.Replace("()", "")?.Trim() : folderTitle?.Trim();
         // Show
-        var showPath = Path.Combine(Globals.MediaFolder, "Shows", cleanedFolderTitle);
+        var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
         var show = await _inventoryService.GetItem("Show", i => i.FolderPath == showPath);
 
         if (show == null)
