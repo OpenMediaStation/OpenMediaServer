@@ -10,7 +10,7 @@ using TMDbLib.Objects.General;
 
 namespace OpenMediaServer.Services.Metadata;
 
-public class MovieMetadataService(IOmdbAPI omdbApi, ITMDbAPI tMDbApi, IImageService imageService, IDataRepository dataRepository) : TableBaseService<MetadataMovieModel>(dataRepository), IMovieMetadataService
+public class MovieMetadataService(IOmdbAPI omdbApi, ITMDbAPI tMDbApi, IImageService imageService, IDataRepository dataRepository, ILogger<MovieMetadataService> logger) : TableBaseService<MetadataMovieModel>(dataRepository), IMovieMetadataService
 {
     public async Task<MetadataModel> GetMetadata(string? year, string title, string? language, Guid metadataId)
     {
@@ -95,7 +95,23 @@ public class MovieMetadataService(IOmdbAPI omdbApi, ITMDbAPI tMDbApi, IImageServ
         if (url == null)
             return null;
 
-        var bytes = await tMDbApi.GetImageFromId(url, Globals.TmdbApiKey);
+        byte[]? bytes = null;
+        
+        if (url.StartsWith("http"))
+        {
+            try
+            {
+                bytes = await new HttpClient().GetByteArrayAsync(url);
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogError($"Unable to get image from url: {url}, message: {ex.Message}");
+            }
+        }
+        else
+        {
+            bytes = await tMDbApi.GetImageFromId(url, Globals.TmdbApiKey);
+        }
 
         await imageService.WriteImage(bytes, url, fileName, category, id);
 
