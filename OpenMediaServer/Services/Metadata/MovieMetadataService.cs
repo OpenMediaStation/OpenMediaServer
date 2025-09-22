@@ -35,8 +35,13 @@ public class MovieMetadataService(IOmdbAPI omdbApi, ITMDbAPI tMDbApi, IImageServ
             tmdbImages = await tMDbApi.GetMovieImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
         }
 
-        var logoPath = tmdbImages?.Logos.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
-        var posterPath = tmdbImages?.Posters.Where(i => i.Iso_639_1 == language).FirstOrDefault()?.FilePath;
+        var tmdbLogosSorted = tmdbImages?.Logos?.OrderBy(i => i.VoteAverage)?.ToList();
+        var tmdbPostersSorted = tmdbImages?.Posters?.OrderBy(i => i.VoteAverage)?.ToList();
+        
+        var logoPath = tmdbLogosSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ??
+                       tmdbLogosSorted?.FirstOrDefault()?.FilePath;
+        var posterPath = tmdbPostersSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ?? 
+                         tmdbPostersSorted?.FirstOrDefault()?.FilePath ?? omdbData?.Poster;
 
         var backdropBlurHash = await WriteImageAndReturnBlurHash(tmdbData?.BackdropPath, "backdrop", "Movie", metadataId.ToString());
         var logoBlurHash = await WriteImageAndReturnBlurHash(logoPath, "logo", "Movie", metadataId.ToString());
@@ -57,7 +62,7 @@ public class MovieMetadataService(IOmdbAPI omdbApi, ITMDbAPI tMDbApi, IImageServ
             Language = omdbData?.Language,
             Country = omdbData?.Country,
             Awards = omdbData?.Awards,
-            Poster = posterPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/poster" : omdbData?.Poster,
+            Poster = posterPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/poster" : null,
             PosterBlurHash = posterBlurHash,
             Backdrop = tmdbData?.BackdropPath != null ? $"{Globals.Domain}/images/Movie/{metadataId}/backdrop" : null,
             BackdropBlurHash = backdropBlurHash,

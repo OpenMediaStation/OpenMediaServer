@@ -169,6 +169,8 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/test/The Expanse/Season 1/The EXPANSE - S01 E02.mp4", "The Expanse", "/media/Shows/test/The Expanse")]
     [InlineData("/media/Shows/test/The 100/Season 1/S01E02.mp4", "The 100", "/media/Shows/test/The 100")]
     [InlineData("/media/Shows/test/Cyberpunk Edegrunners/Season 1/Cyberpunk - Edgerunners - S01E02 - DUAL 1080p WEB H.264 -Asdfdf (AG).mkv", "Cyberpunk Edegrunners", "/media/Shows/test/Cyberpunk Edegrunners")]
+    [InlineData("/media/Shows/ONE PIECE (2023)/Season 1/ONE.PIECE.2023.S01E01.German.ML.EAC3.2160p.NF.WEB.H265-ZeroTwo.mkv", "ONE PIECE", "/media/Shows/ONE PIECE (2023)")]
+
     public async Task CreateFromPaths_FirstItemShow(string path, string title, string? folderPath)
     {
         // Arrange

@@ -35,20 +35,22 @@ public class DiscoveryShowService(
 
         _logger.LogDebug("Show detected");
 
+        
+        var cleanedFolderTitle = !string.IsNullOrWhiteSpace(discoveryInfo.Year) ? folderTitle?.Replace(discoveryInfo.Year, "")?.Replace("()", "")?.Trim() : folderTitle?.Trim();
         // Show
-        var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
+        var showPath = Path.Combine(Globals.MediaFolder, "Shows", cleanedFolderTitle);
         var show = await _inventoryService.GetItem("Show", i => i.FolderPath == showPath);
 
         if (show == null)
         {
-            show = await _binService.GetItem<InventoryItem>(folderTitle, "Show");
+            show = await _binService.GetItem<InventoryItem>(cleanedFolderTitle, "Show");
 
             if (show == null)
             {
                 show = new InventoryItem
                 {
                     Id = Guid.NewGuid(),
-                    Title = folderTitle,
+                    Title = cleanedFolderTitle,
                     Category = "Show",
                 };
 

@@ -39,7 +39,9 @@ public class EpisodeMetadataService(
         {
             episodeInfo = await tMDbApi.GetEpisode(showData.Id, (int)season, (int)episode, Globals.TmdbApiKey);
         }
-
+        
+        var stillPath = episodeInfo?.StillPath ?? omdbData?.Poster;
+        
         var backdropBlurHash =
             await WriteImageAndReturnBlurHash(episodeInfo?.StillPath, "backdrop", "Episode", metadataId.ToString());
 
@@ -58,9 +60,9 @@ public class EpisodeMetadataService(
             Language = omdbData?.Language,
             Country = omdbData?.Country,
             Awards = omdbData?.Awards,
-            Backdrop = episodeInfo?.StillPath != null
+            Backdrop = stillPath != null
                 ? $"{Globals.Domain}/images/Episode/{metadataId}/backdrop"
-                : omdbData?.Poster,
+                : null,
             BackdropBlurHash = backdropBlurHash,
             Metascore = omdbData?.Metascore,
             ImdbRating = omdbData?.ImdbRating,
