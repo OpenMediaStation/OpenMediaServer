@@ -15,7 +15,8 @@ public class ContentDiscoveryService(
     IAddonService addonService,
     IFileInfoService fileInfo,
     IDiscoveryAudiobookService audiobookDiscoveryService,
-    IVersionService versionService) : IContentDiscoveryService
+    IVersionService versionService,
+    IPartService partService) : IContentDiscoveryService
 {
     private FileSystemWatcher? _watcher;
     private readonly SemaphoreSlim _semaphore = new(1, 1);
@@ -308,9 +309,32 @@ public class ContentDiscoveryService(
                 {
                     if (!paths.Contains(version.Path))
                     {
-                        await versionService.Delete(version.Id);
+                        var parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
 
-                        await fileInfo.DeleteFileInfo(version.FileInfoId);
+                        if (parts != null)
+                        {
+                            foreach (var part in parts)
+                            {
+                                if (!paths.Contains(part.Path))
+                                {
+                                    await partService.DeletePart(part.Id);
+                                    await fileInfo.DeleteFileInfo(part.FileInfoId);
+                                }
+                            }
+                            
+                            parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
+
+                            if (!parts.Any())
+                            {
+                                await versionService.Delete(version.Id);
+                            }
+                        }
+                        else
+                        {
+                            await versionService.Delete(version.Id);
+
+                            await fileInfo.DeleteFileInfo(version.FileInfoId);
+                        }
                     }
                 }
 

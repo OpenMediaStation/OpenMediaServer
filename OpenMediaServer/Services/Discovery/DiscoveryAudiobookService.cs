@@ -60,17 +60,8 @@ public class DiscoveryAudiobookService(
             }
 
             var books = await inventoryService.ListItems("Audiobook");
-            var existingVersion = (await versionService.List(i => i.Path == path) ?? []).FirstOrDefault();
-            var existingVersionId = existingVersion?.Id;
-
             InventoryItem? existingBook = null;
-
-            if (existingVersionId != null)
-            {
-                existingBook = await inventoryService.GetItem(existingVersionId);
-            }
-
-
+            
             string? folderPath = null;
 
             if (!string.IsNullOrEmpty(folderTitle))
@@ -84,6 +75,8 @@ public class DiscoveryAudiobookService(
 
                 existingBook = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
             }
+            
+            var existingVersion = (await versionService.List(i => i.Path == folderPath) ?? []).FirstOrDefault();
 
             if (existingBook != null)
             {
@@ -118,7 +111,7 @@ public class DiscoveryAudiobookService(
                     var version = new InventoryItemVersion
                     {
                         Id = Guid.NewGuid(),
-                        Path = path,
+                        Path = folderPath,
                         InventoryItemId = existingBook.Id,
                     };
 
@@ -211,7 +204,6 @@ public class DiscoveryAudiobookService(
             if (!string.IsNullOrEmpty(folderTitle))
             {
                 folderPath = path.Replace($"/{title}.{extension}", "");
-                existingBook = books?.Where(i => i.FolderPath == folderPath).FirstOrDefault();
             }
 
             if (existingBook != null)
