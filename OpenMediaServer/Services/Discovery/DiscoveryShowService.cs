@@ -9,12 +9,12 @@ using OpenMediaServer.Models.Inventory;
 namespace OpenMediaServer.Services.Discovery;
 
 public class DiscoveryShowService(
-    ILogger<DiscoveryShowService> _logger,
-    IFileInfoService _fileInfoService,
-    IMetadataService _metadataService,
-    IInventoryService _inventoryService,
-    IAddonService _addonService,
-    IBinService _binService,
+    ILogger<DiscoveryShowService> logger,
+    IFileInfoService fileInfoService,
+    IMetadataService metadataService,
+    IInventoryService inventoryService,
+    IAddonService addonService,
+    IBinService binService,
     IVersionService versionService,
     IShowMetadataService showMetadataService,
     ISeasonMetadataService seasonMetadataService,
@@ -22,28 +22,29 @@ public class DiscoveryShowService(
 {
     public async Task CreateShow(string path)
     {
+        var seasonFolderRegex = new Regex(@"\A[Ss](eason)|(taffel) [0-9]+",  RegexOptions.Compiled);
         var splitPath = path.Split('/');
         var folderTitle = splitPath
             .SkipWhile(i => i != "Shows") // Skip elements until "Shows" is found
             .Skip(1) // Skip "Shows" itself
-            .FirstOrDefault(); // Get the next element, or null if none exists
+            .LastOrDefault(p =>  !Path.HasExtension(p) && !seasonFolderRegex.IsMatch(p)); // Get the next element, or null if none exists
 
         var discoveryInfo = GetInfo(path);
 
         if (discoveryInfo == null)
             return;
 
-        _logger.LogDebug("Show detected");
-
+        logger.LogDebug("Show detected");
+        
         
         var cleanedFolderTitle = !string.IsNullOrWhiteSpace(discoveryInfo.Year) ? folderTitle?.Replace(discoveryInfo.Year, "")?.Replace("()", "")?.Trim() : folderTitle?.Trim();
         // Show
         var showPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
-        var show = await _inventoryService.GetItem("Show", i => i.FolderPath == showPath);
+        var show = await inventoryService.GetItem("Show", i => i.FolderPath == showPath);
 
         if (show == null)
         {
-            show = await _binService.GetItem<InventoryItem>(cleanedFolderTitle, "Show");
+            show = await binService.GetItem<InventoryItem>(cleanedFolderTitle, "Show");
 
             if (show == null)
             {
@@ -54,11 +55,11 @@ public class DiscoveryShowService(
                     Category = "Show",
                 };
 
-                var metadata = await _metadataService.CreateNewMetadata
+                var metadata = await metadataService.CreateNewMetadata
                 (
                     parentId: show.Id,
                     title: show.Title,
-                    year: discoveryInfo?.Year,
+                    year: discoveryInfo.Year,
                     category: show.Category
                 );
                 
@@ -70,26 +71,26 @@ public class DiscoveryShowService(
             }
             else
             {
-                await _binService.RemoveById(show);
+                await binService.RemoveById(show);
             }
 
-            show.FolderPath = Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
+            show.FolderPath = Path.GetDirectoryName(path)?.Split('/').TakeWhile(f => !f.StartsWith("Season", StringComparison.InvariantCultureIgnoreCase) && !f.StartsWith("staffel", StringComparison.InvariantCultureIgnoreCase)).Aggregate((n,m) => n + '/' + m); //Path.Combine(Globals.MediaFolder, "Shows", folderTitle);
 
-            await _inventoryService.AddItem(show);
+            await inventoryService.AddItem(show);
         }
 
         var folderPath = Directory.GetParent(path)?.FullName ?? Path.GetDirectoryName(path);
         // Season
-        var season = await _inventoryService.GetItem("Season", i => i.FolderPath == folderPath);
+        var season = await inventoryService.GetItem("Season", i => i.FolderPath == folderPath);
 
         if (season == null)
         {
-            if (string.IsNullOrWhiteSpace(discoveryInfo?.SeasonFolder))
+            if (string.IsNullOrWhiteSpace(discoveryInfo.SeasonFolder))
             {
-                discoveryInfo!.SeasonFolder = $"Season {discoveryInfo?.SeasonNr}";
+                discoveryInfo.SeasonFolder = $"Season {discoveryInfo.SeasonNr}";
             }
 
-            season = await _binService.GetItem<InventoryItem>(discoveryInfo!.SeasonFolder, "Season");
+            season = await binService.GetItem<InventoryItem>(discoveryInfo.SeasonFolder, "Season");
 
             if (season == null)
             {
@@ -99,11 +100,11 @@ public class DiscoveryShowService(
                     Category = "Season",
 
                     ShowId = show.Id,
-                    Title = discoveryInfo?.SeasonFolder,
+                    Title = discoveryInfo.SeasonFolder,
                     SeasonNr = discoveryInfo?.SeasonNr,
                 };
 
-                var metadata = await _metadataService.CreateNewMetadata
+                var metadata = await metadataService.CreateNewMetadata
                 (
                     parentId: season.Id,
                     title: show.Title,
@@ -120,14 +121,14 @@ public class DiscoveryShowService(
             }
             else
             {
-                await _binService.RemoveById(season);
+                await binService.RemoveById(season);
             }
 
             season.FolderPath = Directory.GetParent(path)?.FullName ?? Directory.GetCurrentDirectory();
 
-            await _inventoryService.AddItem(season);
+            await inventoryService.AddItem(season);
 
-            await _inventoryService.UpdateOrInsert(show);
+            await inventoryService.UpdateOrInsert(show);
         }
 
         // Episode
@@ -136,7 +137,7 @@ public class DiscoveryShowService(
 
         foreach (var version in versions ?? [])
         {
-            var item = await _inventoryService.GetItem(version.InventoryItemId);
+            var item = await inventoryService.GetItem(version.InventoryItemId);
 
             if (item != null)
             {
@@ -150,7 +151,7 @@ public class DiscoveryShowService(
         {
             var title = $"{folderTitle} S{discoveryInfo?.SeasonNr}E{discoveryInfo?.EpisodeNr}";
 
-            episode = await _binService.GetItem<InventoryItem>(title, "Episode");
+            episode = await binService.GetItem<InventoryItem>(title, "Episode");
 
             var versionId = Guid.NewGuid();
 
@@ -166,7 +167,7 @@ public class DiscoveryShowService(
                     SeasonNr = season.SeasonNr,
                 };
 
-                var metadata = await _metadataService.CreateNewMetadata
+                var metadata = await metadataService.CreateNewMetadata
                 (
                     parentId: episode.Id,
                     title: show.Title ?? string.Empty,
@@ -185,18 +186,18 @@ public class DiscoveryShowService(
             }
             else
             {
-                await _binService.RemoveById(episode);
+                await binService.RemoveById(episode);
             }
 
-            var addons = _addonService.DiscoverAddons(path);
+            var addons = addonService.DiscoverAddons(path);
 
-            await _inventoryService.AddItem(episode);
+            await inventoryService.AddItem(episode);
             
             foreach (var addon in addons)
             {
                 addon.InventoryItemId = episode.Id;
 
-                await _addonService.UpdateOrInsert(addon);
+                await addonService.UpdateOrInsert(addon);
             }
 
             var newVersion = new InventoryItemVersion()
@@ -204,26 +205,24 @@ public class DiscoveryShowService(
                 Id = versionId,
                 InventoryItemId = episode.Id,
                 Path = path,
-                FileInfoId = (await _fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
+                FileInfoId = (await fileInfoService.CreateFileInfo(path, versionId, "Episode"))?.Id
             };
             
             await versionService.UpdateOrInsert(newVersion);
             
-            await _inventoryService.UpdateOrInsert(season);
+            await inventoryService.UpdateOrInsert(season);
         }
     }
 
     private DiscoveryInfo? GetInfo(string path)
     {
-        var info = new DiscoveryInfo();
-
-        info = GetRegexInfo(path);
+        var info = GetRegexInfo(path);
 
         info ??= GetLeadingDigitEpisodeInfo(path);
 
         if (info == null)
         {
-            _logger.LogWarning("Path invalid for a Show: {Path}", path);
+            logger.LogWarning("Path invalid for a Show: {Path}", path);
         }
 
         return info;
@@ -285,7 +284,7 @@ public class DiscoveryShowService(
         }
         else
         {
-            // If no season folder exists assume its Season 1
+            // If no season folder exists assume it's Season 1
             info.SeasonNr = 1;
         }
 
@@ -302,37 +301,59 @@ public class DiscoveryShowService(
     {
         var info = new DiscoveryInfo();
 
-        var match = MatchRegex
+        const string fileRegex = @"(?=.*(?:\b[Ss]\d+\s*[Ee]\d+\b|\([sS]\d+[/⧸][eE]\d+\)|\s*\d+\.))((?<episode>\d+)\.\s*)?(.*?)?(\s?\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?\s?(.*?)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)\s?(.*?)?)?(?<extension>\.\S{3,})$";
+        const string folderRegex = @"^(?:.*?/)?(?:[^/]*?(?:\(|\.)(?<yearFolder>\d{4})(?:\)|\.?)/((?:[Ss]taffel ?|[Ss]eason ?)(?<seasonFolder>\d+))|[^/]*?(?:\(|\.)(?<yearFolder>\d{4})(?:\)|\.?)/[^/]+|[^/]+/((?:[Ss]taffel ?|[Ss]eason ?)(?<seasonFolder>\d+)))(?:/)?$";
+
+        var fileName = Path.GetFileName(path);
+        var folderPath = Path.GetDirectoryName(path);
+        
+        var fileMatch = MatchRegex
         (
-            regex:
-            @"(?<category>(Shows)|\w+?)/.*?((\(|\.)(?<yearFolder>\d{4})(\)|\.?))?/?(?<seasonFolder>(([sS]taffel ?)|([Ss]eason ?))\d+)?/?((?<title>[ \w.\-':]+?) )?((\(|\.)(?<year>\d{4})(\)|\.?))?(\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)).*?\.(?<extension>\S{3,})",
-            path: path
+            regex:fileRegex,
+            path: fileName
         );
 
-        if (match == null)
+        var folderMatch = MatchRegex
+        (
+            regex: folderRegex,
+            path: folderPath ?? path
+        );
+        
+        if (fileMatch == null)
         {
             return null;
         }
 
-        var groups = match.Groups;
+        var fileGroups = fileMatch.Groups;
 
-        info.Year = groups["yearFolder"].Value;
-        info.SeasonFolder = groups["seasonFolder"].Value;
+        if (string.IsNullOrWhiteSpace(fileGroups["season"].Value) &&
+            string.IsNullOrWhiteSpace(fileGroups["seasonParens"].Value) && folderMatch is null)
+            return null;
+        
+        else if (folderMatch != null)
+        {
+            var folderGroups = folderMatch.Groups;
+        
+            info.Year = folderGroups["yearFolder"].Value;
+            info.SeasonFolder = folderGroups["seasonFolder"].Value;
+            if(string.IsNullOrWhiteSpace(fileGroups["season"].Value) && int.TryParse(info.SeasonFolder.Replace("season", string.Empty, StringComparison.InvariantCultureIgnoreCase).Trim().Replace("staffel",  string.Empty, StringComparison.InvariantCultureIgnoreCase), out var seasonNrFolderTemp))
+                info.SeasonNr = seasonNrFolderTemp;
+        }
 
-        if (int.TryParse(groups["episode"].Value, out int episodeNrTemp))
+        if (int.TryParse(fileGroups["episode"].Value, out int episodeNrTemp))
         {
             info.EpisodeNr = episodeNrTemp;
         }
-        else if (int.TryParse(groups["episodeParens"].Value, out int episodeParensNrTemp))
+        else if (int.TryParse(fileGroups["episodeParens"].Value, out int episodeParensNrTemp))
         {
             info.EpisodeNr = episodeParensNrTemp;
         }
 
-        if (int.TryParse(groups["season"].Value, out var seasonNrTemp))
+        if (int.TryParse(fileGroups["season"].Value, out var seasonNrTemp))
         {
             info.SeasonNr = seasonNrTemp;
         }
-        else if (int.TryParse(groups["seasonParens"].Value, out int seasonParensNrTemp))
+        else if (int.TryParse(fileGroups["seasonParens"].Value, out int seasonParensNrTemp))
         {
             info.SeasonNr = seasonParensNrTemp;
         }
@@ -345,7 +366,7 @@ public class DiscoveryShowService(
         var pathRegex = new Regex
         (
             pattern: regex,
-            options: RegexOptions.Compiled
+            options: RegexOptions.Compiled & RegexOptions.ExplicitCapture
         );
 
         var match = pathRegex.Match(path.Replace(Globals.MediaFolder, string.Empty));

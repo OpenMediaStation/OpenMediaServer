@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using OpenMediaServer.APIs;
@@ -8,6 +9,11 @@ namespace OpenMediaServer.Test.APIs;
 
 public class TMDbAPIShould
 {
+    
+    private IConfigurationRoot _config = new ConfigurationBuilder()
+        .AddUserSecrets<TMDbAPIShould>()
+        .Build();
+    
     public TMDbAPI Api { get; set; }
 
     public TMDbAPIShould()
@@ -26,7 +32,7 @@ public class TMDbAPIShould
         var model = await Api.GetMovie
         (
             name: "Die Tribute von Panem",
-            apiKey: "f8cd15aa25675794601f72aeed118f02"
+            apiKey: _config["tmdb_api_key"]
         );
 
         model.ShouldNotBeNull();
@@ -38,7 +44,7 @@ public class TMDbAPIShould
         var model = await Api.GetShow
         (
             name: "Lucifer",
-            apiKey: "f8cd15aa25675794601f72aeed118f02"
+            apiKey: _config["tmdb_api_key"]
         );
 
         model.ShouldNotBeNull();
@@ -50,7 +56,7 @@ public class TMDbAPIShould
         var model = await Api.GetPerson
         (
             name: "Bob Marley",
-            apiKey: "f8cd15aa25675794601f72aeed118f02"
+            apiKey: _config["tmdb_api_key"]
         );
 
         model.ShouldNotBeNull();
@@ -62,7 +68,7 @@ public class TMDbAPIShould
         var model = await Api.GetMovieImages
         (
             movieId: 70160,
-            apiKey: "f8cd15aa25675794601f72aeed118f02"
+            apiKey: _config["tmdb_api_key"]
         );
 
         model.ShouldNotBeNull();
@@ -74,7 +80,7 @@ public class TMDbAPIShould
         var bytes = await Api.GetImageFromId
         (
             imagePath: "/4gSdZvuUzLIlXdafjmG9HFMIWwm.jpg",
-            apiKey: "f8cd15aa25675794601f72aeed118f02"
+            apiKey: _config["tmdb_api_key"]
         );
 
         File.WriteAllBytes("./test.jpg", bytes);
