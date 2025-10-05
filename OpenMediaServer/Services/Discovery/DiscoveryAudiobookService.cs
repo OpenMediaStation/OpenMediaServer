@@ -14,7 +14,8 @@ public class DiscoveryAudiobookService(
     IMetadataService metadataService,
     IVersionService versionService,
     IPartService partService,
-    IAudioBookMetadataService audioBookMetadataService)
+    IAudioBookMetadataService audioBookMetadataService,
+    IBinService binService)
     : IDiscoveryAudiobookService
 {
     public async Task CreateAudiobook(string path)
@@ -126,31 +127,37 @@ public class DiscoveryAudiobookService(
 
             var versionId = Guid.NewGuid();
             var partId = Guid.NewGuid();
+            
+            var audiobook = await binService.GetItem<InventoryItem>(title, "Audiobook");
 
-            var audiobook = new InventoryItem()
+            if (audiobook == null)
             {
-                Id = Guid.NewGuid(),
-                Category = "Audiobook",
-                Title = title,
-                FolderPath = folderPath
-            };
+                audiobook = new InventoryItem()
+                {
+                    Id = Guid.NewGuid(),
+                    Category = "Audiobook",
+                    Title = title,
+                };
+                
+                var metadata = await metadataService.CreateNewMetadata
+                (
+                    parentId: audiobook.Id,
+                    title: audiobook.Title,
+                    category: audiobook.Category,
+                    path: path
+                );
 
-            var metadata = await metadataService.CreateNewMetadata
-            (
-                parentId: audiobook.Id,
-                title: audiobook.Title,
-                category: audiobook.Category,
-                path: path
-            );
-
-            audiobook.MetadataId = metadata?.Id;
+                audiobook.MetadataId = metadata?.Id;
             
-            var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
+                var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
             
-            audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
-                ? dateTime
-                : null;
+                audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
+                audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
+                    ? dateTime
+                    : null;
+            }
+            
+            audiobook.FolderPath = folderPath;
 
             await inventoryService.AddItem(audiobook);
 
@@ -175,6 +182,8 @@ public class DiscoveryAudiobookService(
             };
             
             await partService.UpdateOrInsert(newPart);
+            
+            await binService.RemoveById(audiobook);
         }
         else
         {
@@ -234,30 +243,37 @@ public class DiscoveryAudiobookService(
             }
 
             var versionId = Guid.NewGuid();
-            var audiobook = new InventoryItem()
+            
+            var audiobook = await binService.GetItem<InventoryItem>(title, "Audiobook");
+
+            if (audiobook == null)
             {
-                Id = Guid.NewGuid(),
-                Category = "Audiobook",
-                Title = title,
-                FolderPath = folderPath
-            };
+                audiobook = new InventoryItem()
+                {
+                    Id = Guid.NewGuid(),
+                    Category = "Audiobook",
+                    Title = title,
+                };
 
-            var metadata = await metadataService.CreateNewMetadata
-            (
-                parentId: audiobook.Id,
-                title: audiobook.Title,
-                category: audiobook.Category,
-                path: path
-            );
+                var metadata = await metadataService.CreateNewMetadata
+                (
+                    parentId: audiobook.Id,
+                    title: audiobook.Title,
+                    category: audiobook.Category,
+                    path: path
+                );
 
-            audiobook.MetadataId = metadata?.Id;
+                audiobook.MetadataId = metadata?.Id;
             
-            var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
+                var audiobookMetadata = await audioBookMetadataService.Get(metadata?.AudiobookMetadataId);
             
-            audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
-            audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
-                ? dateTime
-                : null;
+                audiobook.DisplayImageBlurHash = audiobookMetadata?.ThumbnailBlurHash;
+                audiobook.ReleaseDate = DateTime.TryParse(audiobookMetadata?.PublishedDate, out var dateTime)
+                    ? dateTime
+                    : null;
+            }
+            
+            audiobook.FolderPath = folderPath;
 
             await inventoryService.AddItem(audiobook);
 
@@ -270,6 +286,8 @@ public class DiscoveryAudiobookService(
             };
             
             await versionService.UpdateOrInsert(newVersion);
+            
+            await binService.RemoveById(audiobook);
         }
     }
 

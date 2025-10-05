@@ -37,7 +37,7 @@ public class DiscoveryAudiobookServiceShould
         _audioBookMetadataService = Substitute.For<IAudioBookMetadataService>();
         _versionService = new VersionServiceMock();
         _inventoryService = new InventoryService(Substitute.For<ILogger<InventoryService>>(), _storageRepository, Mock.Of<IImageService>());
-        _inventoryBookService = new DiscoveryAudiobookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>(), _versionService, _partService, _audioBookMetadataService);
+        _inventoryBookService = new DiscoveryAudiobookService(_logger, _fileInfoService, _inventoryService, Substitute.For<IMetadataService>(), _versionService, _partService, _audioBookMetadataService, Substitute.For<IBinService>());
     }
 
     [Theory]

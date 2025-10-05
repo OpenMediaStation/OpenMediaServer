@@ -324,7 +324,7 @@ public class ContentDiscoveryService(
                             
                             parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
 
-                            if (!parts.Any())
+                            if (!parts?.Any() ?? true)
                             {
                                 await versionService.Delete(version.Id);
                             }
