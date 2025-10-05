@@ -94,7 +94,7 @@ public class ContentDiscoveryService(
     public async Task CreateFromPaths(IEnumerable<string> paths)
     {
         logger.LogTrace("Creating from path");
-        
+
         // All paths get added here so each category can be executed in parallel.
         // Currently, we do not parallelize the same category because there could be multiple versions of the same item and that will not be handled correctly.
         List<KeyValuePair<string, string>> toDos = [];
@@ -160,7 +160,7 @@ public class ContentDiscoveryService(
                 await audiobookDiscoveryService.CreateAudiobook(kv.Value);
             }
         });
-        
+
         var books = Task.Run(async () =>
         {
             foreach (var kv in toDos.Where(i => i.Key == "Books"))
@@ -169,7 +169,7 @@ public class ContentDiscoveryService(
                 await bookService.CreateBook(kv.Value);
             }
         });
-        
+
         await Task.WhenAll(movies, shows, audiobooks, books);
     }
 
@@ -286,6 +286,7 @@ public class ContentDiscoveryService(
         {
             var addons = await addonService.ListItems(i => i.InventoryItemId == item.Id);
 
+            // Delete addon if addon gets deleted
             if (addons != null)
             {
                 var addonPaths = addonService.GetPaths(
@@ -300,7 +301,7 @@ public class ContentDiscoveryService(
                     }
                 }
             }
-
+            
             var versions = await versionService.List(i => i.InventoryItemId == item.Id);
 
             if (versions != null)
@@ -321,7 +322,7 @@ public class ContentDiscoveryService(
                                     await fileInfo.DeleteFileInfo(part.FileInfoId);
                                 }
                             }
-                            
+
                             parts = await partService.ListItems(i => i.InventoryItemVersionId == version.Id);
 
                             if (!parts?.Any() ?? true)
@@ -347,6 +348,12 @@ public class ContentDiscoveryService(
                         await UpdateSeason(items);
                     }
 
+                    // Delete addons if inventory item gets deleted
+                    foreach (var addon in addons ?? [])
+                    {
+                        await addonService.DeleteAddon(addon.Id);
+                    }
+                    
                     await binService.AddItem(item);
                 }
             }

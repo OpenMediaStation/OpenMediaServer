@@ -136,15 +136,15 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
                 version.FileInfoId = (await fileInfoService.CreateFileInfo(path, version.Id, category))?.Id;
 
                 await versionService.UpdateOrInsert(version);
+            }
+            
+            var addons = await addonService.DiscoverAddons(path);
 
-                var addons = addonService.DiscoverAddons(path);
-
-                foreach (var addon in addons)
-                {
-                    addon.InventoryItemId = existingMovie.Id;
+            foreach (var addon in addons)
+            {
+                addon.InventoryItemId = existingMovie.Id;
                     
-                    await addonService.UpdateOrInsert(addon);
-                }
+                await addonService.UpdateOrInsert(addon);
             }
 
             return;
@@ -181,7 +181,7 @@ public class DiscoveryMovieService(ILogger<DiscoveryMovieService> logger, IFileI
         
         movie.FolderPath = folderPath;
         
-        var newAddons = addonService.DiscoverAddons(path);
+        var newAddons = await addonService.DiscoverAddons(path);
 
         await inventoryService.AddItem(movie);
         

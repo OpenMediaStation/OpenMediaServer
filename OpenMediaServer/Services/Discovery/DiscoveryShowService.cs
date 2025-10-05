@@ -189,7 +189,7 @@ public class DiscoveryShowService(
                 await binService.RemoveById(episode);
             }
 
-            var addons = addonService.DiscoverAddons(path);
+            var addons = await addonService.DiscoverAddons(path);
 
             await inventoryService.AddItem(episode);
             

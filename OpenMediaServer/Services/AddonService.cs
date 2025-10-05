@@ -47,7 +47,7 @@ public class AddonService(
         return stream;
     }
 
-    public IEnumerable<InventoryItemAddon> DiscoverAddons(string path)
+    public async Task<IEnumerable<InventoryItemAddon>> DiscoverAddons(string path)
     {
         logger.LogDebug("Path: {Path}", path);
 
@@ -68,12 +68,12 @@ public class AddonService(
 
         var files = EnumerateFiles(fileLocation, fileNameWithoutExtension);
 
-        var addons = GenerateAddons(files);
+        var addons = await GenerateAddons(files);
 
         return addons;
     }
 
-    private IEnumerable<InventoryItemAddon> GenerateAddons(IEnumerable<string> files)
+    private async Task<IEnumerable<InventoryItemAddon>> GenerateAddons(IEnumerable<string> files)
     {
         var addons = new List<InventoryItemAddon>();
 
@@ -100,10 +100,12 @@ public class AddonService(
 
                 sub = lang;
             }
+            
+            var existingAddon = (await ListItems(i => i.Path == item) ?? []).FirstOrDefault();
 
             var addon = new InventoryItemAddon()
             {
-                Id = Guid.NewGuid(),
+                Id = existingAddon?.Id ?? Guid.NewGuid(),
                 Path = item,
                 Category = category,
                 SubtitleLanguage = sub,
