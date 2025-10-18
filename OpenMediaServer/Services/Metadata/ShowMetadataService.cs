@@ -41,8 +41,8 @@ public class ShowMetadataService(
             tmdbImages = await tMDbApi.GetShowImages(tmdbData.Id, apiKey: Globals.TmdbApiKey);
         }
 
-        var tmdbLogosSorted = tmdbImages?.Logos?.OrderBy(i => i.VoteAverage)?.ToList();
-        var tmdbPostersSorted = tmdbImages?.Posters?.OrderBy(i => i.VoteAverage)?.ToList();
+        var tmdbLogosSorted = tmdbImages?.Logos?.OrderByDescending(i => i.VoteAverage)?.ToList();
+        var tmdbPostersSorted = tmdbImages?.Posters?.OrderByDescending(i => i.VoteAverage)?.ToList();
         
         var logoPath = tmdbLogosSorted?.FirstOrDefault(i => i.Iso_639_1 == language)?.FilePath ??
                        tmdbLogosSorted?.FirstOrDefault()?.FilePath;
