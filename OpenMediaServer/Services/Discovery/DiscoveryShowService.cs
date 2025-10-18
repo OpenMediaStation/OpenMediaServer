@@ -301,7 +301,7 @@ public class DiscoveryShowService(
     {
         var info = new DiscoveryInfo();
 
-        const string fileRegex = @"(?=.*(?:\b[Ss]\d+\s*[Ee]\d+\b|\([sS]\d+[/⧸][eE]\d+\)|\s*\d+\.))((?<episode>\d+)\.\s*)?(.*?)?(\s?\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?\s?(.*?)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)\s?(.*?)?)?(?<extension>\.\S{3,})$";
+        const string fileRegex = @"(?=.*(?:\b[Ss]\d+\s*[Ee]\d+\b|\([sS]\d+[/⧸][eE]\d+\)|\s*\d+\.))((?<episode>\d+)\.\s*)?(.*?)?(\s?\(?[sS](?<season>\d+)[ ]?[eE](?<episode>\d+)\)?\s?(.*?)?|\([sS](?<seasonParens>\d+)[/⧸][eE](?<episodeParens>\d+)\)\s?(.*?)?)?(?<extension>\.[a-zA-Z0-9]{3,})$";
         const string folderRegex = @"^(?:.*?/)?(?:[^/]*?(?:\(|\.)(?<yearFolder>\d{4})(?:\)|\.?)/((?:[Ss]taffel ?|[Ss]eason ?)(?<seasonFolder>\d+))|[^/]*?(?:\(|\.)(?<yearFolder>\d{4})(?:\)|\.?)/[^/]+|[^/]+/((?:[Ss]taffel ?|[Ss]eason ?)(?<seasonFolder>\d+)))(?:/)?$";
 
         var fileName = Path.GetFileName(path);
@@ -358,6 +358,9 @@ public class DiscoveryShowService(
             info.SeasonNr = seasonParensNrTemp;
         }
 
+        if(info.SeasonNr == null || info.EpisodeNr == 0)
+            throw new InvalidDataException($"Unable to find Episode or Season information in path: {path} {(info.SeasonNr != null ? $"found Season: {info.SeasonNr}" : string.Empty)} {(info.EpisodeNr != null ? $"found episode: {info.EpisodeNr}" : string.Empty)}");
+        
         return info;
     }
 

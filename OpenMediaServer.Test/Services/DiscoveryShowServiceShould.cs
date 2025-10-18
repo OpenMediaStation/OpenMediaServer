@@ -83,6 +83,7 @@ public class DiscoveryShowServiceShould
     [InlineData("/media/Shows/test/Motherland Fort Salem/Season 1/Motherland Fort Salem (2020) - S01E04 .mkv", "Motherland Fort Salem S1E4", null)]
     [InlineData("/media/Shows/test/Whiskey on the rocks/Season 1/2. Håll gränsen.mp4", "Whiskey on the rocks S1E2", null)]
     [InlineData("/media/Shows/test/Whiskey on the rocks/Season 1/2. Håll gränsen [emyWVxd].mp4", "Whiskey on the rocks S1E2", null)]
+    [InlineData("/media/Shows/Gen V/Season 2/Generation.V.S02E01.GERMAN.DL.2160P.WEB.H265-RiLE.mkv", "Gen V S2E1", null)]
     public async Task CreateFromPaths_FirstItemEpisode(string path, string title, string? folderPath)
     {
         // Arrange

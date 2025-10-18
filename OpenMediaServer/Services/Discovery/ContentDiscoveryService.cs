@@ -148,7 +148,14 @@ public class ContentDiscoveryService(
             foreach (var kv in toDos.Where(i => i.Key == "Shows"))
             {
                 logger.LogInformation("Checking {Category} path: {Path}", kv.Key, kv.Value);
-                await showService.CreateShow(kv.Value);
+                try
+                {
+                    await showService.CreateShow(kv.Value);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError($"failed to create show from {kv.Value}", e);
+                }
             }
         });
 
